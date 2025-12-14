@@ -1,65 +1,151 @@
+import Link from "next/link";
 import Image from "next/image";
+import { getRecipes } from "@/lib/api";
+import { FaArrowRight, FaFire, FaAward } from "react-icons/fa";
+import { FaUtensils, FaClock, FaEarthAmericas } from "react-icons/fa6"; // DÜZELTME: FaEarthAmericas buradan çağrılıyor
+import Hero from "@/components/home/Hero";
+import HomeCTA from "@/components/home/HomeCTA"; // YENİ BİLEŞEN
+export const dynamic = 'force-dynamic';
+export default async function Home() {
+  const popularRecipes = await getRecipes({ collection: ['Popüler'] });
+  const editorRecipes = await getRecipes({ collection: ['Editörün Seçimi'] });
 
-export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#fcfcfc]">
+      
+      {/* 1. HERO */}
+      <Hero />
+
+      {/* 2. MUTFAKLAR (Pasaportsuz Dünya Turu) */}
+      <section className="py-16 border-t border-gray-100">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 font-heading flex items-center gap-2">
+              <FaEarthAmericas className="text-blue-500" /> Pasaportsuz Dünya Turu
+            </h2>
+            <Link href="/recipes" className="text-sm font-bold text-brand hover:underline flex items-center gap-1">
+              Tümünü Gör <FaArrowRight />
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { name: "Türk Mutfağı", link: "Türk Mutfağı", img: "https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?q=80&w=400&auto=format&fit=crop", flag: "🇹🇷" },
+              { name: "İtalyan", link: "İtalyan", img: "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?q=80&w=400&auto=format&fit=crop", flag: "🇮🇹" },
+              { name: "Meksika", link: "Meksika", img: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?q=80&w=400&auto=format&fit=crop", flag: "🇲🇽" },
+              { name: "Japonya", link: "Japonya", img: "https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?q=80&w=400&auto=format&fit=crop", flag: "🇯🇵" },
+            ].map((cuisine) => (
+              <Link href={`/recipes?cuisine=${encodeURIComponent(cuisine.link)}`} key={cuisine.name} className="group relative h-40 md:h-52 rounded-2xl overflow-hidden cursor-pointer shadow-md">
+                <Image 
+                   src={cuisine.img} 
+                   alt={cuisine.name}
+                   fill
+                   className="object-cover group-hover:scale-110 transition duration-700" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 flex flex-col justify-end">
+                  <span className="text-2xl mb-1">{cuisine.flag}</span>
+                  <span className="text-white font-bold text-lg">{cuisine.name}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* 3. POPÜLER TARİFLER */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 font-heading flex items-center justify-center gap-2">
+              <FaFire className="text-orange-500 animate-bounce-slow" /> Şu An Herkes Bunu Pişiriyor
+            </h2>
+            <p className="text-gray-500 mt-2">Topluluğumuzun en çok sevdiği tarifler.</p>
+          </div>
+
+          {popularRecipes.data.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {popularRecipes.data.slice(0, 3).map((recipe) => (
+                <Link href={`/recipe/${recipe.slug}`} key={recipe.id} className="bg-white rounded-2xl border border-gray-100 hover:shadow-xl transition group overflow-hidden flex flex-col h-full">
+                  <div className="aspect-[4/3] overflow-hidden relative">
+                    <Image 
+                      src={recipe.image} 
+                      alt={recipe.title} 
+                      fill
+                      className="object-cover group-hover:scale-105 transition duration-500" 
+                    />
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-brand shadow-sm flex items-center gap-1">
+                      <FaFire /> Popüler
+                    </div>
+                  </div>
+                  <div className="p-5 flex flex-col flex-grow">
+                    <h3 className="font-bold text-lg text-slate-900 mb-1 group-hover:text-brand transition">{recipe.title}</h3>
+                    <div className="mt-auto pt-2 text-xs text-gray-500 flex items-center gap-2">
+                      <FaClock className="text-brand" /> Hazırlama: {recipe.prep_time}dk
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+             <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+               <p className="text-gray-500">Henüz popüler tarif eklenmemiş.</p>
+             </div>
+          )}
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* 4. EDİTÖRÜN SEÇİMİ */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 font-heading mb-8 flex items-center gap-2">
+            <FaAward className="text-purple-500" /> Şefin Torpilli Listesi
+          </h2>
+          
+          {editorRecipes.data.length > 0 ? (
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {editorRecipes.data.slice(0, 4).map((recipe) => (
+                   <Link href={`/recipe/${recipe.slug}`} key={recipe.id} className="group relative h-64 rounded-2xl overflow-hidden shadow-lg">
+                      <Image 
+                        src={recipe.image} 
+                        alt={recipe.title} 
+                        fill
+                        className="object-cover group-hover:scale-110 transition duration-700" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-5 flex flex-col justify-end">
+                        <h4 className="font-bold text-white text-lg leading-tight group-hover:text-brand-300 transition">{recipe.title}</h4>
+                        <div className="flex gap-2 mt-2 text-xs text-gray-300">
+                           <span className="flex items-center gap-1"><FaUtensils /> {recipe.difficulty[0] || 'Orta'}</span>
+                        </div>
+                      </div>
+                   </Link>
+                ))}
+             </div>
+          ) : (
+            <div className="text-center py-10 bg-white border border-gray-100 rounded-2xl">
+               <p className="text-gray-500">Editör henüz seçim yapmamış.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 5. KATEGORİLER (Moods) */}
+      <section className="py-16 border-t border-gray-100 bg-white/50">
+        <div className="container mx-auto px-4 text-center">
+            <h2 className="text-xl font-bold text-slate-900 mb-6">Hangi Moddasın?</h2>
+            <div className="flex flex-wrap justify-center gap-4">
+               <Link href="/recipes?diet=Düşük Karbonhidrat" className="px-6 py-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-xl font-bold transition">🥗 Fit & Sağlıklı</Link>
+               <Link href="/recipes?difficulty=Kolay" className="px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-bold transition">⚡ Üşengeç Şef</Link>
+               <Link href="/recipes?difficulty=Şef" className="px-6 py-3 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-xl font-bold transition">🔥 Ziyafet</Link>
+               <Link href="/recipes?meal_type=Tatlı" className="px-6 py-3 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-xl font-bold transition">🧁 Tatlı Krizi</Link>
+               <Link href="/recipes?cuisine=Meksika" className="px-6 py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 rounded-xl font-bold transition">🌮 Acı Sever</Link>
+               <Link href="/recipes?meal_type=Kahvaltı" className="px-6 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-xl font-bold transition">🍳 Pazar Kahvaltısı</Link>
+            </div>
+        </div>
+      </section>
+
+      {/* 6. AKILLI BANNER */}
+      <HomeCTA />
+
+    </main>
   );
 }
