@@ -81,7 +81,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="relative z-10 text-xs text-white/40 font-mono">© 2025 Tariften Teknoloji A.Ş.</div>
+        <div className="relative z-10 text-xs text-white/40 font-mono">
+        Copyright © 2025 Tariften bir <a href="https://hipmedya.com" target="_blank" rel="noopener noreferrer" className="font-bold hover:text-[#db4c3f] transition">Hip Medya</a> markasıdır.
+      </div>
       </div>
 
       {/* SAĞ KOLON (Form) */}
