@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getRecipeById, updateRecipe, getTerms, uploadMedia } from "@/lib/api"; // uploadMedia eklendi
+import { getRecipeById, updateRecipe, getTerms, uploadMedia } from "@/lib/api"; 
 import { 
   FaArrowRight, FaArrowLeft, FaCheck, FaPlus, FaTrash, 
   FaClock, FaFire, FaImage, FaUtensils, FaVideo, FaCloudArrowUp, FaLink, FaXmark, FaSpinner
@@ -72,16 +72,22 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                  title: recipe.title || "",
                  excerpt: recipe.excerpt || "",
                  image: recipe.image || "",
-                 prep_time: recipe.prep_time || "",
-                 cook_time: recipe.cook_time || "",
-                 calories: recipe.calories || "",
-                 servings: recipe.servings || "",
+                 // DÜZELTME: API'den gelen verileri string'e çevir
+                 prep_time: recipe.prep_time ? String(recipe.prep_time) : "",
+                 cook_time: recipe.cook_time ? String(recipe.cook_time) : "",
+                 calories: recipe.calories ? String(recipe.calories) : "",
+                 servings: recipe.servings ? String(recipe.servings) : "",
                  cuisine: recipe.cuisine || [],
                  meal_type: recipe.meal_type || [],
                  difficulty: recipe.difficulty || [],
                  diet: recipe.diet || [],
-                 ingredients: (recipe.ingredients && recipe.ingredients.length > 0) ? recipe.ingredients : [{ name: "", amount: "", unit: "" }],
-                 steps: (recipe.steps && recipe.steps.length > 0) ? recipe.steps : [""]
+                 // Malzeme miktarlarını da string'e çeviriyoruz
+                 ingredients: (recipe.ingredients && recipe.ingredients.length > 0) 
+                    ? recipe.ingredients.map(ing => ({ ...ing, amount: String(ing.amount) })) 
+                    : [{ name: "", amount: "", unit: "" }],
+                 steps: (recipe.steps && recipe.steps.length > 0) 
+                    ? (typeof recipe.steps[0] === 'string' ? recipe.steps as string[] : (recipe.steps as any[]).map(s => s.content)) 
+                    : [""]
              });
              
              const img = recipe.image || "";
@@ -107,7 +113,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !user.token) return;
 
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
@@ -127,29 +133,52 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     setMediaUploading(false);
   };
 
-  // ... (Geri kalan tüm modal yardımcıları, kategori ekleme, malzeme/adım fonksiyonları Create sayfası ile AYNI) ...
   const showSuccess = (msg: string) => { setModalMessage(msg); setModalType('success'); setShowModal(true); };
   const showError = (msg: string) => { setModalMessage(msg); setModalType('error'); setShowModal(true); };
-  const showInput = (title: string, callback: (val: string) => void) => { setModalMessage(title); setModalType('input'); setInputCallback(() => callback); setShowModal(true); };
   
-  const handleCategoryChange = (category: keyof typeof options, value: string) => { if (value === "new") { showInput(`Yeni ${category} ekle:`, (newCat) => { if (!newCat.trim()) return; setOptions(prev => ({ ...prev, [category]: [...prev[category], newCat] })); handleInputChange(category, [newCat]); }); } else { handleInputChange(category, [value]); } };
+  const showInput = (title: string, callback: (val: string) => void) => {
+    setModalMessage(title);
+    setModalType('input');
+    setInputCallback(() => callback);
+    setShowModal(true);
+  };
+
+  const handleCategoryChange = (category: keyof typeof options, value: string) => {
+    if (value === "new") {
+      showInput(`Yeni ${category} ekle:`, (newCat) => {
+        if (!newCat.trim()) return;
+        setOptions(prev => ({ ...prev, [category]: [...prev[category], newCat] }));
+        handleInputChange(category, [newCat]);
+      });
+    } else {
+      handleInputChange(category, [value]);
+    }
+  };
+
+  const updateIngredient = (index: number, field: string, value: string) => {
+    const newIngredients = [...formData.ingredients];
+    newIngredients[index] = { ...newIngredients[index], [field]: value };
+    setFormData(prev => ({ ...prev, ingredients: newIngredients }));
+  };
+  const addIngredient = () => setFormData(prev => ({ ...prev, ingredients: [...prev.ingredients, { name: "", amount: "", unit: "" }] }));
+  const removeIngredient = (index: number) => setFormData(prev => ({ ...prev, ingredients: prev.ingredients.filter((_, i) => i !== index) }));
   
-  const updateIngredient = (idx: number, f: string, v: string) => { const newIng = [...formData.ingredients]; newIng[idx] = { ...newIng[idx], [f]: v }; setFormData(p => ({ ...p, ingredients: newIng })); };
-  const addIngredient = () => setFormData(p => ({ ...p, ingredients: [...p.ingredients, { name: "", amount: "", unit: "" }] }));
-  const removeIngredient = (idx: number) => setFormData(p => ({ ...p, ingredients: p.ingredients.filter((_, i) => i !== idx) }));
-  
-  const updateStep = (idx: number, v: string) => { const newSteps = [...formData.steps]; newSteps[idx] = v; setFormData(p => ({ ...p, steps: newSteps })); };
-  const addStep = () => setFormData(p => ({ ...p, steps: [...p.steps, ""] }));
-  const removeStep = (idx: number) => setFormData(p => ({ ...p, steps: p.steps.filter((_, i) => i !== idx) }));
+  const updateStep = (index: number, value: string) => {
+    const newSteps = [...formData.steps];
+    newSteps[index] = value;
+    setFormData(prev => ({ ...prev, steps: newSteps }));
+  };
+  const addStep = () => setFormData(prev => ({ ...prev, steps: [...prev.steps, ""] }));
+  const removeStep = (index: number) => setFormData(prev => ({ ...prev, steps: prev.steps.filter((_, i) => i !== index) }));
 
   const handleUpdate = async () => {
-    if (!user) return showError("Lütfen giriş yapın.");
+    if (!user || !user.token) return showError("Lütfen giriş yapın.");
     setSaving(true);
     try {
       const result = await updateRecipe(user.token, { ...formData, id: recipeId });
       if (result.success) {
         showSuccess("Tarif başarıyla güncellendi! 🎉");
-        setTimeout(() => router.push(`/recipe/${result.slug || recipeId}`), 2000); // Slug yoksa ID kullan (fallback)
+        setTimeout(() => router.push(`/recipe/${result.slug || recipeId}`), 2000);
       } else {
         showError(result.message || "Güncelleme başarısız.");
       }
@@ -164,9 +193,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
 
   return (
     <main className="min-h-screen bg-[#fcfcfc] py-10 px-4 relative">
-       {/* UI (Create Sayfasıyla Aynı Yapıda) */}
-       {/* Tek fark: "Yeni Tarif Oluştur" yerine "Tarifi Düzenle" ve handleSubmit yerine handleUpdate */}
-       
+       {/* UI */}
        <div className="container mx-auto max-w-3xl">
         <div className="text-center mb-10">
           <div className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold mb-2">Düzenleme Modu</div>
@@ -185,7 +212,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                 <div><label className="block text-xs font-bold text-gray-500 mb-1">Tarif Başlığı</label><input type="text" value={formData.title} onChange={(e) => handleInputChange("title", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-bold text-lg focus:outline-none focus:border-brand" /></div>
                 <div><label className="block text-xs font-bold text-gray-500 mb-1">Kısa Açıklama</label><textarea value={formData.excerpt} onChange={(e) => handleInputChange("excerpt", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-24 resize-none" /></div>
                 
-                {/* Medya Yükleme (Preview Destekli) */}
+                {/* Medya Yükleme */}
                 <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2">Görsel / Video</label>
                     <div className="flex gap-2 mb-3">
@@ -212,13 +239,29 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                                 {mediaType === 'url' && (
                                     <input type="text" value={formData.image as string} onChange={(e) => { handleInputChange("image", e.target.value); setPreviewUrl(e.target.value); }} className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand" placeholder="https://..." />
                                 )}
-                                {/* ... Video Input (Aynı) ... */}
+                                {mediaType === 'video' && (
+                                    <input 
+                                        type="text" 
+                                        value={formData.image as string}
+                                        onChange={(e) => {
+                                           let url = e.target.value;
+                                           handleInputChange("image", url);
+                                           if(url.includes("youtube.com") || url.includes("youtu.be")) {
+                                              let videoId = "";
+                                              if (url.includes("v=")) videoId = url.split("v=")[1].split("&")[0];
+                                              else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1];
+                                              setPreviewUrl(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
+                                           }
+                                        }} 
+                                        className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand" 
+                                        placeholder="Youtube linki..." 
+                                    />
+                                )}
                             </>
                         )}
                     </div>
                 </div>
 
-                {/* Diğer Alanlar (Sayısal, Kategori vs. Create ile Aynı) */}
                 <div className="grid grid-cols-2 gap-4">
                     <div><label className="text-xs font-bold text-gray-500">Hazırlama</label><input type="number" value={formData.prep_time} onChange={(e) => handleInputChange("prep_time", e.target.value)} className="w-full border rounded-xl p-3" /></div>
                     <div><label className="text-xs font-bold text-gray-500">Pişirme</label><input type="number" value={formData.cook_time} onChange={(e) => handleInputChange("cook_time", e.target.value)} className="w-full border rounded-xl p-3" /></div>
@@ -245,8 +288,6 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
              </div>
            )}
 
-           {/* ADIM 2 ve 3 (Create ile Aynı Mantık) */}
-           {/* ... (Malzeme ve Adım döngüleri buraya gelecek, yukarıdaki Create kodundan kopyalanabilir) ... */}
            {step === 2 && (
              <div className="space-y-6 animate-fade-in">
                  <h2 className="text-xl font-bold text-slate-800 border-b border-gray-100 pb-2">Malzemeler</h2>
@@ -295,7 +336,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           )}
         </div>
 
-        {/* Modal (Create ile Aynı) */}
+        {/* Modal */}
         {showModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
                <div className="bg-white p-8 rounded-3xl w-full max-w-sm text-center relative">
