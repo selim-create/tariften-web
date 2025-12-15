@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// DÜZELTME: "export function middleware" yerine "export default function middleware" kullanıyoruz.
 export function middleware(request: NextRequest) {
   // 1. Kullanıcının giriş yapıp yapmadığını anlamak için cookie'ye bakıyoruz
   const token = request.cookies.get('tariften_token')?.value;
@@ -10,41 +9,43 @@ export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // 3. Korunan Rotalar (Sadece üyeler girebilir)
-  // NOT: Dolap (/pantry) ve Pilot (/pilot) artık herkese açık (Misafir Modu)
-  
-  // Kesin eşleşmesi gereken korumalı yollar (Dashboard ve Ayarlar)
-  const exactProtectedRoutes = ['/profile', '/profile/edit'];
-  
-  // Alt yollarıyla birlikte korunanlar (Tarif Defterim)
-  const prefixProtectedRoutes = ['/cookbook'];
+  // Dashboard, Ayarlar ve Tarif Defterim gibi kişisel alanlar
+  const protectedRoutes = ['/profile', '/profile/edit', '/cookbook'];
 
-  // 4. Kontrol Mantığı
-  const isExactProtected = exactProtectedRoutes.includes(path);
-  const isPrefixProtected = prefixProtectedRoutes.some(route => path.startsWith(route));
+  // Yolun korunan rotalar listesinde olup olmadığını veya bir alt yolu olup olmadığını kontrol et
+  const isProtected = protectedRoutes.some(route => 
+    path === route || path.startsWith(`${route}/`)
+  );
 
-  // Eğer sayfa korumalıysa ve token yoksa -> Login'e at
-  if ((isExactProtected || isPrefixProtected) && !token) {
+  // KURAL 1: Eğer sayfa korumalıysa ve token yoksa -> Login'e yönlendir
+  if (isProtected && !token) {
     const loginUrl = new URL('/login', request.url);
+    // Kullanıcı giriş yaptıktan sonra kaldığı yere dönebilmesi için callbackUrl ekle
     loginUrl.searchParams.set('callbackUrl', path);
     return NextResponse.redirect(loginUrl);
   }
 
-  // KURAL 2: Zaten giriş yapmışsa ve Login/Register'a girmeye çalışıyorsa -> Profil'e at
+  // KURAL 2: Zaten giriş yapmışsa ve Login/Register sayfalarına girmeye çalışıyorsa -> Profil'e yönlendir
   if (token && (path === '/login' || path === '/register')) {
     return NextResponse.redirect(new URL('/profile', request.url));
   }
 
+  // Diğer tüm durumlar için isteğe devam et
   return NextResponse.next();
 }
 
 // Middleware'in çalışacağı adresleri belirliyoruz
+// Bu matcher, gereksiz yere statik dosyalar (resimler, favicon vb.) için middleware'in çalışmasını engeller
 export const config = {
   matcher: [
-    '/pantry/:path*', 
-    '/profile/:path*', 
-    '/cookbook/:path*', 
-    '/pilot/:path*',
-    '/login', 
-    '/register'
+    /*
+     * Aşağıdakilerle başlayanlar HARİÇ tüm request yolları:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public klasöründeki dosyalar (svg, png, jpg, jpeg, gif, webp)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.svg|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.webp).*)',
   ],
 };
