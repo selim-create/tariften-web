@@ -30,7 +30,8 @@ interface AiStatus {
 
 export default function PantryPage() {
   const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
+  // DÜZELTME: AuthContext'te 'isLoading' yok, 'loading' var. İsmi 'authLoading' olarak alias yapıyoruz.
+  const { user, loading: authLoading } = useAuth();
   
   const [items, setItems] = useState<PantryItem[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -73,7 +74,7 @@ export default function PantryPage() {
     return formatDateLocal(result);
   };
 
-  const calculateStatus = (expiryDateString: string | null) => {
+  const calculateStatus = (expiryDateString: string | null | undefined) => {
     if (!expiryDateString || expiryDateString === "0000-00-00" || expiryDateString === "") 
         return { status: "fresh", text: "Tarih Yok" };
     
@@ -138,11 +139,12 @@ export default function PantryPage() {
     async function loadData() {
       try {
         if (user) {
-            const data = await getPantry(user.token);
+            const data = await getPantry(user.token || ""); // Token undefined olabilir, boş string fallback
             if (data && Array.isArray(data)) {
                 const cleanData = data.map((i: any) => ({
                     ...i,
-                    expiresIn: i.expiresIn === "0000-00-00" ? "" : i.expiresIn,
+                    // API'den null gelebilir, string olarak garantiye alalım
+                    expiresIn: (i.expiresIn === "0000-00-00" || !i.expiresIn) ? "" : i.expiresIn,
                     status: calculateStatus(i.expiresIn).status as any
                 }));
                 setItems(cleanData);
@@ -176,11 +178,12 @@ export default function PantryPage() {
                 expiresIn: i.expiresIn || ""
             }));
             
-            // DÜZELTME: Payload { items: [...] } formatında api.ts içinde sarılıyor, buraya düz array veriyoruz.
-            // api.ts dosyasındaki updatePantry fonksiyonu bu array'i { items: items } şeklinde paketleyecek.
-            const success = await updatePantry(user.token, payload as any);
-            if (success) setSaveStatus("saved");
-            else setSaveStatus("error");
+            // DÜZELTME: Token kontrolü
+            if (user.token) {
+                const success = await updatePantry(user.token, payload as any);
+                if (success) setSaveStatus("saved");
+                else setSaveStatus("error");
+            }
             
         } else {
             localStorage.setItem("tariften_pantry", JSON.stringify(items));
@@ -223,7 +226,7 @@ export default function PantryPage() {
 
         const newItemStatus = calculateStatus(expiryDate);
         newItems.push({
-            id: Date.now().toString() + Math.random(),
+            id: Date.now() + Math.random(), // id number | string olabilir, number yapıyoruz
             name: name.charAt(0).toUpperCase() + name.slice(1),
             quantity: "", 
             unit: "",
@@ -240,7 +243,7 @@ export default function PantryPage() {
   const handleReceiptUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!user) { showModalMessage("error", "Fiş okuma özelliği için giriş yapmalısınız."); return; }
+    if (!user || !user.token) { showModalMessage("error", "Fiş okuma özelliği için giriş yapmalısınız."); return; }
     
     if (file.size > 10 * 1024 * 1024) { showModalMessage("error", "Dosya boyutu çok büyük (Max 10MB)."); return; }
 
@@ -249,22 +252,25 @@ export default function PantryPage() {
     reader.onloadend = async () => {
         try {
             const resizedBase64 = await resizeImage(file);
-            const analyzedItems = await analyzePantry(user.token, "", resizedBase64);
-            
-            const newItems: PantryItem[] = analyzedItems.map((item: any) => {
-                const date = item.expiry_date || addDays(7);
-                return {
-                    id: Date.now().toString() + Math.random(),
-                    name: item.name,
-                    quantity: item.quantity || "",
-                    unit: "",
-                    status: calculateStatus(date).status as any,
-                    expiresIn: date
-                };
-            });
+            // user.token null kontrolü yukarıda yapıldı ama TS için tekrar gerekebilir veya ?
+            if (user.token) {
+                const analyzedItems = await analyzePantry(user.token, "", resizedBase64);
+                
+                const newItems: PantryItem[] = analyzedItems.map((item: any) => {
+                    const date = item.expiry_date || addDays(7);
+                    return {
+                        id: Date.now() + Math.random(),
+                        name: item.name,
+                        quantity: item.quantity || "",
+                        unit: "",
+                        status: calculateStatus(date).status as any,
+                        expiresIn: date
+                    };
+                });
 
-            updateItems([...newItems, ...items]);
-            showModalMessage("success", `${newItems.length} ürün fişten eklendi!`);
+                updateItems([...newItems, ...items]);
+                showModalMessage("success", `${newItems.length} ürün fişten eklendi!`);
+            }
         } catch (e) {
             showModalMessage("error", "Fiş analiz edilemedi.");
         } finally {
@@ -274,14 +280,17 @@ export default function PantryPage() {
     reader.readAsDataURL(file);
   };
 
-  const removeItem = (id: string) => {
+  const removeItem = (id: number) => {
     updateItems(items.filter((item) => item.id !== id));
   };
   
   const saveDate = () => {
     if (editingItemId && tempDateInput) {
       const updatedList = items.map((item) => {
-          if (item.id === editingItemId) {
+          // editingItemId string olarak tutuluyordu, tip güvenliği için number'a çevrilebilir veya string karşılaştırılır.
+          // PantryItem id'si number. O yüzden editingItemId'yi number yapalım veya karşılaştırmayı düzeltelim.
+          // State'te setEditingItemId(item.id.toString()) yapmıştık.
+          if (String(item.id) === editingItemId) {
               const analysis = calculateStatus(tempDateInput);
               return { 
                   ...item, 
@@ -297,7 +306,7 @@ export default function PantryPage() {
   };
   
   const handleAiAction = async (type: AiActionType) => {
-      if (!user) { showModalMessage("error", "Bu özellik için giriş yapmalısınız."); return; }
+      if (!user || !user.token) { showModalMessage("error", "Bu özellik için giriş yapmalısınız."); return; }
       
       let prompt = "";
       if (type === "rescue") {
@@ -404,7 +413,7 @@ export default function PantryPage() {
                                     <div className={`w-3 h-3 rounded-full shadow-[0_0_8px_currentColor] ${dotColor}`} />
                                     <div>
                                         <div className="font-bold text-slate-800">{item.name}</div>
-                                        <button onClick={() => { setEditingItemId(item.id); setTempDateInput(item.expiresIn || ""); setShowDateModal(true); }} className="text-xs text-gray-400 font-medium hover:text-brand flex items-center gap-1 transition mt-0.5">
+                                        <button onClick={() => { setEditingItemId(String(item.id)); setTempDateInput(item.expiresIn || ""); setShowDateModal(true); }} className="text-xs text-gray-400 font-medium hover:text-brand flex items-center gap-1 transition mt-0.5">
                                             <FaCalendarDays className="text-[10px]" /> {item.expiresIn ? (info.text) : "Tarih Yok (7 gün)"} <FaPen className="text-[8px] opacity-0 group-hover:opacity-100" />
                                         </button>
                                     </div>
