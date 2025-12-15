@@ -1,126 +1,283 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react"; 
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext"; // Auth Context eklendi
-import { FaArrowLeft, FaCheck, FaUser, FaLock, FaUtensils } from "react-icons/fa6";
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { FaArrowLeft, FaCamera, FaFloppyDisk, FaSpinner, FaCheck, FaTriangleExclamation } from "react-icons/fa6"; 
+import { updateProfile, uploadAvatar } from "@/lib/api"; 
+import { useAuth } from "@/context/AuthContext";
 
-export default function ProfileEditPage() {
-  const { user } = useAuth(); // Kullanıcı verisini çek
+export default function EditProfilePage() {
+  const router = useRouter();
+  const { user, login } = useAuth(); 
+  
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     fullname: "",
     email: "",
+    bio: "",
+    diet: "",
+    experience: "",
+    password: "",
+    confirmPassword: ""
   });
 
-  // Kullanıcı verisi yüklenince formu doldur
+  // User verisi geldiğinde formu doldur
   useEffect(() => {
     if (user) {
-      // WordPress JWT Auth eklentisi genellikle 'user_email' döner.
-      // AuthContext yapımızda 'email' tanımlı olsa da, API'den gelen ham veriyi de (user_email) kontrol ediyoruz.
-      const userEmail = user.email || (user as any).user_email || "";
-
-      setFormData({
-        fullname: user.user_display_name || user.user_nicename || "",
-        email: userEmail,
-      });
+      setFormData(prev => ({
+        ...prev,
+        fullname: user.user_display_name || "",
+        email: user.user_email || "",
+        bio: user.bio || "", 
+        diet: user.diet || "",
+        experience: user.experience || "",
+      }));
     }
   }, [user]);
 
-  // Eğer kullanıcı henüz yüklenmediyse (Middleware koruyor ama çift dikiş)
-  if (!user) return null;
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewImage(objectUrl);
+    
+    try {
+        setLoading(true);
+        const token = localStorage.getItem('tariften_token');
+        if (token) {
+            const avatarUrl = await uploadAvatar(token, file);
+            setPreviewImage(avatarUrl); 
+            // Context'i güncellemek için login fonksiyonunu tekrar çağırmak gerekebilir
+            // veya sayfayı yenilemek en basitidir.
+        }
+    } catch (err) {
+        console.error(err);
+        setError("Fotoğraf yüklenirken hata oluştu.");
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    if (formData.password && formData.password !== formData.confirmPassword) {
+        setError("Şifreler eşleşmiyor.");
+        setLoading(false);
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('tariften_token');
+        if (!token) throw new Error("Oturum bulunamadı.");
+
+        const updateData = {
+            fullname: formData.fullname,
+            email: formData.email,
+            diet: formData.diet,
+            experience: formData.experience,
+            bio: formData.bio,
+            ...(formData.password ? { password: formData.password } : {})
+        };
+
+        const response = await updateProfile(token, updateData);
+        
+        // Context güncellemesi: Dönen yeni user objesiyle login'i tetikle
+        if(response.user) {
+             login({ 
+                 ...response.user, 
+                 token: token, 
+                 user_display_name: response.user.fullname, // API yanıt formatına göre map ediyoruz
+                 user_email: response.user.email 
+             });
+        }
+        
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Güncelleme başarısız.");
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  // Avatar URL'sini belirle
+  const avatarUrl = previewImage || user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullname || "User")}&background=random&color=fff`;
 
   return (
-    <main className="min-h-screen bg-[#fcfcfc] py-8 px-4">
-      <div className="container mx-auto max-w-2xl">
+    <main className="min-h-screen bg-[#fcfcfc] pb-20">
+      
+      {/* Header */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-30">
+        <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
+            <Link href="/profile" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 text-slate-600 transition">
+                <FaArrowLeft />
+            </Link>
+            <h1 className="font-heading font-bold text-lg text-slate-800">Profili Düzenle</h1>
+            <div className="w-10"></div> 
+        </div>
+      </header>
+
+      <div className="max-w-2xl mx-auto px-4 py-8">
         
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/profile" className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-brand hover:border-brand transition">
-            <FaArrowLeft />
-          </Link>
-          <h1 className="text-2xl font-bold text-slate-900 font-heading">Profil Ayarları</h1>
+        {/* Avatar Yükleme */}
+        <div className="flex flex-col items-center mb-8">
+            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 relative">
+                    <Image 
+                        src={avatarUrl}
+                        alt="Profil" 
+                        fill
+                        className="object-cover"
+                        unoptimized={avatarUrl.includes('ui-avatars.com')} // Next.js optimizasyonunu bypass et
+                    />
+                </div>
+                <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <FaCamera className="text-white text-xl" />
+                </div>
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleFileChange}
+                />
+            </div>
+            <p className="text-xs text-gray-400 mt-3">Değiştirmek için fotoğrafa tıkla</p>
         </div>
 
-        <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); alert("Bilgiler güncellendi (Demo)"); }}>
-          
-          {/* Kişisel Bilgiler */}
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <FaUser className="text-brand" /> Kişisel Bilgiler
-            </h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Ad Soyad</label>
-                  <input 
-                    type="text" 
-                    value={formData.fullname} 
-                    onChange={(e) => setFormData({...formData, fullname: e.target.value})}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" 
-                  />
+        {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm flex items-center gap-3 border border-red-100 mb-6">
+              <FaTriangleExclamation /> {error}
+            </div>
+        )}
+
+        {success && (
+            <div className="bg-green-50 text-green-600 p-4 rounded-xl text-sm flex items-center gap-3 border border-green-100 mb-6 animate-pulse">
+              <FaCheck /> Profil başarıyla güncellendi!
+            </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+            
+            <div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="font-bold text-slate-800 text-sm border-b border-gray-100 pb-3 mb-4">Kişisel Bilgiler</h3>
+                
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">Ad Soyad</label>
+                    <input 
+                        type="text" 
+                        value={formData.fullname}
+                        onChange={(e) => setFormData({...formData, fullname: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                    />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">E-posta</label>
-                  <input 
-                    type="email" 
-                    value={formData.email} 
-                    disabled 
-                    className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-500 cursor-not-allowed" 
-                  />
+
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">E-posta</label>
+                    <input 
+                        type="email" 
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                    />
                 </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Mutfak Tercihleri */}
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <FaUtensils className="text-brand" /> Mutfak Tercihleri
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">Beslenme Tipi</label>
-                <select className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand">
-                  <option>Hepçil</option>
-                  <option>Vegan</option>
-                  <option>Vejetaryen</option>
-                  <option>Glutensiz</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">Seviye</label>
-                <select className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand">
-                  <option>Acemi</option>
-                  <option>Orta Seviye</option>
-                  <option>Usta Şef</option>
-                </select>
-              </div>
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">Hakkımda</label>
+                    <textarea 
+                        rows={3}
+                        value={formData.bio}
+                        onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all resize-none"
+                        placeholder="Mutfakta nelerden hoşlanırsın?"
+                    />
+                </div>
             </div>
-          </div>
 
-          {/* Şifre Değiştir */}
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <FaLock className="text-brand" /> Güvenlik
-            </h3>
-            <div className="space-y-4">
-              <input type="password" placeholder="Mevcut Şifre" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" />
-              <div className="grid grid-cols-2 gap-4">
-                <input type="password" placeholder="Yeni Şifre" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" />
-                <input type="password" placeholder="Yeni Şifre (Tekrar)" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" />
-              </div>
+            <div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="font-bold text-slate-800 text-sm border-b border-gray-100 pb-3 mb-4">Mutfak Tercihleri</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-500 ml-1">Beslenme Tipi</label>
+                        <select 
+                            value={formData.diet}
+                            onChange={(e) => setFormData({...formData, diet: e.target.value})}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-brand appearance-none"
+                        >
+                            <option value="">Seçiniz...</option>
+                            <option value="none">Hepçil</option>
+                            <option value="vegan">Vegan</option>
+                            <option value="vegetarian">Vejetaryen</option>
+                            <option value="gluten_free">Glutensiz</option>
+                            <option value="keto">Ketojenik</option>
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-500 ml-1">Mutfak Deneyimi</label>
+                        <select 
+                            value={formData.experience}
+                            onChange={(e) => setFormData({...formData, experience: e.target.value})}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-brand appearance-none"
+                        >
+                            <option value="">Seçiniz...</option>
+                            <option value="beginner">Acemi</option>
+                            <option value="intermediate">Orta</option>
+                            <option value="pro">Usta</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-          </div>
 
-          <div className="flex justify-end pt-4">
-            <button type="submit" className="px-8 py-4 bg-brand text-white font-bold rounded-xl shadow-lg hover:bg-brand-dark transition flex items-center gap-2">
-              <FaCheck /> Değişiklikleri Kaydet
+            <div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="font-bold text-slate-800 text-sm border-b border-gray-100 pb-3 mb-4">Güvenlik (Opsiyonel)</h3>
+                
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">Yeni Şifre</label>
+                    <input 
+                        type="password" 
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                        placeholder="Değiştirmek istemiyorsanız boş bırakın"
+                    />
+                </div>
+                 <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">Yeni Şifre (Tekrar)</label>
+                    <input 
+                        type="password" 
+                        value={formData.confirmPassword}
+                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                    />
+                </div>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-brand hover:bg-brand-dark text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {loading ? <><FaSpinner className="animate-spin" /> Kaydediliyor...</> : <><FaFloppyDisk /> Değişiklikleri Kaydet</>}
             </button>
-          </div>
 
         </form>
-
       </div>
+
     </main>
   );
 }

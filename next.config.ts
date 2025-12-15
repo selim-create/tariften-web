@@ -1,31 +1,38 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // YENİ EKLENEN KISIM: Server Actions limitini artırma
   experimental: {
     serverActions: {
-      bodySizeLimit: '10mb', // Görsel yüklemeleri için limiti artırdık
+      bodySizeLimit: '10mb',
     },
   },
   images: {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "api.tariften.com", // WordPress Medya Kütüphanesi
+        hostname: "api.tariften.com", 
       },
       {
         protocol: "https",
-        hostname: "images.unsplash.com", // Demo görseller için
+        hostname: "images.unsplash.com",
       },
       {
         protocol: "https",
-        hostname: "api.dicebear.com", // Avatar görselleri için
+        hostname: "api.dicebear.com",
       },
       {
         protocol: "https",
-        hostname: "placehold.co", // Placeholder görseller için
+        hostname: "placehold.co",
       },
-            // YENİ: Youtube Thumbnail İzni
+      // YENİ EKLENENLER:
+      {
+        protocol: "https",
+        hostname: "ui-avatars.com", // İsim baş harflerinden avatar
+      },
+      {
+        protocol: "https",
+        hostname: "secure.gravatar.com", // WordPress varsayılan avatarları
+      },
       { protocol: "https", hostname: "youtube.com" },
       { protocol: "https", hostname: "img.youtube.com" },
       { protocol: "https", hostname: "i.ytimg.com" }, 

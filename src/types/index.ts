@@ -1,8 +1,14 @@
-// Malzeme Tipi
-export interface Ingredient {
-  name: string;
-  amount: string;
-  unit: string;
+export interface User {
+  id: number;
+  user_login: string;
+  user_nicename: string;
+  user_email: string;
+  user_display_name: string;
+  avatar_url?: string;
+  diet?: string;
+  experience?: string;
+  bio?: string;
+  token?: string; // Token'ı da buraya ekleyebiliriz veya ayrı tutabiliriz
 }
 
 export interface Recipe {
@@ -10,38 +16,68 @@ export interface Recipe {
   title: string;
   slug: string;
   image: string;
-  content: string; // HTML içeriği (Geriye dönük uyumluluk için)
   excerpt: string;
-  prep_time: string;
-  cook_time: string;
-  calories: string;
-  servings: string;
-  
-  // Yapılandırılmış Alanlar
+  servings: number | string; // API'den string gelebilir, esnek tutalım
+  prep_time_min: number;
+  cook_time_min: number;
+  total_time_min: number; // Burası eksikti veya silinmiş olabilir
+  difficulty: string;
+  calories: number | string; // API'den string gelebilir
+  rating: number;
+  is_favorite?: boolean;
+  is_cooked?: boolean;
   ingredients: Ingredient[];
-  steps: string[];
+  steps: Step[] | string[]; // string[] eski yapı için fallback
+  nutrition: Nutrition;
+  author: Author;
+  categories: string[];
+  tags: string[];
+  created_at: string;
+  content?: string; // HTML içerik fallback'i için
+  cuisine?: string[]; // Mutfak türü
+  diet?: string[]; // Diyet türü
+  meal_type?: string[]; // Öğün türü
+}
 
-  cuisine: string[];
-  diet: string[];
-  meal_type: string[];
-  difficulty: string[];
+export interface Ingredient {
+  name: string;
+  amount: number | string; // String veya number gelebilir
+  unit: string;
+  note?: string;
+}
 
-  // YENİ EKLENEN: Yazar ID (Düzenleme yetkisi kontrolü için)
-  author_id: number;
+export interface Step {
+  order: number;
+  content: string;
+  image?: string;
+  timer_seconds?: number;
+}
+
+export interface Nutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface Author {
+  id: number;
+  name: string;
+  avatar: string;
+}
+
+export interface PantryItem {
+  id: number; // veya string (uuid)
+  name: string;
+  quantity: number;
+  unit: string;
+  expiry_date?: string;
+  category?: string;
+  image?: string;
 }
 
 export interface APIResponse {
-  source: string;
+  source: 'db' | 'ai' | 'error';
   count: number;
   data: Recipe[];
-}
-
-// GÜNCELLENDİ: Dolap Öğesi Tipi
-export interface PantryItem {
-  id: string;
-  name: string;
-  quantity?: string; // Eklendi
-  unit?: string;     // Eklendi
-  status: "fresh" | "warning" | "expired";
-  expiresIn: string;
 }

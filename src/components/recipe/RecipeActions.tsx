@@ -11,7 +11,8 @@ export default function RecipeActions({ recipeId, title }: { recipeId: number, t
 
   useEffect(() => {
     async function checkStatus() {
-      if (user && recipeId) {
+      // Check if user exists AND has a token
+      if (user && user.token && recipeId) {
         const status = await checkInteractionStatus(user.token, recipeId);
         setIsSaved(status.favorite);
       }
@@ -20,9 +21,19 @@ export default function RecipeActions({ recipeId, title }: { recipeId: number, t
   }, [user, recipeId]);
 
   const handleSave = async () => {
-    if (!user) return alert("Kaydetmek için giriş yapmalısınız.");
-    setIsSaved(!isSaved);
-    await toggleInteraction(user.token, recipeId, 'favorite');
+    if (!user || !user.token) return alert("Kaydetmek için giriş yapmalısınız.");
+    
+    // Optimistic UI update
+    const newStatus = !isSaved;
+    setIsSaved(newStatus);
+    
+    try {
+        await toggleInteraction(user.token, recipeId, 'favorite');
+    } catch (error) {
+        // Revert if API call fails
+        console.error("Error toggling favorite:", error);
+        setIsSaved(!newStatus);
+    }
   };
 
   const handleShare = async () => {
@@ -37,7 +48,13 @@ export default function RecipeActions({ recipeId, title }: { recipeId: number, t
         // İptal edilirse sessiz kal
       }
     } else {
-      alert("Tarif linki kopyalandı! (Demo)");
+      // Fallback for browsers without Web Share API
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        alert("Tarif linki kopyalandı!");
+      } catch (err) {
+        console.error('Failed to copy: ', err);
+      }
     }
   };
 
@@ -50,7 +67,7 @@ export default function RecipeActions({ recipeId, title }: { recipeId: number, t
             ? 'bg-brand text-white border-brand' 
             : 'border-gray-200 text-gray-400 hover:text-brand hover:border-brand hover:bg-brand/5'
         }`} 
-        title="Kaydet"
+        title={isSaved ? "Kaydedildi" : "Kaydet"}
       >
         <FaRegBookmark className="text-lg" />
       </button>

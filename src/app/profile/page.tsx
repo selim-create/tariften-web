@@ -1,139 +1,247 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext"; // Auth Context
-import { FaUser, FaPen, FaFire, FaBasketShopping, FaBookOpen, FaChevronRight, FaLeaf, FaUtensils, FaArrowRightFromBracket } from "react-icons/fa6";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { FaGear, FaArrowRightFromBracket, FaFire, FaBookOpen, FaHeart, FaBowlFood, FaClock, FaCheck, FaRotateLeft, FaBookmark } from "react-icons/fa6";
+import { getUserInteractions } from "@/lib/api";
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth(); // Kullanıcı verisi ve çıkış fonksiyonu
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  
+  const [stats, setStats] = useState({
+    cookedCount: 0,
+    favoriteCount: 0,
+    planCount: 0 
+  });
+  
+  const [activeTab, setActiveTab] = useState<'activity' | 'favorites'>('activity');
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Eğer kullanıcı henüz yüklenmediyse veya yoksa (Middleware koruyor ama yine de)
+  useEffect(() => {
+    if (!user) {
+        router.push("/login");
+        return;
+    }
+
+    async function fetchStats() {
+      const token = localStorage.getItem('tariften_token');
+      if (!token) return;
+
+      try {
+        setLoading(true);
+        const cookedData = await getUserInteractions(token, 'cooked');
+        const favoritesData = await getUserInteractions(token, 'favorite');
+        
+        setStats({
+          cookedCount: cookedData?.length || 0,
+          favoriteCount: favoritesData?.length || 0,
+          planCount: 0
+        });
+
+        // Verileri state'e at
+        setRecentActivity(cookedData || []);
+        setFavorites(favoritesData || []);
+
+      } catch (error) {
+        console.error("Stats error", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchStats();
+  }, [user, router]);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
   if (!user) return null;
 
+  const avatarUrl = user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.user_display_name || "User")}&background=random&color=fff`;
+
   return (
-    <main className="min-h-screen bg-[#fcfcfc] py-12 px-4">
-      <div className="container mx-auto max-w-4xl">
-        
-        {/* ÜST BİLGİ KARTI */}
-        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-8 mb-8 relative overflow-hidden">
-          {/* Dekoratif Arkaplan */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-brand/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+    <main className="min-h-screen bg-[#fcfcfc] pb-24">
+      
+      {/* Üst Profil Kartı */}
+      <div className="bg-white border-b border-gray-100 pt-12 pb-8 px-6">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center md:items-start gap-6">
           
+          {/* Avatar */}
           <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-brand/10 flex items-center justify-center text-brand text-4xl border-4 border-white shadow-lg uppercase font-bold">
-              {/* Baş harfi göster veya ikon */}
-              {user.user_display_name?.[0] || user.user_nicename?.[0] || <FaUser />}
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 relative">
+               <Image 
+                 src={avatarUrl}
+                 alt={user.user_display_name}
+                 fill
+                 className="object-cover"
+                 unoptimized={avatarUrl.includes('ui-avatars.com')}
+               />
             </div>
-            <Link href="/profile/edit" className="absolute bottom-0 right-0 w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs hover:scale-110 transition shadow-md">
-              <FaPen />
+            <Link 
+              href="/profile/edit"
+              className="absolute bottom-0 right-0 bg-white border border-gray-200 p-2 rounded-full text-slate-600 shadow-sm hover:text-brand transition"
+            >
+              <FaGear className="text-sm" />
             </Link>
           </div>
-          
-          <div className="text-center md:text-left flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 font-heading mb-1">
-              {user.user_display_name || user.user_nicename}
-            </h1>
-            <div className="flex items-center justify-center md:justify-start gap-2 text-sm text-gray-500 mb-4">
-              <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-bold">Acemi Şef</span>
-              <span>•</span>
-              <span>{user.email}</span>
-            </div>
-            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-              <div className="flex items-center gap-2 text-xs font-medium text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg">
-                <FaLeaf className="text-green-500" /> Hepçil
-              </div>
-              <div className="flex items-center gap-2 text-xs font-medium text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg">
-                <FaUtensils className="text-orange-500" /> Başlangıç
-              </div>
+
+          {/* Bilgiler */}
+          <div className="flex-1 text-center md:text-left">
+            <h1 className="text-2xl font-bold text-slate-900 font-heading mb-1">{user.user_display_name}</h1>
+            <p className="text-slate-500 text-sm mb-4">@{user.user_nicename || "kullanici"}</p>
+            
+            <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                {user.experience && (
+                  <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-xs font-bold border border-orange-100">
+                    {user.experience === 'pro' ? 'Usta Şef' : user.experience === 'intermediate' ? 'Hevesli Aşçı' : 'Çırak'}
+                  </span>
+                )}
+                {user.diet && user.diet !== 'none' && (
+                  <span className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100 capitalize">
+                    {user.diet.replace('_', ' ')}
+                  </span>
+                )}
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 w-full md:w-auto">
-             <button className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3 bg-brand text-white rounded-xl font-bold text-sm hover:bg-brand-dark transition shadow-lg shadow-brand/20">
-               Premium'a Geç 👑
-             </button>
-             <button 
-                onClick={logout}
-                className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-2 text-gray-400 hover:text-red-500 text-sm font-medium transition"
-             >
-               <FaArrowRightFromBracket /> Çıkış Yap
-             </button>
+          <div>
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-500 hover:bg-gray-50 hover:text-red-500 transition text-sm font-medium border border-transparent hover:border-gray-100"
+            >
+              <FaArrowRightFromBracket /> Çıkış Yap
+            </button>
           </div>
+
         </div>
+      </div>
 
-        {/* İSTATİSTİKLER (Şimdilik Statik) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-xl">
+      <div className="max-w-4xl mx-auto px-4 mt-8 space-y-8">
+        
+        {/* İstatistikler */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+            <div className="w-10 h-10 mx-auto bg-red-50 text-brand rounded-full flex items-center justify-center mb-2">
               <FaFire />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-800">0</div>
-              <div className="text-xs text-gray-500">Tarif Pişirildi</div>
-            </div>
+            <div className="text-2xl font-bold text-slate-800">{stats.cookedCount}</div>
+            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Pişirilen</div>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+            <div className="w-10 h-10 mx-auto bg-pink-50 text-pink-500 rounded-full flex items-center justify-center mb-2">
+              <FaHeart />
+            </div>
+            <div className="text-2xl font-bold text-slate-800">{stats.favoriteCount}</div>
+            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Favori</div>
+          </div>
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+            <div className="w-10 h-10 mx-auto bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-2">
               <FaBookOpen />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-800">0</div>
-              <div className="text-xs text-gray-500">Tarif Kaydedildi</div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
-              <FaBasketShopping />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-800">0</div>
-              <div className="text-xs text-gray-500">Malzeme Kurtarıldı</div>
-            </div>
+            <div className="text-2xl font-bold text-slate-800">{stats.planCount}</div>
+            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Planlar</div>
           </div>
         </div>
 
-        {/* MENÜLER & KISAYOLLAR */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          
-          {/* Hızlı Menü */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm h-full">
-            <h3 className="text-lg font-bold text-slate-900 mb-4 font-heading">Kısayollar</h3>
-            <div className="space-y-2">
-              <Link href="/cookbook" className="flex items-center justify-between p-4 bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-100 rounded-xl transition group">
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center"><FaBookOpen className="text-xs" /></span>
-                  <span className="font-medium text-slate-700">Tarif Defterim</span>
-                </div>
-                <FaChevronRight className="text-gray-300 group-hover:text-brand" />
-              </Link>
-              <Link href="/pantry" className="flex items-center justify-between p-4 bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-100 rounded-xl transition group">
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><FaBasketShopping className="text-xs" /></span>
-                  <span className="font-medium text-slate-700">Dolap Yönetimi</span>
-                </div>
-                <FaChevronRight className="text-gray-300 group-hover:text-brand" />
-              </Link>
-              <Link href="/profile/edit" className="flex items-center justify-between p-4 bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-100 rounded-xl transition group">
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center"><FaUser className="text-xs" /></span>
-                  <span className="font-medium text-slate-700">Profil Ayarları</span>
-                </div>
-                <FaChevronRight className="text-gray-300 group-hover:text-brand" />
-              </Link>
-            </div>
-          </div>
+        {/* Sekmeler (Tabs) */}
+        <div className="flex border-b border-gray-200">
+            <button 
+                onClick={() => setActiveTab('activity')}
+                className={`pb-4 px-6 text-sm font-bold transition relative ${activeTab === 'activity' ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+                <span className="flex items-center gap-2"><FaRotateLeft /> Son Aktiviteler</span>
+                {activeTab === 'activity' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand rounded-t-full"></div>}
+            </button>
+            <button 
+                onClick={() => setActiveTab('favorites')}
+                className={`pb-4 px-6 text-sm font-bold transition relative ${activeTab === 'favorites' ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+                <span className="flex items-center gap-2"><FaBookmark /> Kayıt Defteri</span>
+                {activeTab === 'favorites' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand rounded-t-full"></div>}
+            </button>
+        </div>
 
-          {/* Son Aktiviteler (Boş Durum) */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm h-full flex flex-col justify-center items-center text-center">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-3xl mb-3">🍳</div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1 font-heading">Henüz Pişirmedin</h3>
-            <p className="text-sm text-gray-500 mb-4">İlk tarifini denemek için sabırsızlanıyoruz!</p>
-            <Link href="/" className="text-brand font-bold text-sm hover:underline">Tarif Keşfet</Link>
-          </div>
+        {/* İçerik Alanı */}
+        <div className="min-h-[200px]">
+            {loading ? (
+                <div className="flex justify-center py-10 text-gray-300"><FaClock className="animate-spin text-2xl" /></div>
+            ) : (
+                <>
+                    {/* SON AKTİVİTELER TAB */}
+                    {activeTab === 'activity' && (
+                        recentActivity.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {recentActivity.map((recipe) => (
+                                    <RecipeCard key={recipe.id} recipe={recipe} type="cooked" />
+                                ))}
+                            </div>
+                        ) : (
+                            <EmptyState message="Henüz hiç yemek pişirmedin." link="/pantry" linkText="Dolabını Yönet" />
+                        )
+                    )}
 
+                    {/* KAYIT DEFTERİ TAB */}
+                    {activeTab === 'favorites' && (
+                        favorites.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {favorites.map((recipe) => (
+                                    <RecipeCard key={recipe.id} recipe={recipe} type="favorite" />
+                                ))}
+                            </div>
+                        ) : (
+                            <EmptyState message="Henüz favori tarifin yok." link="/recipes" linkText="Tarifleri Keşfet" />
+                        )
+                    )}
+                </>
+            )}
         </div>
 
       </div>
     </main>
   );
+}
+
+// Yardımcı Bileşenler (Dosya içinde tanımladım, ayrı dosyaya da alınabilir)
+function RecipeCard({ recipe, type }: { recipe: any, type: 'cooked' | 'favorite' }) {
+    return (
+        <Link href={`/recipe/${recipe.slug}`} className="flex gap-4 bg-white p-4 rounded-2xl border border-gray-100 hover:shadow-md transition group">
+            <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden relative flex-shrink-0">
+                {recipe.image ? (
+                    <Image src={recipe.image} alt={recipe.title} fill className="object-cover group-hover:scale-105 transition" />
+                ) : (
+                    <div className="flex items-center justify-center h-full text-gray-300"><FaBowlFood className="text-2xl" /></div>
+                )}
+            </div>
+            <div className="flex-1 py-1">
+                <h4 className="font-bold text-slate-800 line-clamp-1 group-hover:text-brand transition">{recipe.title}</h4>
+                <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                    <span className="flex items-center gap-1"><FaClock /> {recipe.total_time_min} dk</span>
+                    {type === 'cooked' && <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-md"><FaCheck /> Pişirildi</span>}
+                    {type === 'favorite' && <span className="flex items-center gap-1 text-pink-600 bg-pink-50 px-2 py-0.5 rounded-md"><FaHeart /> Favori</span>}
+                </div>
+            </div>
+        </Link>
+    );
+}
+
+function EmptyState({ message, link, linkText }: { message: string, link: string, linkText: string }) {
+    return (
+        <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                <FaBowlFood className="text-2xl" />
+            </div>
+            <p className="text-gray-500 mb-4">{message}</p>
+            <Link href={link} className="inline-block px-6 py-3 bg-brand text-white rounded-xl font-bold shadow-lg shadow-brand/20 hover:bg-brand-dark transition">
+                {linkText}
+            </Link>
+        </div>
+    );
 }

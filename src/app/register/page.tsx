@@ -236,6 +236,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Opsiyonel Alanlar */}
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wide">Diyet</label>
@@ -251,11 +252,13 @@ export default function RegisterPage() {
                     <option value="vegan">Vegan</option>
                     <option value="vegetarian">Vejetaryen</option>
                     <option value="gluten_free">Glutensiz</option>
+                    <option value="keto">Ketojenik</option>
                   </select>
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wide">Seviye</label>
+                {/* İSİM DEĞİŞİKLİĞİ: Seviye -> Mutfak Deneyimi */}
+                <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wide">Mutfak Deneyimi</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400"><FaUtensils className="text-xs" /></div>
                   <select 
@@ -264,9 +267,9 @@ export default function RegisterPage() {
                     className="w-full pl-8 pr-2 py-2 bg-white border border-gray-200 rounded-xl text-slate-700 text-xs focus:outline-none focus:border-brand appearance-none shadow-sm cursor-pointer"
                   >
                     <option value="">Seçiniz...</option>
-                    <option value="beginner">Acemi</option>
-                    <option value="intermediate">Orta</option>
-                    <option value="pro">Usta</option>
+                    <option value="beginner">Acemi (Yumurta kırarım)</option>
+                    <option value="intermediate">Orta (Tarif takip ederim)</option>
+                    <option value="pro">Usta (Göz kararı yaparım)</option>
                   </select>
                 </div>
               </div>

@@ -210,6 +210,56 @@ export async function registerUser(userData: any) {
   }
 }
 
+// YENİ: Profil Güncelleme
+export async function updateProfile(token: string, profileData: any) {
+  try {
+    const res = await fetch(`${API_URL}/tariften/v1/auth/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(profileData),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Profil güncellenemedi.");
+    
+    return data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+// YENİ: Avatar Yükleme (Düzeltildi)
+export async function uploadAvatar(token: string, file: File) {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`${API_URL}/tariften/v1/auth/avatar`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}` 
+        // Content-Type KESİNLİKLE EKLENMEMELİ, browser otomatik ekler
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+        console.error("Avatar Upload Error Response:", data);
+        throw new Error(data.message || "Avatar yüklenemedi.");
+    }
+    
+    return data.avatar_url;
+  } catch (error) {
+    console.error("Upload Avatar Error:", error);
+    throw error;
+  }
+}
+
+
 export async function loginUser(username: string, password: string) {
   try {
     const res = await fetch(`${API_URL}/jwt-auth/v1/token`, {

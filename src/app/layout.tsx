@@ -16,10 +16,13 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "Tariften | AI ile Pişir",
   description: "Türkiye'nin ilk yapay zeka destekli mutfak asistanı.",
+  icons: {
+    icon: '/favicon.ico', // public/favicon.ico dosyasını işaret eder
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico', // İsterseniz özel apple-touch-icon.png de ekleyebilirsiniz
+  },
 };
 
-// Client ID'yi environment variable'dan alıyoruz.
-// Eğer tanımlı değilse boş string döner, bu durumda Google Login çalışmaz ama uygulama çökmez.
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 export default function RootLayout({
