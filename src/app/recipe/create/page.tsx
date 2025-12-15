@@ -70,7 +70,7 @@ export default function CreateRecipePage() {
   // --- YENİ DOSYA YÜKLEME MANTIĞI ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !user.token) return; // user.token kontrolü eklendi
 
     // 1. Önizleme göster (Kullanıcı bekletilmez)
     const objectUrl = URL.createObjectURL(file);
@@ -81,6 +81,7 @@ export default function CreateRecipePage() {
     const formData = new FormData();
     formData.append("file", file);
 
+    // user.token kesinlikle string olduğu için hata vermeyecek
     const mediaId = await uploadMedia(user.token, formData);
     
     if (mediaId) {
@@ -131,7 +132,7 @@ export default function CreateRecipePage() {
   const removeStep = (index: number) => setFormData(prev => ({ ...prev, steps: prev.steps.filter((_, i) => i !== index) }));
 
   const handleSubmit = async () => {
-    if (!user) return showError("Lütfen giriş yapın.");
+    if (!user || !user.token) return showError("Lütfen giriş yapın."); // Token kontrolü eklendi
     if (!formData.title.trim()) return showError("Lütfen bir tarif başlığı girin.");
     
     setLoading(true);
