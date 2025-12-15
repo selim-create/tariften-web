@@ -63,7 +63,8 @@ export default async function RecipeDetailPage({
           <div className="relative group rounded-3xl overflow-hidden shadow-lg h-[300px] md:h-[450px] bg-gray-100">
             
             {/* DÜZENLEME BUTONU (Yetkili Kişiler İçin) */}
-            <EditButton authorId={recipe.author_id} recipeId={recipe.id} />
+            {/* DÜZELTME: recipe.author_id yerine recipe.author.id kullanıldı */}
+            <EditButton authorId={recipe.author?.id} recipeId={recipe.id} />
 
             {videoId ? (
               // DURUM A: YouTube Videosu
@@ -131,12 +132,13 @@ export default async function RecipeDetailPage({
               <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
                 <FaRegClock className="mx-auto text-brand mb-1 text-lg group-hover:scale-110 transition" />
                 <div className="text-[10px] text-gray-400 font-medium uppercase">Hazırlama</div>
-                <div className="font-bold text-slate-700">{recipe.prep_time} dk</div>
+                {/* Fallback eklendi: prep_time string gelebilir */}
+                <div className="font-bold text-slate-700">{recipe.prep_time || 0} dk</div>
               </div>
               <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
                 <FaFire className="mx-auto text-orange-500 mb-1 text-lg group-hover:scale-110 transition" />
                 <div className="text-[10px] text-gray-400 font-medium uppercase">Pişirme</div>
-                <div className="font-bold text-slate-700">{recipe.cook_time} dk</div>
+                <div className="font-bold text-slate-700">{recipe.cook_time || 0} dk</div>
               </div>
               <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
                 <FaLeaf className="mx-auto text-green-500 mb-1 text-lg group-hover:scale-110 transition" />
@@ -146,7 +148,7 @@ export default async function RecipeDetailPage({
               <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
                 <FaChartSimple className="mx-auto text-blue-500 mb-1 text-lg group-hover:scale-110 transition" />
                 <div className="text-[10px] text-gray-400 font-medium uppercase">Zorluk</div>
-                <div className="font-bold text-slate-700">{recipe.difficulty[0] || "Orta"}</div>
+                <div className="font-bold text-slate-700">{recipe.difficulty?.[0] || "Orta"}</div>
               </div>
             </div>
 
