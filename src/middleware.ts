@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 // DÜZELTME: "export function middleware" yerine "export default function middleware" kullanıyoruz.
-export default function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   // 1. Kullanıcının giriş yapıp yapmadığını anlamak için cookie'ye bakıyoruz
-  const token = request.cookies.get('tariften_token')?.value
+  const token = request.cookies.get('tariften_token')?.value;
 
   // 2. Mevcut gidilen yol
-  const path = request.nextUrl.pathname
+  const path = request.nextUrl.pathname;
 
   // 3. Korunan Rotalar (Sadece üyeler girebilir)
   // NOT: Dolap (/pantry) ve Pilot (/pilot) artık herkese açık (Misafir Modu)
@@ -24,17 +24,17 @@ export default function middleware(request: NextRequest) {
 
   // Eğer sayfa korumalıysa ve token yoksa -> Login'e at
   if ((isExactProtected || isPrefixProtected) && !token) {
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('callbackUrl', path)
-    return NextResponse.redirect(loginUrl)
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('callbackUrl', path);
+    return NextResponse.redirect(loginUrl);
   }
 
   // KURAL 2: Zaten giriş yapmışsa ve Login/Register'a girmeye çalışıyorsa -> Profil'e at
   if (token && (path === '/login' || path === '/register')) {
-    return NextResponse.redirect(new URL('/profile', request.url))
+    return NextResponse.redirect(new URL('/profile', request.url));
   }
 
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 // Middleware'in çalışacağı adresleri belirliyoruz
@@ -47,4 +47,4 @@ export const config = {
     '/login', 
     '/register'
   ],
-}
+};
