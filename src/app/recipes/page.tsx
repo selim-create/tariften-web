@@ -165,7 +165,7 @@ function RecipesContent() {
 
   // AI OLUŞTURMA
   const handleGenerateRecipe = async () => {
-    if (!user) { showModalMessage('error', "AI Şef'i kullanmak için lütfen giriş yapın."); return; }
+    if (!user || !user.token) { showModalMessage('error', "AI Şef'i kullanmak için lütfen giriş yapın."); return; } // Token kontrolü eklendi
     if (!query) return;
     setIsGenerating(true);
     setLoadingMsgIndex(0);
@@ -294,7 +294,7 @@ function RecipesContent() {
                                     <h2 className="text-lg font-bold text-slate-800 mb-2 leading-tight group-hover:text-[#db4c3f] transition font-heading line-clamp-2">{recipe.title}</h2>
                                     <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500 font-medium">
                                         <div className="flex items-center gap-3">
-                                            <span className="flex items-center gap-1"><FaClock className="text-[#db4c3f]" /> {recipe.prep_time}dk</span>
+                                            <span className="flex items-center gap-1"><FaClock className="text-[#db4c3f]" /> {recipe.prep_time || 0}dk</span>
                                             <span className="flex items-center gap-1"><FaFire className="text-[#db4c3f]" /> {recipe.calories}</span>
                                         </div>
                                     </div>
