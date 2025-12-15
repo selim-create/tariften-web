@@ -3,7 +3,8 @@ import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { AuthProvider } from "@/context/AuthContext"; // YENİ EKLENDİ
+import { AuthProvider } from "@/context/AuthContext";
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const poppins = Poppins({ 
@@ -17,6 +18,10 @@ export const metadata: Metadata = {
   description: "Türkiye'nin ilk yapay zeka destekli mutfak asistanı.",
 };
 
+// Client ID'yi environment variable'dan alıyoruz.
+// Eğer tanımlı değilse boş string döner, bu durumda Google Login çalışmaz ama uygulama çökmez.
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,14 +30,15 @@ export default function RootLayout({
   return (
     <html lang="tr">
       <body className={`${inter.variable} ${poppins.variable} font-sans antialiased bg-[#fcfcfc] text-slate-800 flex flex-col min-h-screen`}>
-        {/* AuthProvider ile tüm uygulamayı sarmalıyoruz */}
-        <AuthProvider>
-          <Header />
-          <div className="flex-grow">
-            {children}
-          </div>
-          <Footer />
-        </AuthProvider>
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+          <AuthProvider>
+            <Header />
+            <div className="flex-grow">
+              {children}
+            </div>
+            <Footer />
+          </AuthProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

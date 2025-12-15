@@ -5,12 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FaEnvelope, FaLock, FaArrowRight, FaSpinner, FaGoogle, FaApple, FaTriangleExclamation } from "react-icons/fa6";
-import { loginUser } from "@/lib/api"; // API fonksiyonumuzu çağırıyoruz
-import { useAuth } from "@/context/AuthContext"; // Global state
+import { loginUser, loginWithGoogle } from "@/lib/api"; 
+import { useAuth } from "@/context/AuthContext";
+import { useGoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth(); // Context'ten login fonksiyonunu al
+  const { login } = useAuth(); 
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,24 +21,36 @@ export default function LoginPage() {
     password: ""
   });
 
+  // GOOGLE LOGIN HANDLER
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await loginWithGoogle(tokenResponse.access_token);
+        login(data);
+        router.push("/profile");
+      } catch (err: any) {
+        console.error(err);
+        setError("Google ile giriş yapılamadı: " + (err.message || "Bilinmeyen hata"));
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      setError("Google penceresi kapandı veya hata oluştu.");
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      // 1. WordPress API'ye istek at
       const data = await loginUser(formData.username, formData.password);
-      
-      // 2. Gelen veriyi (Token vb.) sisteme kaydet
-      // WordPress JWT eklentisi { token, user_email, ... } döner
       login(data);
-
-      // 3. Başarılı! Yönlendir.
-      // (Eğer middleware bir sayfadan buraya attıysa oraya geri dön, yoksa profile git)
-      // Şimdilik direkt profile atalım:
       router.push("/profile");
-      
     } catch (err: any) {
       console.error(err);
       setError("Giriş başarısız. Kullanıcı adı veya şifre hatalı.");
@@ -86,20 +99,26 @@ export default function LoginPage() {
             <p className="text-gray-500 mt-2">Hesabına erişmek için bilgilerini gir.</p>
           </div>
 
-          {/* HATA MESAJI (Varsa) */}
           {error && (
             <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm flex items-center gap-3 border border-red-100 animate-pulse">
               <FaTriangleExclamation /> {error}
             </div>
           )}
 
-          {/* SOSYAL MEDYA (Demo) */}
+          {/* SOSYAL MEDYA */}
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <button className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-slate-700 font-medium text-sm">
+            <button 
+              onClick={() => googleLogin()}
+              className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-slate-700 font-medium text-sm"
+            >
               <FaGoogle className="text-red-500" /> Google
             </button>
-            <button className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-slate-700 font-medium text-sm">
-              <FaApple className="text-black" /> Apple
+            <button 
+              className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-200 rounded-xl transition text-slate-400 font-medium text-sm opacity-60 cursor-default" 
+              title="Yakında"
+              // onClick kaldırıldı, Apple butonu pasif
+            >
+              <FaApple className="text-black opacity-50" /> Apple
             </button>
           </div>
 

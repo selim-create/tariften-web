@@ -193,6 +193,23 @@ export async function updateRecipe(token: string, recipeData: any) {
 
 // --- AUTH İŞLEMLERİ ---
 
+export async function registerUser(userData: any) {
+  try {
+    const res = await fetch(`${API_URL}/tariften/v1/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Kayıt işlemi başarısız.");
+    
+    return data;
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function loginUser(username: string, password: string) {
   try {
     const res = await fetch(`${API_URL}/jwt-auth/v1/token`, {
@@ -208,7 +225,34 @@ export async function loginUser(username: string, password: string) {
   }
 }
 
-// --- DOLAP (PANTRY) İŞLEMLERİ (KRİTİK DÜZELTME) ---
+// GÜNCELLENMİŞ: Google Login Fonksiyonu (Daha güvenli hata yönetimi)
+export async function loginWithGoogle(googleToken: string) {
+  try {
+    const res = await fetch(`${API_URL}/tariften/v1/auth/google`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: googleToken }),
+    });
+
+    // Önce yanıtın türünü kontrol et
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+        // JSON ise normal işle
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Google girişi başarısız.");
+        return data;
+    } else {
+        // JSON değilse (muhtemelen HTML hata sayfası), metni alıp logla
+        const text = await res.text();
+        console.error("Backend Error (HTML):", text); // HTML hatasını konsola bas
+        throw new Error("Sunucu tarafında bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
+// --- DOLAP (PANTRY) İŞLEMLERİ ---
 
 export async function getPantry(token: string): Promise<PantryItem[]> {
   try {
@@ -226,8 +270,6 @@ export async function getPantry(token: string): Promise<PantryItem[]> {
 
 export async function updatePantry(token: string, items: PantryItem[]) {
   try {
-    // BURASI DÜZELTİLDİ: body: JSON.stringify({ items }) yapıldı.
-    // WordPress API $params['items'] beklediği için bu obje yapısı şart.
     const res = await fetch(`${API_URL}/tariften/v1/pantry/update`, {
       method: "POST",
       headers: {
