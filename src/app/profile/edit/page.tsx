@@ -1,250 +1,301 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useRef, useEffect } from "react"; 
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { FaArrowLeft, FaCamera, FaFloppyDisk, FaSpinner, FaCheck, FaTriangleExclamation } from "react-icons/fa6"; 
+import { updateProfile, uploadAvatar } from "@/lib/api"; 
 import { useAuth } from "@/context/AuthContext";
-import { FaGear, FaArrowRightFromBracket, FaFire, FaBookOpen, FaHeart, FaBowlFood, FaClock, FaCheck, FaRotateLeft, FaBookmark } from "react-icons/fa6";
-import { getUserInteractions } from "@/lib/api";
-import { Recipe } from "@/types";
 
-export default function ProfilePage() {
+export default function EditProfilePage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, login, loading: authLoading } = useAuth(); 
   
-  const [stats, setStats] = useState({
-    cookedCount: 0,
-    favoriteCount: 0,
-    planCount: 0 
-  });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  const [activeTab, setActiveTab] = useState<'activity' | 'favorites'>('activity');
-  const [recentActivity, setRecentActivity] = useState<Recipe[]>([]);
-  const [favorites, setFavorites] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  const [formData, setFormData] = useState({
+    fullname: "",
+    email: "",
+    bio: "",
+    diet: "",
+    experience: "",
+    password: "",
+    confirmPassword: ""
+  });
+
+  // User verisi geldiğinde formu doldur
   useEffect(() => {
-    if (!user) {
-        router.push("/login");
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullname: user.user_display_name || "",
+        email: user.user_email || "",
+        bio: user.bio || "", 
+        diet: user.diet || "",
+        experience: user.experience || "",
+      }));
+    }
+  }, [user]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewImage(objectUrl);
+    
+    try {
+        setLoading(true);
+        // Token kontrolü: user.token varsa onu kullan, yoksa localStorage'a bak
+        const token = user?.token || localStorage.getItem('tariften_token');
+        
+        if (token) {
+            const avatarUrl = await uploadAvatar(token, file);
+            // Avatar hemen güncellensin diye preview'ı URL ile değiştir
+            setPreviewImage(avatarUrl); 
+            
+            // Context'i güncelle (Opsiyonel: Sayfa yenilenmeden avatarın her yerde değişmesi için)
+            if (user) {
+                login({ ...user, avatar_url: avatarUrl, token });
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        setError("Fotoğraf yüklenirken hata oluştu.");
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    if (formData.password && formData.password !== formData.confirmPassword) {
+        setError("Şifreler eşleşmiyor.");
+        setLoading(false);
         return;
     }
 
-    async function fetchStats() {
-      const token = localStorage.getItem('tariften_token');
-      if (!token) return;
+    try {
+        const token = user?.token || localStorage.getItem('tariften_token');
+        if (!token) throw new Error("Oturum bulunamadı.");
 
-      try {
-        setLoading(true);
-        const cookedData = await getUserInteractions(token, 'cooked');
-        const favoritesData = await getUserInteractions(token, 'favorite');
+        const updateData = {
+            fullname: formData.fullname,
+            email: formData.email,
+            diet: formData.diet,
+            experience: formData.experience,
+            bio: formData.bio,
+            ...(formData.password ? { password: formData.password } : {})
+        };
+
+        const response = await updateProfile(token, updateData);
         
-        setStats({
-          cookedCount: cookedData?.length || 0,
-          favoriteCount: favoritesData?.length || 0,
-          planCount: 0
-        });
-
-        // Verileri state'e at
-        setRecentActivity(cookedData || []);
-        setFavorites(favoritesData || []);
-
-      } catch (error) {
-        console.error("Stats error", error);
-      } finally {
+        // Context güncellemesi: Dönen yeni user objesiyle login'i tetikle
+        if(response.user) {
+             login({ 
+                 ...response.user, 
+                 token: token, 
+                 // API yanıt yapısına göre map ediyoruz
+                 user_display_name: response.user.fullname || response.user.user_display_name, 
+                 user_email: response.user.email || response.user.user_email
+             });
+        }
+        
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Güncelleme başarısız.");
+    } finally {
         setLoading(false);
-      }
     }
-
-    fetchStats();
-  }, [user, router]);
-
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
   };
 
-  if (!user) return null;
+  // Auth verisi yükleniyorsa bekle
+  if (authLoading) {
+      return <div className="min-h-screen flex items-center justify-center text-slate-400"><FaSpinner className="animate-spin text-2xl mr-2" /> Yükleniyor...</div>;
+  }
 
-  const avatarUrl = user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.user_display_name || "User")}&background=random&color=fff`;
+  // Kullanıcı yoksa login'e yönlendir (Middleware hallediyor ama client-side için ek güvenlik)
+  if (!user) {
+      if (typeof window !== 'undefined') router.push('/login');
+      return null;
+  }
+
+  // Avatar URL'sini belirle
+  const avatarUrl = previewImage || user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullname || "User")}&background=random&color=fff`;
 
   return (
-    <main className="min-h-screen bg-[#fcfcfc] pb-24">
+    <main className="min-h-screen bg-[#fcfcfc] pb-20">
       
-      {/* Üst Profil Kartı */}
-      <div className="bg-white border-b border-gray-100 pt-12 pb-8 px-6">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center md:items-start gap-6">
-          
-          {/* Avatar */}
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 relative">
-               <Image 
-                 src={avatarUrl}
-                 alt={user.user_display_name}
-                 fill
-                 className="object-cover"
-                 unoptimized={avatarUrl.includes('ui-avatars.com')}
-               />
-            </div>
-            <Link 
-              href="/profile/edit"
-              className="absolute bottom-0 right-0 bg-white border border-gray-200 p-2 rounded-full text-slate-600 shadow-sm hover:text-brand transition"
-            >
-              <FaGear className="text-sm" />
+      {/* Header */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-30">
+        <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
+            <Link href="/profile" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 text-slate-600 transition">
+                <FaArrowLeft />
             </Link>
-          </div>
+            <h1 className="font-heading font-bold text-lg text-slate-800">Profili Düzenle</h1>
+            <div className="w-10"></div> 
+        </div>
+      </header>
 
-          {/* Bilgiler */}
-          <div className="flex-1 text-center md:text-left">
-            <h1 className="text-2xl font-bold text-slate-900 font-heading mb-1">{user.user_display_name}</h1>
-            <p className="text-slate-500 text-sm mb-4">@{user.user_nicename || "kullanici"}</p>
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        
+        {/* Avatar Yükleme */}
+        <div className="flex flex-col items-center mb-8">
+            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 relative">
+                    <Image 
+                        src={avatarUrl}
+                        alt="Profil" 
+                        fill
+                        className="object-cover"
+                        unoptimized={avatarUrl.includes('ui-avatars.com')} // Next.js optimizasyonunu bypass et
+                    />
+                </div>
+                <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <FaCamera className="text-white text-xl" />
+                </div>
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleFileChange}
+                />
+            </div>
+            <p className="text-xs text-gray-400 mt-3">Değiştirmek için fotoğrafa tıkla</p>
+        </div>
+
+        {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm flex items-center gap-3 border border-red-100 mb-6">
+              <FaTriangleExclamation /> {error}
+            </div>
+        )}
+
+        {success && (
+            <div className="bg-green-50 text-green-600 p-4 rounded-xl text-sm flex items-center gap-3 border border-green-100 mb-6 animate-pulse">
+              <FaCheck /> Profil başarıyla güncellendi!
+            </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
             
-            <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                {user.experience && (
-                  <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-xs font-bold border border-orange-100">
-                    {user.experience === 'pro' ? 'Usta Şef' : user.experience === 'intermediate' ? 'Hevesli Aşçı' : 'Çırak'}
-                  </span>
-                )}
-                {user.diet && user.diet !== 'none' && (
-                  <span className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100 capitalize">
-                    {user.diet.replace('_', ' ')}
-                  </span>
-                )}
-            </div>
-          </div>
+            <div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="font-bold text-slate-800 text-sm border-b border-gray-100 pb-3 mb-4">Kişisel Bilgiler</h3>
+                
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">Ad Soyad</label>
+                    <input 
+                        type="text" 
+                        value={formData.fullname}
+                        onChange={(e) => setFormData({...formData, fullname: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                    />
+                </div>
 
-          <div>
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-500 hover:bg-gray-50 hover:text-red-500 transition text-sm font-medium border border-transparent hover:border-gray-100"
-            >
-              <FaArrowRightFromBracket /> Çıkış Yap
-            </button>
-          </div>
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">E-posta</label>
+                    <input 
+                        type="email" 
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                    />
+                </div>
 
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 mt-8 space-y-8">
-        {/* İstatistikler */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-            <div className="w-10 h-10 mx-auto bg-red-50 text-brand rounded-full flex items-center justify-center mb-2">
-              <FaFire />
-            </div>
-            <div className="text-2xl font-bold text-slate-800">{stats.cookedCount}</div>
-            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Pişirilen</div>
-          </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-            <div className="w-10 h-10 mx-auto bg-pink-50 text-pink-500 rounded-full flex items-center justify-center mb-2">
-              <FaHeart />
-            </div>
-            <div className="text-2xl font-bold text-slate-800">{stats.favoriteCount}</div>
-            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Favori</div>
-          </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-            <div className="w-10 h-10 mx-auto bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-2">
-              <FaBookOpen />
-            </div>
-            <div className="text-2xl font-bold text-slate-800">{stats.planCount}</div>
-            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Planlar</div>
-          </div>
-        </div>
-
-        {/* Sekmeler (Tabs) */}
-        <div className="flex border-b border-gray-200">
-            <button 
-                onClick={() => setActiveTab('activity')}
-                className={`pb-4 px-6 text-sm font-bold transition relative ${activeTab === 'activity' ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-                <span className="flex items-center gap-2"><FaRotateLeft /> Son Aktiviteler</span>
-                {activeTab === 'activity' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand rounded-t-full"></div>}
-            </button>
-            <button 
-                onClick={() => setActiveTab('favorites')}
-                className={`pb-4 px-6 text-sm font-bold transition relative ${activeTab === 'favorites' ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-                <span className="flex items-center gap-2"><FaBookmark /> Kayıt Defteri</span>
-                {activeTab === 'favorites' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand rounded-t-full"></div>}
-            </button>
-        </div>
-
-        {/* İçerik Alanı */}
-        <div className="min-h-[200px]">
-            {loading ? (
-                <div className="flex justify-center py-10 text-gray-300"><FaClock className="animate-spin text-2xl" /></div>
-            ) : (
-                <>
-                    {/* SON AKTİVİTELER TAB */}
-                    {activeTab === 'activity' && (
-                        recentActivity.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {recentActivity.map((recipe) => (
-                                    <RecipeCard key={recipe.id} recipe={recipe} type="cooked" />
-                                ))}
-                            </div>
-                        ) : (
-                            <EmptyState message="Henüz hiç yemek pişirmedin." link="/pantry" linkText="Dolabını Yönet" />
-                        )
-                    )}
-
-                    {/* KAYIT DEFTERİ TAB */}
-                    {activeTab === 'favorites' && (
-                        favorites.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {favorites.map((recipe) => (
-                                    <RecipeCard key={recipe.id} recipe={recipe} type="favorite" />
-                                ))}
-                            </div>
-                        ) : (
-                            <EmptyState message="Henüz favori tarifin yok." link="/recipes" linkText="Tarifleri Keşfet" />
-                        )
-                    )}
-                </>
-            )}
-        </div>
-
-      </div>
-    </main>
-  );
-}
-
-// Yardımcı Bileşenler
-function RecipeCard({ recipe, type }: { recipe: Recipe, type: 'cooked' | 'favorite' }) {
-    // Toplam süreyi hesapla (API total_time_min dönmüyor)
-    const totalTime = (parseInt(String(recipe.prep_time || 0)) + parseInt(String(recipe.cook_time || 0))) || 0;
-
-    return (
-        <Link href={`/recipe/${recipe.slug}`} className="flex gap-4 bg-white p-4 rounded-2xl border border-gray-100 hover:shadow-md transition group">
-            <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden relative flex-shrink-0">
-                {recipe.image ? (
-                    <Image src={recipe.image} alt={recipe.title} fill className="object-cover group-hover:scale-105 transition" />
-                ) : (
-                    <div className="flex items-center justify-center h-full text-gray-300"><FaBowlFood className="text-2xl" /></div>
-                )}
-            </div>
-            <div className="flex-1 py-1">
-                <h4 className="font-bold text-slate-800 line-clamp-1 group-hover:text-brand transition">{recipe.title}</h4>
-                <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><FaClock /> {totalTime} dk</span>
-                    {type === 'cooked' && <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-md"><FaCheck /> Pişirildi</span>}
-                    {type === 'favorite' && <span className="flex items-center gap-1 text-pink-600 bg-pink-50 px-2 py-0.5 rounded-md"><FaHeart /> Favori</span>}
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">Hakkımda</label>
+                    <textarea 
+                        rows={3}
+                        value={formData.bio}
+                        onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all resize-none"
+                        placeholder="Mutfakta nelerden hoşlanırsın?"
+                    />
                 </div>
             </div>
-        </Link>
-    );
-}
 
-function EmptyState({ message, link, linkText }: { message: string, link: string, linkText: string }) {
-    return (
-        <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
-                <FaBowlFood className="text-2xl" />
+            <div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="font-bold text-slate-800 text-sm border-b border-gray-100 pb-3 mb-4">Mutfak Tercihleri</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-500 ml-1">Beslenme Tipi</label>
+                        <select 
+                            value={formData.diet}
+                            onChange={(e) => setFormData({...formData, diet: e.target.value})}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-brand appearance-none"
+                        >
+                            <option value="">Seçiniz...</option>
+                            <option value="none">Hepçil</option>
+                            <option value="vegan">Vegan</option>
+                            <option value="vegetarian">Vejetaryen</option>
+                            <option value="gluten_free">Glutensiz</option>
+                            <option value="keto">Ketojenik</option>
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-500 ml-1">Mutfak Deneyimi</label>
+                        <select 
+                            value={formData.experience}
+                            onChange={(e) => setFormData({...formData, experience: e.target.value})}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-brand appearance-none"
+                        >
+                            <option value="">Seçiniz...</option>
+                            <option value="beginner">Acemi</option>
+                            <option value="intermediate">Orta</option>
+                            <option value="pro">Usta</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-            <p className="text-gray-500 mb-4">{message}</p>
-            <Link href={link} className="inline-block px-6 py-3 bg-brand text-white rounded-xl font-bold shadow-lg shadow-brand/20 hover:bg-brand-dark transition">
-                {linkText}
-            </Link>
-        </div>
-    );
+
+            <div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="font-bold text-slate-800 text-sm border-b border-gray-100 pb-3 mb-4">Güvenlik (Opsiyonel)</h3>
+                
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">Yeni Şifre</label>
+                    <input 
+                        type="password" 
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                        placeholder="Değiştirmek istemiyorsanız boş bırakın"
+                    />
+                </div>
+                 <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">Yeni Şifre (Tekrar)</label>
+                    <input 
+                        type="password" 
+                        value={formData.confirmPassword}
+                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                    />
+                </div>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-brand hover:bg-brand-dark text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {loading ? <><FaSpinner className="animate-spin" /> Kaydediliyor...</> : <><FaFloppyDisk /> Değişiklikleri Kaydet</>}
+            </button>
+
+        </form>
+      </div>
+
+    </main>
+  );
 }
