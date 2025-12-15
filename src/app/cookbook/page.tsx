@@ -16,11 +16,21 @@ export default function CookbookPage() {
   // Verileri Çek
   useEffect(() => {
     async function fetchData() {
-      if (!user) return;
+      // Token yoksa işlem yapma
+      if (!user || !user.token) {
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
-      const data = await getUserInteractions(user.token, activeTab);
-      setRecipes(data);
-      setLoading(false);
+      try {
+        const data = await getUserInteractions(user.token, activeTab);
+        setRecipes(data);
+      } catch (error) {
+        console.error("Veri çekme hatası:", error);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchData();
   }, [user, activeTab]);
@@ -83,7 +93,7 @@ export default function CookbookPage() {
                 <div className="p-5 flex flex-col flex-grow">
                   <h3 className="font-bold text-slate-800 text-lg mb-2 group-hover:text-brand transition">{recipe.title}</h3>
                   <div className="mt-auto flex items-center gap-4 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><FaClock className="text-brand" /> {recipe.prep_time}dk</span>
+                    <span className="flex items-center gap-1"><FaClock className="text-brand" /> {recipe.prep_time_min}dk</span>
                     <span className="flex items-center gap-1"><FaFire className="text-brand" /> {recipe.calories} kcal</span>
                   </div>
                 </div>
