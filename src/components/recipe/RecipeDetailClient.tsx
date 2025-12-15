@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { 
-  FaCheck, FaLightbulb, FaThumbsUp, FaXmark, FaClock, FaFire, FaUser, FaArrowRight
+  FaCheck, FaLightbulb, FaThumbsUp, FaXmark, FaClock, FaFire, FaArrowRight
 } from "react-icons/fa6";
 import { Recipe } from "@/types";
 import { useAuth } from "@/context/AuthContext";
@@ -45,8 +45,6 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
         }
     }
     
-    // Eğer kullanıcı daha önce pişirdiyse +1 ekle (Optimistik)
-    // Bunu aşağıda checkInteractionStatus ile güncelleyeceğiz ama şimdilik base'i set edelim
     setCookedCount(baseCount);
 
     // 2. Kullanıcı Etkileşimini Kontrol Et
@@ -55,7 +53,6 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             try {
                 const status = await checkInteractionStatus(user.token, recipe.id);
                 setIsCooked(status.cooked);
-                // Eğer kullanıcı pişirmişse, count'u 1 artır (Base + 1)
                 if (status.cooked) {
                     setCookedCount(prev => prev + 1);
                 }
@@ -87,7 +84,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
     }
     fetchSimilar();
 
-  }, [recipe, user?.token]); // recipe veya user.token değişirse çalış
+  }, [recipe, user?.token]);
 
   // --- HELPER VALUES ---
   const calories = typeof recipe.calories === 'string' ? parseInt(recipe.calories) : recipe.calories || 450;
@@ -97,12 +94,14 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
     fat: recipe.nutrition?.fat ? recipe.nutrition.fat + "g" : Math.round(calories * 0.30 / 9) + "g"      
   };
 
-  // Steps Parsing
+  // Steps Parsing (API string[] veya Step[] dönebiliyor, tipte string[] tanımladık ama kontrol edelim)
   let steps: string[] = [];
   if (recipe.steps && recipe.steps.length > 0) {
     if (typeof recipe.steps[0] === 'object' && recipe.steps[0] !== null && 'content' in recipe.steps[0]) {
+        // Eski yapı (Step objesi)
         steps = (recipe.steps as any[]).map(s => s.content);
     } else {
+        // Yeni yapı (String array)
         steps = recipe.steps as any as string[];
     }
   } else if (recipe.content) {
@@ -151,7 +150,6 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
     if (!user) return alert("Lütfen giriş yapın.");
     if (isCooked) return;
 
-    // Optimistik Update
     setIsCooked(true);
     setCookedCount(prev => prev + 1); 
     setShowSuccessModal(true);
@@ -161,9 +159,6 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             await toggleInteraction(user.token, recipe.id, 'cooked');
         } catch (error) {
             console.error("Pişirme işlemi kaydedilemedi:", error);
-            // Geri al (Opsiyonel, ama kullanıcıya hissettirmemek daha iyi olabilir)
-            // setIsCooked(false); 
-            // setCookedCount(prev => prev - 1);
         }
     }
   };
@@ -279,7 +274,10 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                 </div>
             ) : similarRecipes.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {similarRecipes.map((r) => (
+                    {similarRecipes.map((r) => {
+                      // Toplam süreyi hesapla (API total_time_min dönmüyor)
+                      const totalTime = (parseInt(String(r.prep_time || 0)) + parseInt(String(r.cook_time || 0))) || 0;
+                      return (
                         <Link key={r.id} href={`/recipe/${r.slug}`} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4 hover:shadow-lg transition cursor-pointer group">
                             <div className="w-24 h-24 bg-gray-200 rounded-xl overflow-hidden relative flex-shrink-0">
                                 {r.image ? (
@@ -292,11 +290,12 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                                 <h4 className="font-bold text-slate-800 group-hover:text-brand transition line-clamp-1">{r.title}</h4>
                                 <p className="text-xs text-gray-500 mt-1 line-clamp-2">{r.excerpt || "Harika bir lezzet."}</p>
                                 <div className="flex items-center gap-2 mt-2 text-xs font-bold text-slate-600">
-                                    <FaClock className="text-brand" /> {r.total_time_min}dk
+                                    <FaClock className="text-brand" /> {totalTime}dk
                                 </div>
                             </div>
                         </Link>
-                    ))}
+                      );
+                    })}
                 </div>
             ) : (
                 <div className="text-center text-gray-400 py-4 bg-gray-50 rounded-2xl">Benzer tarif bulunamadı.</div>

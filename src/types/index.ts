@@ -8,7 +8,7 @@ export interface User {
   diet?: string;
   experience?: string;
   bio?: string;
-  token?: string; // Token'ı da buraya ekleyebiliriz veya ayrı tutabiliriz
+  token?: string;
 }
 
 export interface Recipe {
@@ -17,31 +17,42 @@ export interface Recipe {
   slug: string;
   image: string;
   excerpt: string;
-  servings: number | string; // API'den string gelebilir, esnek tutalım
-  prep_time_min: number;
-  cook_time_min: number;
-  total_time_min: number; // Burası eksikti veya silinmiş olabilir
-  difficulty: string;
-  calories: number | string; // API'den string gelebilir
+  // API'den gelen veriler string veya number olabiliyor, string olarak standartlaştırmak güvenlidir.
+  servings: string | number; 
+  prep_time: string | number; // Backend: 'prep_time'
+  cook_time: string | number; // Backend: 'cook_time'
+  calories: string | number;
+  
+  difficulty: string[]; // Backend 'get_term_names' array döner
   rating: number;
   is_favorite?: boolean;
   is_cooked?: boolean;
+  
   ingredients: Ingredient[];
-  steps: Step[] | string[]; // string[] eski yapı için fallback
+  steps: string[]; // Backend 'tariften_steps' array of strings döner
+  
   nutrition: Nutrition;
   author: Author;
+  
+  // Taksonomiler
   categories: string[];
   tags: string[];
+  cuisine: string[];
+  diet: string[];
+  meal_type: string[];
+  collection?: string[]; // Backend'de eklendi
+  
   created_at: string;
-  content?: string; // HTML içerik fallback'i için
-  cuisine?: string[]; // Mutfak türü
-  diet?: string[]; // Diyet türü
-  meal_type?: string[]; // Öğün türü
+  content?: string;
+  seo?: { // Backend'den gelen SEO verisi
+    title: string;
+    description: string;
+  };
 }
 
 export interface Ingredient {
   name: string;
-  amount: number | string; // String veya number gelebilir
+  amount: string | number;
   unit: string;
   note?: string;
 }
@@ -67,17 +78,20 @@ export interface Author {
 }
 
 export interface PantryItem {
-  id: number; // veya string (uuid)
+  id: number;
   name: string;
-  quantity: number;
+  quantity: number | string;
   unit: string;
   expiry_date?: string;
   category?: string;
   image?: string;
+  expiresIn?: string; // Pantry sayfasında kullanılıyor
+  status?: 'fresh' | 'warning' | 'expired';
 }
 
 export interface APIResponse {
   source: 'db' | 'ai' | 'error';
   count: number;
+  pages?: number; // Backend pagination ekledi
   data: Recipe[];
 }

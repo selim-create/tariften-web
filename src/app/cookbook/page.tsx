@@ -13,10 +13,8 @@ export default function CookbookPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Verileri Çek
   useEffect(() => {
     async function fetchData() {
-      // Token yoksa işlem yapma
       if (!user || !user.token) {
         setLoading(false);
         return;
@@ -93,7 +91,8 @@ export default function CookbookPage() {
                 <div className="p-5 flex flex-col flex-grow">
                   <h3 className="font-bold text-slate-800 text-lg mb-2 group-hover:text-brand transition">{recipe.title}</h3>
                   <div className="mt-auto flex items-center gap-4 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><FaClock className="text-brand" /> {recipe.prep_time_min}dk</span>
+                    {/* DÜZELTME: prep_time_min yerine prep_time kullanıldı */}
+                    <span className="flex items-center gap-1"><FaClock className="text-brand" /> {recipe.prep_time}dk</span>
                     <span className="flex items-center gap-1"><FaFire className="text-brand" /> {recipe.calories} kcal</span>
                   </div>
                 </div>
