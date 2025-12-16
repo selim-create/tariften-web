@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@/types"; // Tipleri merkezi dosyadan alıyoruz
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/lib/api";
+import { getCurrentUser } from "@/lib/auth-client";
 
 interface AuthContextType {
   user: User | null;

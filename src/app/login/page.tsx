@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FaEnvelope, FaLock, FaArrowRight, FaSpinner, FaGoogle, FaApple, FaTriangleExclamation } from "react-icons/fa6";
-import { loginUser, loginWithGoogle } from "@/lib/api"; 
+import { loginUser, loginWithGoogle } from "@/lib/auth-client"; 
 import { useAuth } from "@/context/AuthContext";
 import { useGoogleLogin } from '@react-oauth/google';
 
