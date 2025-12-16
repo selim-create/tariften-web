@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { registerUser, loginWithGoogle } from "@/lib/api"; // Google Login fonksiyonu import edildi
+import { registerUser, loginWithGoogle } from "@/lib/auth-client"; // Google Login fonksiyonu import edildi
 import { useAuth } from "@/context/AuthContext"; // Auth Context eklendi
 import { useGoogleLogin } from '@react-oauth/google'; // Google Hook'u eklendi
 import { FaUser, FaEnvelope, FaLock, FaArrowRight, FaSpinner, FaGoogle, FaApple, FaUtensils, FaLeaf, FaCheck, FaTriangleExclamation, FaAt } from "react-icons/fa6";
