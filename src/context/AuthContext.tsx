@@ -3,12 +3,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@/types"; // Tipleri merkezi dosyadan alıyoruz
 import { useRouter } from "next/navigation";
+import { getCurrentUser } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
   login: (userData: any) => void; // userData API'den gelen ham veri olabilir, tipini esnek tutuyoruz
   logout: () => void;
   loading: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,97 +20,110 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // Sayfa yüklendiğinde localStorage'dan kullanıcıyı geri yükle
-    const storedUser = localStorage.getItem("tariften_user");
+  const refreshUser = async () => {
     const storedToken = localStorage.getItem("tariften_token");
+    if (!storedToken) return;
 
-    if (storedUser && storedToken) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        // Token'ı user objesine de ekleyebiliriz veya ayrı tutabiliriz
-        // Eğer storedUser içinde token yoksa, storedToken'ı ekle
-        
-        // Eksik alanları tamamla (Eski localStorage verisi olabilir)
-        const userWithToken: User = { 
+    try {
+      const response = await getCurrentUser(storedToken);
+      if (response.success && response.user) {
+        const userData = response.user;
+        const userToStore: User = {
+          id: userData.id,
+          user_login: userData.user_login || userData.username || "",
+          user_nicename: userData.user_nicename || userData.username || "",
+          user_email: userData.user_email || userData.email || "",
+          user_display_name: userData.user_display_name || userData.fullname || "",
+          avatar_url: userData.avatar_url || "",
+          diet: userData.diet || "",
+          experience: userData.experience || "",
+          bio: userData.bio || "",
+          token: storedToken
+        };
+        setUser(userToStore);
+        localStorage.setItem("tariften_user", JSON.stringify(userToStore));
+      }
+    } catch (error) {
+      console.error("Refresh user error:", error);
+    }
+  };
+
+  useEffect(() => {
+    const initAuth = async () => {
+      const storedUser = localStorage.getItem("tariften_user");
+      const storedToken = localStorage.getItem("tariften_token");
+
+      if (storedUser && storedToken) {
+        try {
+          // Önce localStorage'dan yükle (hızlı başlangıç)
+          const parsedUser = JSON.parse(storedUser);
+          const userWithToken: User = { 
             ...parsedUser, 
             token: storedToken,
-            // Eğer eski veride bu alanlar yoksa boş string ata ki undefined olmasın
             diet: parsedUser.diet || "",
             experience: parsedUser.experience || "",
             bio: parsedUser.bio || "",
             avatar_url: parsedUser.avatar_url || ""
-        };
-        setUser(userWithToken);
-      } catch (error) {
-        console.error("User parse error", error);
-        localStorage.removeItem("tariften_user");
-        localStorage.removeItem("tariften_token");
+          };
+          setUser(userWithToken);
+          
+          // Sonra backend'den güncel veriyi çek
+          await refreshUser();
+        } catch (error) {
+          console.error("User parse error", error);
+          localStorage.removeItem("tariften_user");
+          localStorage.removeItem("tariften_token");
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const login = (userData: any) => {
-    // API yanıtından gelen veriyi User tipine uygun hale getiriyoruz
-    // Backend yanıtı: { token, user_email, user_nicename, user_display_name, avatar_url, diet, experience, bio ... }
-    
-    // Eğer userData içinde 'user' objesi varsa (profile update yanıtı gibi), onu kullan
-    // Yoksa userData'nın kendisi user bilgilerini içeriyordur (login yanıtı gibi)
-    
-    // MEVCUT KULLANICIYI KORU (MERGE STRATEJİSİ)
-    // Eğer sadece token yenileniyorsa veya kısmi güncelleme geliyorsa eski veriyi kaybetme.
-    // Ancak gelen veri "null" veya "boş string" ise ve gerçekten silinmesi isteniyorsa bu strateji sorun yaratabilir.
-    // Şimdilik sadece "undefined" veya "eksik" verileri koruyalım.
-    const currentUser = user || (localStorage.getItem("tariften_user") ? JSON.parse(localStorage.getItem("tariften_user")!) : {});
+    const currentUser = user || {};
+    let tokenToStore: string = userData.token || (currentUser as any).token || "";
 
-    let newUser: Partial<User> = {};
-    let tokenToStore: string = userData.token || currentUser.token || "";
+    let newUserData: Partial<User>;
 
+    // Backend'den user objesi geliyorsa (Google login veya profile update)
     if (userData.user) {
-        // Profil update yanıtı veya detaylı login yanıtı
-        const u = userData.user;
-        // Backend'den gelen veriyi öncelikli al, yoksa mevcut veriyi koru
-        newUser = {
-            id: u.id || currentUser.id,
-            user_login: u.user_login || u.username || currentUser.user_login || "",
-            user_nicename: u.user_nicename || u.username || currentUser.user_nicename || "",
-            user_email: u.user_email || u.email || currentUser.user_email || "",
-            user_display_name: u.user_display_name || u.fullname || currentUser.user_display_name || "",
-            // Avatar URL boş string gelebilir (silinmişse), bu yüzden || kontrolü dikkatli yapılmalı
-            // Eğer u.avatar_url undefined ise currentUser'ı al
-            avatar_url: u.avatar_url !== undefined ? u.avatar_url : (currentUser.avatar_url || ""),
-            diet: u.diet !== undefined ? u.diet : (currentUser.diet || ""),
-            experience: u.experience !== undefined ? u.experience : (currentUser.experience || ""),
-            bio: u.bio !== undefined ? u.bio : (currentUser.bio || ""),
-        };
+      const u = userData.user;
+      newUserData = {
+        id: u.id,
+        user_login: u.user_login || u.username || "",
+        user_nicename: u.user_nicename || u.username || "",
+        user_email: u.user_email || u.email || "",
+        user_display_name: u.user_display_name || u.fullname || "",
+        avatar_url: u.avatar_url || "",
+        diet: u.diet || "",
+        experience: u.experience || "",
+        bio: u.bio || "",
+      };
     } else {
-        // Düz login yanıtı (root seviyesinde veriler)
-        // Burada da undefined kontrolü yapalım
-        newUser = {
-            id: userData.id || currentUser.id || 0,
-            user_login: userData.user_nicename || userData.username || currentUser.user_login || "",
-            user_nicename: userData.user_nicename || userData.username || currentUser.user_nicename || "",
-            user_email: userData.user_email || userData.email || currentUser.user_email || "",
-            user_display_name: userData.user_display_name || userData.fullname || currentUser.user_display_name || "",
-            avatar_url: userData.avatar_url !== undefined ? userData.avatar_url : (currentUser.avatar_url || ""),
-            diet: userData.diet !== undefined ? userData.diet : (currentUser.diet || ""),
-            experience: userData.experience !== undefined ? userData.experience : (currentUser.experience || ""),
-            bio: userData.bio !== undefined ? userData.bio : (currentUser.bio || ""),
-        };
+      // Normal JWT login yanıtı (root seviyesinde veriler)
+      newUserData = {
+        id: userData.id || 0,
+        user_login: userData.user_nicename || userData.username || "",
+        user_nicename: userData.user_nicename || "",
+        user_email: userData.user_email || "",
+        user_display_name: userData.user_display_name || "",
+        avatar_url: userData.avatar_url || "",
+        diet: userData.diet || "",
+        experience: userData.experience || "",
+        bio: userData.bio || "",
+      };
     }
 
-    // Token'ı ekle
-    const userToStore = { ...newUser, token: tokenToStore } as User;
+    const userToStore = { ...newUserData, token: tokenToStore } as User;
 
-    // State ve Storage güncelle
     setUser(userToStore);
     localStorage.setItem("tariften_user", JSON.stringify(userToStore));
     
     if (tokenToStore) {
-        localStorage.setItem("tariften_token", tokenToStore);
-        // Cookie'ye de yaz (Middleware için)
-        document.cookie = `tariften_token=${tokenToStore}; path=/; max-age=604800; SameSite=Lax`; // 1 hafta
+      localStorage.setItem("tariften_token", tokenToStore);
+      document.cookie = `tariften_token=${tokenToStore}; path=/; max-age=604800; SameSite=Lax`;
     }
   };
 
@@ -122,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

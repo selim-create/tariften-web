@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FaArrowLeft, FaCamera, FaFloppyDisk, FaSpinner, FaCheck, FaTriangleExclamation } from "react-icons/fa6"; 
-import { updateProfile, uploadAvatar } from "@/lib/api"; 
+import { updateProfile, uploadAvatar, getCurrentUser } from "@/lib/api"; 
 import { useAuth } from "@/context/AuthContext";
 
 export default function EditProfilePage() {
