@@ -11,7 +11,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth(); 
+  const { login, refreshUser } = useAuth(); 
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +50,8 @@ export default function LoginPage() {
     try {
       const data = await loginUser(formData.username, formData.password);
       login(data);
+      // Normal login sonrası güncel profil bilgilerini çek
+      await refreshUser();
       router.push("/profile");
     } catch (err: any) {
       console.error(err);

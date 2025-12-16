@@ -260,6 +260,30 @@ export async function uploadAvatar(token: string, file: File) {
 }
 
 
+// Mevcut Kullanıcı Bilgilerini Getir
+export async function getCurrentUser(token: string) {
+  try {
+    const res = await fetch(`${API_URL}/tariften/v1/auth/me`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      cache: "no-store"
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || "Kullanıcı bilgileri alınamadı");
+    }
+    
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error("Get Current User Error:", error);
+    throw error;
+  }
+}
+
 export async function loginUser(username: string, password: string) {
   try {
     const res = await fetch(`${API_URL}/jwt-auth/v1/token`, {
