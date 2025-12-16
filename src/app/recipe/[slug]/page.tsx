@@ -7,6 +7,8 @@ import { FaRegClock, FaRegBookmark } from "react-icons/fa";
 import RecipeDetailClient from "@/components/recipe/RecipeDetailClient";
 import RecipeActions from "@/components/recipe/RecipeActions"; 
 import EditButton from "@/components/recipe/EditButton"; // YENİ: Düzenle Butonu
+import { Metadata } from 'next';
+import RecipeJsonLd from '@/components/RecipeJsonLd';
 
 // YouTube Video ID'sini çıkaran yardımcı fonksiyon
 function getYoutubeVideoId(url: string) {
@@ -14,6 +16,53 @@ function getYoutubeVideoId(url: string) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
+}
+
+// Dinamik Metadata
+export async function generateMetadata({ 
+  params 
+}: { 
+  params: Promise<{ slug: string }> 
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const recipe = await getRecipe(slug);
+  
+  if (!recipe) {
+    return {
+      title: 'Tarif Bulunamadı',
+    };
+  }
+
+  const seoTitle = recipe.seo?.title || recipe.title;
+  const seoDescription = recipe.seo?.description || recipe.excerpt;
+
+  return {
+    title: seoTitle,
+    description: seoDescription,
+    openGraph: {
+      title: seoTitle,
+      description: seoDescription,
+      type: 'article',
+      url: `https://tariften.com/recipe/${recipe.slug}`,
+      images: [
+        {
+          url: recipe.image,
+          width: 1200,
+          height: 630,
+          alt: recipe.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: seoTitle,
+      description: seoDescription,
+      images: [recipe.image],
+    },
+    alternates: {
+      canonical: `https://tariften.com/recipe/${recipe.slug}`,
+    },
+  };
 }
 
 export default async function RecipeDetailPage({ 
@@ -43,6 +92,8 @@ export default async function RecipeDetailPage({
   
   return (
     <main className="min-h-screen bg-[#fcfcfc] pb-20 font-sans text-slate-800">
+      
+      <RecipeJsonLd recipe={recipe} />
       
       {/* BREADCRUMB */}
       <div className="container mx-auto max-w-6xl px-4 pt-6 pb-2">

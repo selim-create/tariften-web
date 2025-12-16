@@ -5,6 +5,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const poppins = Poppins({ 
@@ -14,12 +15,57 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Tariften | AI ile Pişir",
-  description: "Türkiye'nin ilk yapay zeka destekli mutfak asistanı.",
+  metadataBase: new URL('https://tariften.com'),
+  title: {
+    default: 'Tariften - Yapay Zeka Destekli Tarif Asistanı',
+    template: '%s | Tariften',
+  },
+  description: 'Dolabındaki malzemelerle yapabileceğin tarifleri keşfet. Yapay zeka destekli tarif önerileri, akıllı dolap yönetimi ve kişiselleştirilmiş yemek planları.',
+  keywords: ['tarif', 'yemek tarifi', 'yapay zeka', 'dolap yönetimi', 'yemek planlama', 'türk mutfağı'],
+  authors: [{ name: 'Tariften', url: 'https://tariften.com' }],
+  creator: 'Hip Medya',
+  publisher: 'Tariften',
   icons: {
-    icon: '/favicon.ico', // public/favicon.ico dosyasını işaret eder
+    icon: '/favicon.ico',
     shortcut: '/favicon.ico',
-    apple: '/favicon.ico', // İsterseniz özel apple-touch-icon.png de ekleyebilirsiniz
+    apple: '/favicon.ico',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'tr_TR',
+    url: 'https://tariften.com',
+    siteName: 'Tariften',
+    title: 'Tariften - Yapay Zeka Destekli Tarif Asistanı',
+    description: 'Dolabındaki malzemelerle yapabileceğin tarifleri keşfet.',
+    images: [
+      {
+        url: '/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Tariften',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Tariften - Yapay Zeka Destekli Tarif Asistanı',
+    description: 'Dolabındaki malzemelerle yapabileceğin tarifleri keşfet.',
+    images: ['/og-image.jpg'],
+    creator: '@tariften',
+  },
+  alternates: {
+    canonical: 'https://tariften.com',
   },
 };
 
@@ -32,6 +78,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr">
+      <head>
+        <GoogleAnalytics />
+      </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans antialiased bg-[#fcfcfc] text-slate-800 flex flex-col min-h-screen`}>
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           <AuthProvider>
