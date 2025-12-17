@@ -39,7 +39,8 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
 
         if (diffDays >= 1) {
             // ID'ye dayalı sabit sayı (Sayfa yenilense de aynı kalır)
-            const seed = recipe.id; 
+            const seed = recipe.id; // recipe.id number varsayıyoruz
+            // Basit bir pseudo-random
             const randomFake = (seed * 9301 + 49297) % 3900; 
             baseCount = 100 + randomFake;
         }
@@ -165,6 +166,9 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
 
   const baseServings = typeof recipe.servings === 'string' ? parseInt(recipe.servings) : recipe.servings || 2;
 
+  // Placeholder görsel (eğer resim yoksa kullanılacak)
+  const fallbackImage = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop";
+
   return (
     <div className="w-full">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -281,7 +285,13 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                         <Link key={r.id} href={`/recipe/${r.slug}`} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4 hover:shadow-lg transition cursor-pointer group">
                             <div className="w-24 h-24 bg-gray-200 rounded-xl overflow-hidden relative flex-shrink-0">
                                 {r.image ? (
-                                    <Image src={r.image} alt={r.title} fill className="object-cover group-hover:scale-105 transition" />
+                                    <Image 
+                                      src={r.image} 
+                                      alt={r.title} 
+                                      fill 
+                                      unoptimized={true}
+                                      className="object-cover group-hover:scale-105 transition" 
+                                    />
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-2xl">🥘</div>
                                 )}
