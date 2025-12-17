@@ -1,8 +1,9 @@
 "use server";
 
-import { APIResponse, Recipe, PantryItem } from "@/types";
+import { APIResponse, Recipe, PantryItem, Menu } from "@/types";
 import { revalidatePath } from "next/cache"; 
 
+// ⚠️ DİKKAT: Backend URL'inizi buraya girin. Localhost kullanıyorsanız güncelleyin.
 const API_URL = "https://api.tariften.com/wp-json";
 
 // --- YARDIMCI FONKSİYONLAR ---
@@ -27,7 +28,10 @@ async function fetchDynamic(endpoint: string) {
       headers: { "Content-Type": "application/json" }
     });
     
-    if (!res.ok) return null;
+    if (!res.ok) {
+        console.error(`[API Error ${res.status}]: ${endpoint}`);
+        return null;
+    }
     
     const json = await res.json();
     return json;
@@ -191,6 +195,80 @@ export async function updateRecipe(token: string, recipeData: any) {
   }
 }
 
+// AI Menü Oluştur
+export async function generateAIMenu(token: string, params: { concept: string, guest_count: number, event_type: string, diet?: string, cuisine?: string }) {
+  try {
+    const res = await fetch(`${API_URL}/tariften/v1/ai/generate-menu`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(params),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Menü oluşturulamadı.");
+    return data; // { success: true, slug: '...', id: ... }
+  } catch (error) {
+    console.error("Generate Menu Error:", error);
+    throw error;
+  }
+}
+
+// Menü Detayı Getir
+export async function getMenu(slug: string): Promise<Menu | null> {
+  return await fetchDynamic(`${API_URL}/tariften/v1/menus/search?slug=${encodeURIComponent(slug)}`);
+}
+
+// Menü Listesi (Arşiv & Vitrin)
+// collection parametresi opsiyonel: 'vitrin', 'editorun-secimi' vb.
+export async function getMenus(collection?: string): Promise<Menu[]> {
+  let url = `${API_URL}/tariften/v1/menus/search`;
+  if (collection) {
+    url += `?collection=${collection}`;
+  }
+  const res = await fetchDynamic(url);
+  return res && res.data ? res.data : [];
+}
+
+// YENİ: Menü Güncelleme
+export async function updateMenu(token: string, menuData: { 
+  id: number; 
+  title?: string; 
+  description?: string; 
+  concept?: string; 
+  guest_count?: number; 
+  image?: string; 
+  event_type?: string;
+  sections?: any[]; // Or MenuSection[] if I import it
+}) {
+    try {
+    // NOT: Backend'de /menus/update endpointi olması gerekir. 
+    // Eğer yoksa create_recipe benzeri bir logic veya custom endpoint yazılmalıdır.
+    // Şimdilik standart WP update mantığına uygun post ediyoruz.
+    const res = await fetch(`${API_URL}/tariften/v1/menus/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(menuData),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Menü güncellenemedi.");
+    
+    // Cache'i temizle
+    revalidatePath(`/menu/${data.slug}`);
+    
+    return data;
+  } catch (error) {
+    console.error("Update Menu Error:", error);
+    throw error;
+  }
+}
+
 // --- AUTH İŞLEMLERİ ---
 
 export async function registerUser(userData: any) {
@@ -210,7 +288,7 @@ export async function registerUser(userData: any) {
   }
 }
 
-// YENİ: Profil Güncelleme
+// Profil Güncelleme
 export async function updateProfile(token: string, profileData: any) {
   try {
     const res = await fetch(`${API_URL}/tariften/v1/auth/update`, {
@@ -231,7 +309,7 @@ export async function updateProfile(token: string, profileData: any) {
   }
 }
 
-// YENİ: Avatar Yükleme (Düzeltildi)
+// Avatar Yükleme
 export async function uploadAvatar(token: string, file: File) {
   try {
     const formData = new FormData();
@@ -241,7 +319,6 @@ export async function uploadAvatar(token: string, file: File) {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${token}` 
-        // Content-Type KESİNLİKLE EKLENMEMELİ, browser otomatik ekler
       },
       body: formData,
     });
@@ -299,7 +376,7 @@ export async function loginUser(username: string, password: string) {
   }
 }
 
-// GÜNCELLENMİŞ: Google Login Fonksiyonu (Daha güvenli hata yönetimi)
+// Google Login
 export async function loginWithGoogle(googleToken: string) {
   try {
     const res = await fetch(`${API_URL}/tariften/v1/auth/google`, {
@@ -308,17 +385,14 @@ export async function loginWithGoogle(googleToken: string) {
       body: JSON.stringify({ token: googleToken }),
     });
 
-    // Önce yanıtın türünü kontrol et
     const contentType = res.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") !== -1) {
-        // JSON ise normal işle
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Google girişi başarısız.");
         return data;
     } else {
-        // JSON değilse (muhtemelen HTML hata sayfası), metni alıp logla
         const text = await res.text();
-        console.error("Backend Error (HTML):", text); // HTML hatasını konsola bas
+        console.error("Backend Error (HTML):", text); 
         throw new Error("Sunucu tarafında bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
     }
   } catch (error) {

@@ -5,6 +5,7 @@ import { FaArrowRight, FaFire, FaAward } from "react-icons/fa";
 import { FaUtensils, FaClock, FaEarthAmericas } from "react-icons/fa6";
 import Hero from "@/components/home/Hero";
 import HomeCTA from "@/components/home/HomeCTA";
+import MenuShowcase from "@/components/home/MenuShowcase"; // YENİ
 
 export const dynamic = 'force-dynamic';
 
@@ -166,7 +167,7 @@ export default async function Home() {
           )}
         </div>
       </section>
-
+      <MenuShowcase />
       {/* 5. KATEGORİLER (Moods) */}
       <section className="py-16 border-t border-gray-100 bg-white/50">
         <div className="container mx-auto px-4 text-center">

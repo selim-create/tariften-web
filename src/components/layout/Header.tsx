@@ -93,6 +93,7 @@ export default function Header() {
         {/* NAVIGASYON (Desktop) */}
         <nav className={`hidden md:flex items-center space-x-8 text-sm font-medium text-slate-500 transition-opacity duration-300 ${isSearchOpen ? 'lg:opacity-0 pointer-events-none xl:opacity-100 xl:pointer-events-auto' : 'opacity-100'}`}>
           <Link href="/" className={`hover:text-[#db4c3f] transition ${pathname === '/' ? 'text-[#db4c3f] font-bold' : ''}`}>Anasayfa</Link>
+          <Link href="/menus" className={`hover:text-[#db4c3f] transition ${pathname === '/menus' ? 'text-[#db4c3f] font-bold' : ''}`}>Menüler</Link>
           <Link href="/pantry" className={`hover:text-[#db4c3f] transition ${pathname === '/pantry' ? 'text-[#db4c3f] font-bold' : ''}`}>Dolap Modu</Link>
           <Link href="/recipes" className={`hover:text-[#db4c3f] transition ${pathname === '/recipes' ? 'text-[#db4c3f] font-bold' : ''}`}>Tarifler</Link>
         </nav>
@@ -262,6 +263,7 @@ export default function Header() {
 
             <div className="flex flex-col gap-4 text-lg font-bold text-slate-700">
               <Link href="/" onClick={() => setIsMenuOpen(false)} className="hover:text-[#db4c3f]">Anasayfa</Link>
+              <Link href="/menus" onClick={() => setIsMenuOpen(false)} className="hover:text-[#db4c3f]">Menüler</Link>
               <Link href="/pantry" onClick={() => setIsMenuOpen(false)} className="hover:text-[#db4c3f]">Dolap Asistanı</Link>
               <Link href="/recipes" onClick={() => setIsMenuOpen(false)} className="hover:text-[#db4c3f]">Tarifler</Link>
               

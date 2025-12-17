@@ -85,13 +85,38 @@ export interface PantryItem {
   expiry_date?: string;
   category?: string;
   image?: string;
-  expiresIn?: string; // Pantry sayfasında kullanılıyor
+  expiresIn?: string;
   status?: 'fresh' | 'warning' | 'expired';
 }
 
 export interface APIResponse {
   source: 'db' | 'ai' | 'error';
   count: number;
-  pages?: number; // Backend pagination ekledi
+  pages?: number;
   data: Recipe[];
+}
+
+// --- YENİ: MENU TYPES ---
+export interface MenuSection {
+  type: 'starter' | 'main' | 'side' | 'dessert' | 'drink';
+  title: string;
+  recipes: Recipe[]; // Recipe objeleri veya sadece temel bilgiler
+}
+
+export interface Menu {
+  id: number;
+  title: string;
+  slug: string;
+  description: string;
+  image: string;
+  concept: string;
+  guest_count: number;
+  event_type: string; // Bu alanın varlığından emin oluyoruz
+  sections: MenuSection[];
+  author_id: number;
+  seo?: {
+    title: string;
+    description: string;
+    keywords: string;
+  };
 }
