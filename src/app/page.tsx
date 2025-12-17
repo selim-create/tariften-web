@@ -2,13 +2,54 @@ import Link from "next/link";
 import Image from "next/image";
 import { getRecipes } from "@/lib/api";
 import { FaArrowRight, FaFire, FaAward } from "react-icons/fa";
-import { FaUtensils, FaClock, FaEarthAmericas } from "react-icons/fa6"; // DÜZELTME: FaEarthAmericas buradan çağrılıyor
+import { FaUtensils, FaClock, FaEarthAmericas } from "react-icons/fa6";
 import Hero from "@/components/home/Hero";
-import HomeCTA from "@/components/home/HomeCTA"; // YENİ BİLEŞEN
+import HomeCTA from "@/components/home/HomeCTA";
+
 export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const popularRecipes = await getRecipes({ collection: ['Popüler'] });
   const editorRecipes = await getRecipes({ collection: ['Editörün Seçimi'] });
+
+  // Asya Mutfağı için çoklu seçim parametrelerini oluştur
+  const asianCuisines = ['Çin Mutfağı', 'Japon Mutfağı', 'Kore Mutfağı', 'Tayland Mutfağı'];
+  const asianParams = new URLSearchParams();
+  // Çoklu seçimde sadece ilkinin (Çin) seçili gelmesini engellemek için,
+  // parametreleri virgülle birleştirerek tek bir 'cuisine' parametresi olarak gönderiyoruz.
+  asianParams.set('cuisine', asianCuisines.join(','));
+  const asianLink = `/recipes?${asianParams.toString()}`;
+
+  // Kategori verileri
+  const cuisineCategories = [
+    { 
+      name: "Türk Mutfağı", 
+      link: "/recipes?cuisine=Türk%20Mutfağı", 
+      img: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=400&auto=format&fit=crop", 
+      flag: "🇹🇷" 
+    },
+    { 
+      name: "İtalyan Mutfağı", 
+      link: "/recipes?cuisine=İtalyan%20Mutfağı", 
+      img: "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?q=80&w=400&auto=format&fit=crop", 
+      flag: "🇮🇹" 
+    },
+    { 
+      name: "Asya Mutfağı", 
+      link: asianLink, 
+      img: "https://images.unsplash.com/photo-1552590635-27c2c2128abf?q=80&w=400&auto=format&fit=crop", 
+      flag: "🌏" 
+    },
+    { 
+      name: "Meksika Mutfağı", 
+      link: "/recipes?cuisine=Meksika%20Mutfağı", 
+      img: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?q=80&w=400&auto=format&fit=crop", 
+      flag: "🇲🇽" 
+    },
+  ];
+
+  // Placeholder görsel (eğer resim yoksa kullanılacak)
+  const fallbackImage = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop";
 
   return (
     <main className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#fcfcfc]">
@@ -29,17 +70,13 @@ export default async function Home() {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { name: "Türk Mutfağı", link: "Türk Mutfağı", img: "https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?q=80&w=400&auto=format&fit=crop", flag: "🇹🇷" },
-              { name: "İtalyan", link: "İtalyan", img: "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?q=80&w=400&auto=format&fit=crop", flag: "🇮🇹" },
-              { name: "Meksika", link: "Meksika", img: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?q=80&w=400&auto=format&fit=crop", flag: "🇲🇽" },
-              { name: "Japonya", link: "Japonya", img: "https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?q=80&w=400&auto=format&fit=crop", flag: "🇯🇵" },
-            ].map((cuisine) => (
-              <Link href={`/recipes?cuisine=${encodeURIComponent(cuisine.link)}`} key={cuisine.name} className="group relative h-40 md:h-52 rounded-2xl overflow-hidden cursor-pointer shadow-md">
+            {cuisineCategories.map((cuisine) => (
+              <Link href={cuisine.link} key={cuisine.name} className="group relative h-40 md:h-52 rounded-2xl overflow-hidden cursor-pointer shadow-md">
                 <Image 
                    src={cuisine.img} 
                    alt={cuisine.name}
                    fill
+                   unoptimized={true}
                    className="object-cover group-hover:scale-110 transition duration-700" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 flex flex-col justify-end">
@@ -68,9 +105,10 @@ export default async function Home() {
                 <Link href={`/recipe/${recipe.slug}`} key={recipe.id} className="bg-white rounded-2xl border border-gray-100 hover:shadow-xl transition group overflow-hidden flex flex-col h-full">
                   <div className="aspect-[4/3] overflow-hidden relative">
                     <Image 
-                      src={recipe.image} 
+                      src={recipe.image || fallbackImage} 
                       alt={recipe.title} 
                       fill
+                      unoptimized={true}
                       className="object-cover group-hover:scale-105 transition duration-500" 
                     />
                     <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-brand shadow-sm flex items-center gap-1">
@@ -106,9 +144,10 @@ export default async function Home() {
                 {editorRecipes.data.slice(0, 4).map((recipe) => (
                    <Link href={`/recipe/${recipe.slug}`} key={recipe.id} className="group relative h-64 rounded-2xl overflow-hidden shadow-lg">
                       <Image 
-                        src={recipe.image} 
+                        src={recipe.image || fallbackImage} 
                         alt={recipe.title} 
                         fill
+                        unoptimized={true}
                         className="object-cover group-hover:scale-110 transition duration-700" 
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-5 flex flex-col justify-end">
@@ -137,7 +176,7 @@ export default async function Home() {
                <Link href="/recipes?difficulty=Kolay" className="px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-bold transition">⚡ Üşengeç Şef</Link>
                <Link href="/recipes?difficulty=Şef" className="px-6 py-3 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-xl font-bold transition">🔥 Ziyafet</Link>
                <Link href="/recipes?meal_type=Tatlı" className="px-6 py-3 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-xl font-bold transition">🧁 Tatlı Krizi</Link>
-               <Link href="/recipes?cuisine=Meksika" className="px-6 py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 rounded-xl font-bold transition">🌮 Acı Sever</Link>
+               <Link href="/recipes?cuisine=Meksika%20Mutfağı" className="px-6 py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 rounded-xl font-bold transition">🌮 Acı Sever</Link>
                <Link href="/recipes?meal_type=Kahvaltı" className="px-6 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-xl font-bold transition">🍳 Pazar Kahvaltısı</Link>
             </div>
         </div>

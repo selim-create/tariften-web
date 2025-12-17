@@ -18,11 +18,23 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "plus.unsplash.com", // Kırık görseller için eklendi
+      },
+      {
+        protocol: "https",
+        hostname: "images.pexels.com", // Kırık görseller için eklendi
+      },
+      {
+        protocol: "https",
         hostname: "api.dicebear.com",
       },
       {
         protocol: "https",
         hostname: "placehold.co",
+      },
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com", // Kırık görseller için eklendi
       },
       // YENİ EKLENENLER:
       {
