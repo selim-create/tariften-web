@@ -237,7 +237,8 @@ function RecipesContent() {
   return (
     <div className="container mx-auto px-4 py-8 relative">
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-8 gap-4 border-b border-gray-100 pb-6">
+        {/* MOBİL DÜZELTME: items-end yerine items-start */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-gray-100 pb-6">
             <div>
                 <nav className="flex items-center text-xs text-gray-400 mb-2 font-medium gap-2"><Link href="/" className="hover:text-[#db4c3f]">Anasayfa</Link><FaChevronRight className="text-[10px]" /><span className="text-gray-800">Tarifler</span></nav>
                 <h1 className="text-3xl font-bold text-slate-900 font-heading">Tarif Kütüphanesi</h1>
@@ -286,7 +287,14 @@ function RecipesContent() {
                             <Link href={`/recipe/${recipe.slug}`} key={recipe.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full">
                                 <div className="aspect-[4/3] overflow-hidden bg-gray-100 relative">
                                     <div className="relative w-full h-full">
-                                        <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+                                        {/* GÖRSEL DÜZELTME: Image bileşeni ve unoptimized */}
+                                        <Image 
+                                            src={recipe.image || "/placeholder.jpg"} 
+                                            alt={recipe.title} 
+                                            fill
+                                            unoptimized={true}
+                                            className="object-cover group-hover:scale-105 transition duration-700" 
+                                        />
                                     </div>
                                     {recipe.cuisine?.[0] && <span className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2.5 py-1 rounded-md text-xs font-bold text-slate-700 shadow-sm">{recipe.cuisine[0]}</span>}
                                 </div>

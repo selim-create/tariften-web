@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { getUserInteractions } from "@/lib/api";
 import { Recipe } from "@/types";
@@ -40,7 +41,8 @@ export default function CookbookPage() {
       <div className="container mx-auto max-w-5xl">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-10 gap-4">
+        {/* MOBİL DÜZELTME: items-end yerine items-start kullanıldı */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
             <Link href="/profile" className="text-xs text-gray-400 hover:text-brand flex items-center gap-1 mb-2 transition">
               <FaArrowLeft /> Profile Dön
@@ -81,7 +83,18 @@ export default function CookbookPage() {
                 className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full"
               >
                 <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                  <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  {/* GÖRSEL DÜZELTME: img yerine Image ve unoptimized */}
+                  {recipe.image ? (
+                    <Image 
+                      src={recipe.image} 
+                      alt={recipe.title} 
+                      fill
+                      unoptimized={true}
+                      className="object-cover group-hover:scale-105 transition duration-500" 
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-4xl">🥘</div>
+                  )}
                   {recipe.cuisine?.[0] && (
                     <span className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2 py-1 rounded-md text-[10px] font-bold text-slate-700 shadow-sm uppercase tracking-wide">
                         {recipe.cuisine[0]}
@@ -89,9 +102,8 @@ export default function CookbookPage() {
                   )}
                 </div>
                 <div className="p-5 flex flex-col flex-grow">
-                  <h3 className="font-bold text-slate-800 text-lg mb-2 group-hover:text-brand transition">{recipe.title}</h3>
+                  <h3 className="font-bold text-slate-800 text-lg mb-2 group-hover:text-brand transition line-clamp-2">{recipe.title}</h3>
                   <div className="mt-auto flex items-center gap-4 text-xs text-gray-500">
-                    {/* DÜZELTME: prep_time_min yerine prep_time kullanıldı */}
                     <span className="flex items-center gap-1"><FaClock className="text-brand" /> {recipe.prep_time}dk</span>
                     <span className="flex items-center gap-1"><FaFire className="text-brand" /> {recipe.calories} kcal</span>
                   </div>

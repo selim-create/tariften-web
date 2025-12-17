@@ -360,7 +360,8 @@ export default function PantryPage() {
       <div className="container mx-auto max-w-5xl px-4 py-8">
         
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-8 gap-4 border-b border-gray-100 pb-6">
+        {/* DÜZELTME: Mobilde alignment sorunu için items-start kullanıldı */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-gray-100 pb-6">
           <div>
             <nav className="flex items-center text-xs text-gray-400 mb-2 font-medium gap-2">
               <Link href="/" className="hover:text-brand">Anasayfa</Link>
