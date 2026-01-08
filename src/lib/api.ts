@@ -339,26 +339,26 @@ export async function uploadAvatar(token: string, file: File) {
 
 // Mevcut Kullanıcı Bilgilerini Getir
 export async function getCurrentUser(token: string) {
-  try {
-    const res = await fetch(`${API_URL}/tariften/v1/auth/me`, {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      cache: "no-store"
-    });
+  const res = await fetch(`${API_URL}/tariften/v1/auth/me`, {
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    cache: "no-store"
+  });
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || "Kullanıcı bilgileri alınamadı");
-    }
-    
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    console.error("Get Current User Error:", error);
-    throw error;
+  // 401 hatası için özel handling
+  if (res.status === 401) {
+    return { success: false, error: 'Token expired' };
   }
+
+  if (!res.ok) {
+    return { success: false, error: 'Request failed' };
+  }
+  
+  const data = await res.json();
+  // Backend'den gelen response'u success flag ile wrap et
+  return { success: true, ...data };
 }
 
 export async function loginUser(username: string, password: string) {
@@ -495,4 +495,48 @@ export async function checkInteractionStatus(token: string, recipeId: number) {
     if (!res.ok) return { favorite: false, cooked: false };
     return await res.json();
   } catch (error) { return { favorite: false, cooked: false }; }
+}
+
+// Get User's Recipes
+export async function getUserRecipes(token: string): Promise<any[]> {
+  try {
+    const res = await fetch(`${API_URL}/tariften/v1/recipes/search?author=me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    if (!res.ok) {
+      console.error('Failed to fetch user recipes:', res.status, res.statusText);
+      return [];
+    }
+    
+    const data = await res.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching user recipes:', error);
+    return [];
+  }
+}
+
+// Newsletter Subscription
+export async function subscribeNewsletter(email: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch(`${API_URL}/tariften/v1/newsletter/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    
+    if (!res.ok) {
+      console.error('Newsletter subscription failed:', res.status, res.statusText);
+      return { success: false, message: 'Abonelik başarısız oldu.' };
+    }
+    
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error('Newsletter subscription error:', error);
+    return { success: false, message: 'Bir hata oluştu.' };
+  }
 }

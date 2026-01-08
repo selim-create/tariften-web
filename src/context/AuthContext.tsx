@@ -20,31 +20,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("tariften_user");
+    localStorage.removeItem("tariften_token");
+    // Cookie'yi temizle
+    document.cookie = "tariften_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    router.push("/login");
+  };
+
   const refreshUser = async () => {
     const storedToken = localStorage.getItem("tariften_token");
     if (!storedToken) return;
 
-    try {
-      const response = await getCurrentUser(storedToken);
-      if (response.success && response.user) {
-        const userData = response.user;
-        const userToStore: User = {
-          id: userData.id,
-          user_login: userData.user_login || userData.username || "",
-          user_nicename: userData.user_nicename || userData.username || "",
-          user_email: userData.user_email || userData.email || "",
-          user_display_name: userData.user_display_name || userData.fullname || "",
-          avatar_url: userData.avatar_url || "",
-          diet: userData.diet || "",
-          experience: userData.experience || "",
-          bio: userData.bio || "",
-          token: storedToken
-        };
-        setUser(userToStore);
-        localStorage.setItem("tariften_user", JSON.stringify(userToStore));
-      }
-    } catch (error) {
-      console.error("Refresh user error:", error);
+    const response = await getCurrentUser(storedToken);
+    
+    // Token geçersiz veya süresi dolmuşsa logout yap
+    if (!response.success) {
+      console.warn("Token expired or invalid, logging out user");
+      logout();
+      return;
+    }
+    
+    if (response.user) {
+      const userData = response.user;
+      const userToStore: User = {
+        id: userData.id,
+        user_login: userData.user_login || userData.username || "",
+        user_nicename: userData.user_nicename || userData.username || "",
+        user_email: userData.user_email || userData.email || "",
+        user_display_name: userData.user_display_name || userData.fullname || "",
+        avatar_url: userData.avatar_url || "",
+        diet: userData.diet || "",
+        experience: userData.experience || "",
+        bio: userData.bio || "",
+        token: storedToken
+      };
+      setUser(userToStore);
+      localStorage.setItem("tariften_user", JSON.stringify(userToStore));
     }
   };
 
@@ -125,15 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("tariften_token", tokenToStore);
       document.cookie = `tariften_token=${tokenToStore}; path=/; max-age=604800; SameSite=Lax`;
     }
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("tariften_user");
-    localStorage.removeItem("tariften_token");
-    // Cookie'yi temizle
-    document.cookie = "tariften_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    router.push("/login");
   };
 
   return (

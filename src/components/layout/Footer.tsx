@@ -4,22 +4,31 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { FaInstagram, FaTwitter, FaYoutube, FaTiktok, FaFacebookF, FaPinterest } from "react-icons/fa6";
+import { subscribeNewsletter } from "@/lib/api";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [email, setEmail] = useState("");
-  const [submitStatus, setSubmitStatus] = useState<"idle" | "success">("idle");
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      // Newsletter subscription - success state for now
-      // Backend integration will be added in future updates
-      setSubmitStatus("success");
-      setEmail("");
-      setTimeout(() => {
-        setSubmitStatus("idle");
-      }, 5000);
+    if (!email.trim()) return;
+    
+    try {
+      const result = await subscribeNewsletter(email);
+      if (result.success) {
+        setSubmitStatus("success");
+        setEmail("");
+        setTimeout(() => setSubmitStatus("idle"), 5000);
+      } else {
+        setSubmitStatus("error");
+        setTimeout(() => setSubmitStatus("idle"), 5000);
+      }
+    } catch (error) {
+      console.error("Newsletter error:", error);
+      setSubmitStatus("error");
+      setTimeout(() => setSubmitStatus("idle"), 5000);
     }
   };
 
@@ -87,6 +96,10 @@ export default function Footer() {
             {submitStatus === "success" ? (
               <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-xs text-green-700 font-medium">
                 Kaydınız alındı! Lezzetli haberler için takipte kalın. ✨
+              </div>
+            ) : submitStatus === "error" ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-xs text-red-700 font-medium">
+                Bir hata oluştu. Lütfen daha sonra tekrar deneyin.
               </div>
             ) : (
               <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
