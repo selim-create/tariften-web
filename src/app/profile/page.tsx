@@ -196,13 +196,15 @@ export default function ProfilePage() {
 }
 
 // Yardımcı Bileşenler (Dosya içinde tanımladım, ayrı dosyaya da alınabilir)
+// Placeholder URL patterns to filter out
+const PLACEHOLDER_PATTERNS = ['placehold.co', 'placeholder', 'via.placeholder'];
+
 function RecipeCard({ recipe, type }: { recipe: any, type: 'cooked' | 'favorite' }) {
     const [imgError, setImgError] = useState(false);
     
     // Placeholder veya kırık görsel kontrolü
     const isValidImage = recipe.image && 
-                         !recipe.image.includes('placehold.co') && 
-                         !recipe.image.includes('placeholder') &&
+                         !PLACEHOLDER_PATTERNS.some(pattern => recipe.image.includes(pattern)) &&
                          !imgError;
     
     return (
