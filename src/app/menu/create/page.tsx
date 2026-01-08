@@ -86,7 +86,7 @@ export default function CreateMenuPage() {
         {step === 1 && (
             <div className="animate-fade-in-up">
                 <h1 className="text-4xl md:text-5xl font-bold font-heading text-slate-900 mb-6">
-                    Bugün ne kutluyoruz?
+                    Bugün neyi kutluyoruz?
                 </h1>
                 <p className="text-xl text-gray-500 mb-10">
                     Özel bir davet, romantik bir akşam yemeği veya sadece kendinizi şımartacağınız bir pazar kahvaltısı...
