@@ -70,7 +70,7 @@ function RecipeSearchDropdown({ onSelectRecipe }: { onSelectRecipe: (recipe: Rec
             >
               <div className="w-10 h-10 rounded-lg bg-gray-200 overflow-hidden shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={recipe.image || 'https://placehold.co/100'} className="w-full h-full object-cover" alt="" />
+                <img src={recipe.image || 'https://placehold.co/100'} className="w-full h-full object-cover" alt={recipe.title} />
               </div>
               <div className="flex-grow">
                 <div className="font-bold text-slate-800 text-sm line-clamp-1">{recipe.title}</div>
@@ -208,7 +208,7 @@ export default function EditMenuPage() {
   // Tarif Ekleme
   const addRecipe = (sectionIndex: number, recipe: Recipe) => {
       const newSections = [...sections];
-      // Check if recipe already exists in this section
+      // Bu bölümde tarif zaten var mı kontrol et
       const exists = newSections[sectionIndex].recipes.some(r => r.id === recipe.id);
       if (!exists) {
           newSections[sectionIndex].recipes.push(recipe);

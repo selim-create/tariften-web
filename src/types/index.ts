@@ -98,7 +98,23 @@ export interface APIResponse {
 
 // --- YENİ: MENU TYPES ---
 export interface MenuSection {
-  type: 'starter' | 'main' | 'side' | 'dessert' | 'drink' | 'soup' | 'meze' | 'hot_appetizer' | 'salad' | 'breakfast_main' | 'breakfast_side' | 'savory' | 'sweet' | 'cold_canape' | 'hot_bites' | 'dip_sauce';
+  type: 
+    | 'starter' 
+    | 'main' 
+    | 'side' 
+    | 'dessert' 
+    | 'drink' 
+    | 'soup' 
+    | 'meze' 
+    | 'hot_appetizer' 
+    | 'salad' 
+    | 'breakfast_main' 
+    | 'breakfast_side' 
+    | 'savory' 
+    | 'sweet' 
+    | 'cold_canape' 
+    | 'hot_bites' 
+    | 'dip_sauce';
   title: string;
   recipes: Recipe[]; // Recipe objeleri veya sadece temel bilgiler
 }

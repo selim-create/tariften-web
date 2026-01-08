@@ -2,7 +2,7 @@ import { getMenu } from "@/lib/api";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Metadata } from "next"; 
-import { FaUsers, FaArrowLeft, FaClock, FaUtensils, FaBowlFood, FaWineGlass, FaIceCream, FaLeaf, FaLemon } from "react-icons/fa6";
+import { FaUsers, FaArrowLeft, FaClock, FaUtensils, FaBowlFood, FaWineGlass, FaIceCream, FaLeaf, FaLemon, FaBowlRice, FaCookie, FaPepperHot } from "react-icons/fa6";
 import { MenuHeaderActions, MenuFooterActions } from "@/components/menu/MenuClientComponents"; // YENİ IMPORT
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -46,19 +46,19 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
   const getSectionStyle = (type: string) => {
     switch(type) {
         case 'starter': return { icon: <FaBowlFood/>, title: 'Başlangıç & Çorba', desc: 'İştah açıcı hafif lezzetler' };
-        case 'soup': return { icon: <FaBowlFood/>, title: 'Çorba', desc: 'Isıtan lezzetler' };
+        case 'soup': return { icon: <FaBowlRice/>, title: 'Çorba', desc: 'Isıtan lezzetler' };
         case 'meze': return { icon: <FaLemon/>, title: 'Mezeler', desc: 'Sofraya renk katan atıştırmalıklar' };
-        case 'hot_appetizer': return { icon: <FaUtensils/>, title: 'Ara Sıcak', desc: 'Sıcak başlangıçlar' };
+        case 'hot_appetizer': return { icon: <FaPepperHot/>, title: 'Ara Sıcak', desc: 'Sıcak başlangıçlar' };
         case 'side': return { icon: <FaLemon/>, title: 'Ara Sıcak & Meze', desc: 'Sofrayı zenginleştiren tatlar' }; 
         case 'salad': return { icon: <FaLeaf/>, title: 'Salata', desc: 'Taze ve ferah eşlikçiler' }; 
         case 'main': return { icon: <FaUtensils/>, title: 'Ana Yemek', desc: 'Sofranın yıldızları' };
         case 'breakfast_main': return { icon: <FaUtensils/>, title: 'Ana Kahvaltılıklar', desc: 'Güne güçlü başlangıç' };
         case 'breakfast_side': return { icon: <FaLemon/>, title: 'Hafif Yanlar', desc: 'Kahvaltı sofrası tamamlayıcıları' };
-        case 'savory': return { icon: <FaBowlFood/>, title: 'Tuzlular', desc: 'Tuzlu lezzetler' };
-        case 'sweet': return { icon: <FaIceCream/>, title: 'Tatlılar', desc: 'Tatlı ikramlar' };
+        case 'savory': return { icon: <FaPepperHot/>, title: 'Tuzlular', desc: 'Tuzlu lezzetler' };
+        case 'sweet': return { icon: <FaCookie/>, title: 'Tatlılar', desc: 'Tatlı ikramlar' };
         case 'dessert': return { icon: <FaIceCream/>, title: 'Tatlı', desc: 'Mutlu sonlar' };
         case 'cold_canape': return { icon: <FaLemon/>, title: 'Soğuk Kanapeler', desc: 'Şık ikramlar' };
-        case 'hot_bites': return { icon: <FaBowlFood/>, title: 'Sıcak İkramlar', desc: 'Isıtan atıştırmalıklar' };
+        case 'hot_bites': return { icon: <FaPepperHot/>, title: 'Sıcak İkramlar', desc: 'Isıtan atıştırmalıklar' };
         case 'dip_sauce': return { icon: <FaLemon/>, title: 'Dip & Soslar', desc: 'Tatlandırıcı eşlikçiler' };
         case 'drink': return { icon: <FaWineGlass/>, title: 'İçecek', desc: 'Tamamlayıcı yudumlar' };
         default: return { icon: <FaUtensils/>, title: 'Diğer Lezzetler', desc: 'Menüye özel ekstralar' };
