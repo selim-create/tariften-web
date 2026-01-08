@@ -5,17 +5,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { FaGear, FaArrowRightFromBracket, FaFire, FaBookOpen, FaHeart, FaBowlFood, FaClock, FaCheck, FaRotateLeft, FaBookmark } from "react-icons/fa6";
+import { FaGear, FaFire, FaPen, FaHeart, FaBowlFood, FaClock, FaCheck, FaRotateLeft, FaBookmark } from "react-icons/fa6";
 import { getUserInteractions } from "@/lib/api";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   
   const [stats, setStats] = useState({
     cookedCount: 0,
     favoriteCount: 0,
-    planCount: 0 
+    recipeCount: 0 
   });
   
   const [activeTab, setActiveTab] = useState<'activity' | 'favorites'>('activity');
@@ -41,7 +41,7 @@ export default function ProfilePage() {
         setStats({
           cookedCount: cookedData?.length || 0,
           favoriteCount: favoritesData?.length || 0,
-          planCount: 0
+          recipeCount: 0
         });
 
         // Verileri state'e at
@@ -57,11 +57,6 @@ export default function ProfilePage() {
 
     fetchStats();
   }, [user, router]);
-
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
-  };
 
   if (!user) return null;
 
@@ -112,15 +107,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div>
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-500 hover:bg-gray-50 hover:text-red-500 transition text-sm font-medium border border-transparent hover:border-gray-100"
-            >
-              <FaArrowRightFromBracket /> Çıkış Yap
-            </button>
-          </div>
-
         </div>
       </div>
 
@@ -144,10 +130,10 @@ export default function ProfilePage() {
           </div>
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
             <div className="w-10 h-10 mx-auto bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-2">
-              <FaBookOpen />
+              <FaPen />
             </div>
-            <div className="text-2xl font-bold text-slate-800">{stats.planCount}</div>
-            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Planlar</div>
+            <div className="text-2xl font-bold text-slate-800">{stats.recipeCount}</div>
+            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tariflerim</div>
           </div>
         </div>
 
@@ -211,19 +197,36 @@ export default function ProfilePage() {
 
 // Yardımcı Bileşenler (Dosya içinde tanımladım, ayrı dosyaya da alınabilir)
 function RecipeCard({ recipe, type }: { recipe: any, type: 'cooked' | 'favorite' }) {
+    const [imgError, setImgError] = useState(false);
+    
+    // Placeholder veya kırık görsel kontrolü
+    const isValidImage = recipe.image && 
+                         !recipe.image.includes('placehold.co') && 
+                         !recipe.image.includes('placeholder') &&
+                         !imgError;
+    
     return (
         <Link href={`/recipe/${recipe.slug}`} className="flex gap-4 bg-white p-4 rounded-2xl border border-gray-100 hover:shadow-md transition group">
             <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden relative flex-shrink-0">
-                {recipe.image ? (
-                    <Image src={recipe.image} alt={recipe.title} fill className="object-cover group-hover:scale-105 transition" />
+                {isValidImage ? (
+                    <Image 
+                      src={recipe.image} 
+                      alt={recipe.title} 
+                      fill 
+                      className="object-cover group-hover:scale-105 transition"
+                      onError={() => setImgError(true)}
+                      unoptimized={recipe.image?.includes('pexels.com') || recipe.image?.includes('unsplash.com')}
+                    />
                 ) : (
-                    <div className="flex items-center justify-center h-full text-gray-300"><FaBowlFood className="text-2xl" /></div>
+                    <div className="flex items-center justify-center h-full bg-gradient-to-br from-orange-50 to-red-50">
+                        <FaBowlFood className="text-2xl text-brand/40" />
+                    </div>
                 )}
             </div>
             <div className="flex-1 py-1">
                 <h4 className="font-bold text-slate-800 line-clamp-1 group-hover:text-brand transition">{recipe.title}</h4>
                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><FaClock /> {recipe.total_time_min} dk</span>
+                    <span className="flex items-center gap-1"><FaClock /> {recipe.prep_time || recipe.total_time_min || 0} dk</span>
                     {type === 'cooked' && <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-md"><FaCheck /> Pişirildi</span>}
                     {type === 'favorite' && <span className="flex items-center gap-1 text-pink-600 bg-pink-50 px-2 py-0.5 rounded-md"><FaHeart /> Favori</span>}
                 </div>
