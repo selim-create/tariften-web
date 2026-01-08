@@ -170,33 +170,33 @@ export default function Header() {
                   {/* DROPDOWN MENU */}
                   {isMenuOpen && (
                     <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 animate-fade-in-up origin-top-right">
-                        {/* Header Kısmı */}
+                        {/* Header Kısmı (Mobil) */}
                         <div className="px-4 py-3 border-b border-gray-50 md:hidden">
                           <p className="text-xs font-bold text-slate-800">{user.user_display_name}</p>
                           <p className="text-[10px] text-gray-500 truncate">{user.user_email}</p>
                         </div>
 
+                        {/* Profil Bölümü */}
                         <div className="py-1">
                           <Link href="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#db4c3f] transition">
-                            <FaUser className="text-xs" /> Profili Görüntüle
-                          </Link>
-                          <Link href="/profile/edit" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#db4c3f] transition">
-                            <FaPen className="text-xs" /> Profili Düzenle
+                            <FaUser className="text-xs" /> Profilim
                           </Link>
                           <Link href="/cookbook" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#db4c3f] transition">
                             <FaBookOpen className="text-xs" /> Tarif Defterim
                           </Link>
                         </div>
 
+                        {/* Aksiyon Bölümü */}
                         <div className="border-t border-gray-50 py-1">
                           <Link href="/recipe/create" className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#db4c3f] font-bold hover:bg-orange-50 transition">
                             <FaPlus className="text-xs" /> Tarif Oluştur
                           </Link>
                         </div>
 
+                        {/* Ayarlar ve Çıkış */}
                         <div className="border-t border-gray-50 py-1">
                           <Link href="/profile/edit" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-slate-900 transition">
-                            <FaGear className="text-xs" /> Ayarlar
+                            <FaGear className="text-xs" /> Hesap Ayarları
                           </Link>
                           <button 
                             onClick={logout}
@@ -282,7 +282,7 @@ export default function Header() {
                     <FaPlus /> Tarif Oluştur
                   </Link>
                   <Link href="/profile/edit" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 text-base font-medium text-slate-600">
-                    <FaGear /> Ayarlar
+                    <FaGear /> Hesap Ayarları
                   </Link>
                   <button onClick={() => { logout(); setIsMenuOpen(false); }} className="flex items-center gap-3 text-base font-medium text-red-500 mt-2">
                     <FaArrowRightFromBracket /> Çıkış Yap

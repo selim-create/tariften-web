@@ -195,6 +195,21 @@ export default function EditProfilePage() {
                 <h3 className="font-bold text-slate-800 text-sm border-b border-gray-100 pb-3 mb-4">Kişisel Bilgiler</h3>
                 
                 <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 ml-1">Kullanıcı Adı</label>
+                    <div className="flex items-center gap-2">
+                        <span className="text-slate-400 text-sm">@</span>
+                        <input 
+                            type="text" 
+                            value={user?.user_nicename || user?.user_login || ""}
+                            readOnly
+                            disabled
+                            className="flex-1 px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-slate-500 text-sm cursor-not-allowed"
+                        />
+                    </div>
+                    <p className="text-[10px] text-gray-400 ml-1">Kullanıcı adı değiştirilemez</p>
+                </div>
+
+                <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-500 ml-1">Ad Soyad</label>
                     <input 
                         type="text" 
