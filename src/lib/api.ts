@@ -521,11 +521,22 @@ export async function getUserRecipes(token: string): Promise<any[]> {
 
 // Newsletter Subscription
 export async function subscribeNewsletter(email: string): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${API_URL}/tariften/v1/newsletter/subscribe`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-  });
-  
-  return await res.json();
+  try {
+    const res = await fetch(`${API_URL}/tariften/v1/newsletter/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    
+    if (!res.ok) {
+      console.error('Newsletter subscription failed:', res.status, res.statusText);
+      return { success: false, message: 'Abonelik başarısız oldu.' };
+    }
+    
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error('Newsletter subscription error:', error);
+    return { success: false, message: 'Bir hata oluştu.' };
+  }
 }
