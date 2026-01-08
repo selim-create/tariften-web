@@ -2,7 +2,7 @@ import { getMenu } from "@/lib/api";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Metadata } from "next"; 
-import { FaUsers, FaArrowLeft, FaClock, FaUtensils, FaBowlFood, FaWineGlass, FaIceCream, FaLeaf, FaLemon, FaBowlRice, FaCookie, FaPepperHot, FaFire, FaEgg, FaCheese, FaCake, FaPlateWheat } from "react-icons/fa6";
+import { FaUsers, FaArrowLeft, FaClock, FaUtensils, FaBowlFood, FaWineGlass, FaIceCream, FaLeaf, FaLemon, FaBowlRice, FaCookie, FaFire, FaEgg, FaCheese, FaCakeCandles, FaPlateWheat } from "react-icons/fa6";
 import { MenuHeaderActions, MenuFooterActions } from "@/components/menu/MenuClientComponents"; // YENİ IMPORT
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -59,7 +59,7 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
         case 'breakfast_main': return { icon: <FaEgg/>, title: 'Ana Kahvaltılıklar', desc: 'Güne enerji veren tatlar' };
         case 'breakfast_side': return { icon: <FaCheese/>, title: 'Hafif Yanlar', desc: 'Kahvaltıyı tamamlayanlar' };
         case 'savory': return { icon: <FaCookie/>, title: 'Tuzlular', desc: 'Tuzlu atıştırmalıklar' };
-        case 'sweet': return { icon: <FaCake/>, title: 'Tatlılar', desc: 'Tatlı molası' };
+        case 'sweet': return { icon: <FaCakeCandles/>, title: 'Tatlılar', desc: 'Tatlı molası' };
         case 'cold_canape': return { icon: <FaPlateWheat/>, title: 'Soğuk Kanapeler', desc: 'Zarif lokmalar' };
         case 'hot_bites': return { icon: <FaFire/>, title: 'Sıcak İkramlar', desc: 'Sıcak servis edilenler' };
         case 'dip_sauce': return { icon: <FaBowlRice/>, title: 'Dip & Soslar', desc: 'Eşlikçi soslar' };
