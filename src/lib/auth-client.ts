@@ -22,7 +22,9 @@ export async function getCurrentUser(token: string) {
     return { success: false, error: 'Request failed' };
   }
   
-  return await res.json();
+  const data = await res.json();
+  // Backend'den gelen response'u success flag ile wrap et
+  return { success: true, ...data };
 }
 
 // Login User (Client-side)
