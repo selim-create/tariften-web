@@ -48,6 +48,10 @@ export interface Recipe {
     title: string;
     description: string;
   };
+  chef_tip?: string;
+  serving_weight?: number;
+  keywords?: string;
+  cooked_count?: number;
 }
 
 export interface Ingredient {

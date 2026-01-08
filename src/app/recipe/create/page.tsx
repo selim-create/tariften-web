@@ -40,7 +40,9 @@ export default function CreateRecipePage() {
     difficulty: [] as string[],
     diet: [] as string[],
     ingredients: [{ name: "", amount: "", unit: "" }],
-    steps: [""]
+    steps: [""],
+    chef_tip: "",
+    serving_weight: "",
   });
 
   const [options, setOptions] = useState({
@@ -182,6 +184,11 @@ export default function CreateRecipePage() {
                 <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Kısa Açıklama (Spot)</label>
                     <textarea value={formData.excerpt} onChange={(e) => handleInputChange("excerpt", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-24 resize-none" placeholder="Tarifiniz hakkında kısa ve iştah açıcı bir özet..." />
+                </div>
+                
+                <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Şefin İpucu (Opsiyonel)</label>
+                    <textarea value={formData.chef_tip} onChange={(e) => handleInputChange("chef_tip", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-20 resize-none" placeholder="Bu tarife özel bir ipucu... (Boş bırakılırsa otomatik oluşturulur)" />
                 </div>
                 
                 <div>

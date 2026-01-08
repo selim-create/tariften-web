@@ -8,7 +8,30 @@ import {
 } from "react-icons/fa6";
 import { Recipe } from "@/types";
 import { useAuth } from "@/context/AuthContext";
-import { toggleInteraction, getRecipes, checkInteractionStatus } from "@/lib/api"; 
+import { toggleInteraction, getRecipes, checkInteractionStatus } from "@/lib/api";
+import { getRandomChefTip } from "@/lib/chefTips";
+
+// Helper: Tahmini porsiyon ağırlığı hesapla
+const calculateEstimatedWeight = (recipe: Recipe): number => {
+  // Malzeme miktarlarından tahmini hesaplama
+  if (!recipe.ingredients || recipe.ingredients.length === 0) return 250;
+  
+  let totalWeight = 0;
+  recipe.ingredients.forEach(ing => {
+    const amount = typeof ing.amount === 'string' ? parseFloat(ing.amount) : ing.amount;
+    if (!isNaN(amount)) {
+      // Birime göre gram'a çevir
+      if (ing.unit === 'gr' || ing.unit === 'g') totalWeight += amount;
+      else if (ing.unit === 'kg') totalWeight += amount * 1000;
+      else if (ing.unit === 'ml' || ing.unit === 'su bardağı') totalWeight += amount;
+      else if (ing.unit === 'adet') totalWeight += amount * 50; // ortalama
+      else totalWeight += amount * 30; // diğer birimler için varsayılan
+    }
+  });
+  
+  const servings = typeof recipe.servings === 'string' ? parseInt(recipe.servings) : recipe.servings || 2;
+  return Math.round(totalWeight / servings);
+}; 
 
 export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const { user } = useAuth();
@@ -31,19 +54,42 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   useEffect(() => {
     // 1. Fake Count Hesapla (Deterministik)
     let baseCount = 0;
+    
     if (recipe.created_at) {
-        const createdDate = new Date(recipe.created_at);
-        const now = new Date();
-        const diffTime = Math.abs(now.getTime() - createdDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays >= 1) {
-            // ID'ye dayalı sabit sayı (Sayfa yenilense de aynı kalır)
-            const seed = recipe.id; // recipe.id number varsayıyoruz
-            // Basit bir pseudo-random
-            const randomFake = (seed * 9301 + 49297) % 3900; 
-            baseCount = 100 + randomFake;
-        }
+      const createdDate = new Date(recipe.created_at);
+      const now = new Date();
+      const diffHours = Math.abs(now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
+      const diffDays = diffHours / 24;
+      
+      // Seed bazlı deterministic hesaplama
+      const seed = recipe.id;
+      const hash = (seed * 9301 + 49297) % 233280;
+      
+      if (diffHours < 3) {
+        // İlk 3 saat: 0
+        baseCount = 0;
+      } else if (diffHours < 24) {
+        // 3-24 saat arası: 5-50 arası (her 3 saatte artış)
+        const hoursFactor = Math.floor((diffHours - 3) / 3);
+        baseCount = Math.min(50, (hash % 15) + (hoursFactor * 5));
+      } else if (diffDays < 7) {
+        // 1-7 gün arası: 50-300 arası
+        const daysFactor = Math.floor(diffDays);
+        baseCount = 50 + (hash % 50) + (daysFactor * 30);
+      } else if (diffDays < 30) {
+        // 7-30 gün arası: 300-1500 arası
+        const weeksFactor = Math.floor(diffDays / 7);
+        baseCount = 300 + (hash % 200) + (weeksFactor * 200);
+      } else {
+        // 30+ gün: 1500-5000 arası
+        const monthsFactor = Math.floor(diffDays / 30);
+        baseCount = 1500 + (hash % 500) + Math.min(monthsFactor * 300, 3500);
+      }
+      
+      // Backend'den gelen gerçek cooked_count varsa ekle
+      if (recipe.cooked_count && recipe.cooked_count > 0) {
+        baseCount += recipe.cooked_count;
+      }
     }
     
     setCookedCount(baseCount);
@@ -124,6 +170,9 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
         amount: typeof ing.amount === 'string' ? parseFloat(ing.amount) : ing.amount
     }))
     : DEMO_INGREDIENTS.map(ing => ({ ...ing, amount: Number(ing.amount) }));
+
+  // Chef tip - dinamik veya default
+  const chefTip = recipe.chef_tip || getRandomChefTip(recipe.id);
 
   // --- HANDLERS ---
   const handleServings = (delta: number) => {
@@ -206,7 +255,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             </ul>
             <div className="mt-6 bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex gap-3 text-yellow-800 text-sm">
               <FaLightbulb className="text-yellow-500 text-lg flex-shrink-0 mt-0.5" />
-              <p><strong>Şefin İpucu:</strong> Malzemeleri oda sıcaklığında kullanmak lezzeti artırır.</p>
+              <p><strong>Şefin İpucu:</strong> {chefTip}</p>
             </div>
           </div>
         </div>
@@ -235,7 +284,12 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
 
           {/* Besin Değerleri */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm mt-8">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 font-heading">1 Porsiyon İçin Besin Değerleri</h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-4 font-heading">
+              1 Porsiyon İçin Besin Değerleri
+              <span className="text-sm font-normal text-gray-500 ml-2">
+                (yaklaşık {recipe.serving_weight || calculateEstimatedWeight(recipe)} gr)
+              </span>
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-sm"><span className="text-gray-500">Protein</span><span className="font-bold text-slate-700">{macros.protein}</span></div>
