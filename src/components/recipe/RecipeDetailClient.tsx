@@ -12,6 +12,8 @@ import { toggleInteraction, getRecipes, checkInteractionStatus } from "@/lib/api
 import { getRandomChefTip } from "@/lib/chefTips";
 
 // Helper: Tahmini porsiyon ağırlığı hesapla
+const WEIGHT_PER_PIECE = 50; // Malzeme adedi başına ortalama gram
+const DEFAULT_WEIGHT_FACTOR = 30; // Bilinmeyen birimler için varsayılan gram
 const calculateEstimatedWeight = (recipe: Recipe): number => {
   // Malzeme miktarlarından tahmini hesaplama
   if (!recipe.ingredients || recipe.ingredients.length === 0) return 250;
@@ -24,8 +26,8 @@ const calculateEstimatedWeight = (recipe: Recipe): number => {
       if (ing.unit === 'gr' || ing.unit === 'g') totalWeight += amount;
       else if (ing.unit === 'kg') totalWeight += amount * 1000;
       else if (ing.unit === 'ml' || ing.unit === 'su bardağı') totalWeight += amount;
-      else if (ing.unit === 'adet') totalWeight += amount * 50; // ortalama
-      else totalWeight += amount * 30; // diğer birimler için varsayılan
+      else if (ing.unit === 'adet') totalWeight += amount * WEIGHT_PER_PIECE;
+      else totalWeight += amount * DEFAULT_WEIGHT_FACTOR;
     }
   });
   
@@ -61,7 +63,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
       const diffHours = Math.abs(now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
       const diffDays = diffHours / 24;
       
-      // Seed bazlı deterministic hesaplama
+      // Seed bazlı deterministic hesaplama (Linear Congruential Generator)
       const seed = recipe.id;
       const hash = (seed * 9301 + 49297) % 233280;
       

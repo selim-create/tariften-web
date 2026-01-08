@@ -66,10 +66,13 @@ export default function RecipeJsonLd({ recipe }: RecipeJsonLdProps) {
 
   // aggregateRating sadece gerçek rating varsa ekle (sahte puan Google cezası alabilir)
   if (recipe.rating && recipe.rating > 0) {
+    // Rating count tahmini: Her puan için ~10 oy + base 5 oy
+    const VOTES_PER_RATING = 10;
+    const BASE_VOTE_COUNT = 5;
     jsonLd.aggregateRating = {
       '@type': 'AggregateRating',
       ratingValue: recipe.rating,
-      ratingCount: Math.max(Math.floor(recipe.rating * 10) + 5, 1),
+      ratingCount: Math.max(Math.floor(recipe.rating * VOTES_PER_RATING) + BASE_VOTE_COUNT, 1),
       bestRating: 5,
       worstRating: 1
     };
