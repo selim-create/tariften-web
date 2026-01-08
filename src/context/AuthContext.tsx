@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Token geçersiz veya süresi dolmuşsa logout yap
     if (!response.success) {
-      console.log("Token expired or invalid, logging out...");
+      console.warn("Token expired or invalid, logging out user");
       logout();
       return;
     }

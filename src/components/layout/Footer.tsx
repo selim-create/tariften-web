@@ -17,7 +17,7 @@ export default function Footer() {
     
     try {
       const result = await subscribeNewsletter(email);
-      if (result?.success) {
+      if (result.success) {
         setSubmitStatus("success");
         setEmail("");
         setTimeout(() => setSubmitStatus("idle"), 5000);
