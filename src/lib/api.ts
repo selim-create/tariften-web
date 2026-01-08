@@ -496,3 +496,28 @@ export async function checkInteractionStatus(token: string, recipeId: number) {
     return await res.json();
   } catch (error) { return { favorite: false, cooked: false }; }
 }
+
+// Get User's Recipes
+export async function getUserRecipes(token: string): Promise<any[]> {
+  const res = await fetch(`${API_URL}/tariften/v1/recipes/search?author=me`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  
+  if (!res.ok) return [];
+  
+  const data = await res.json();
+  return data.data || [];
+}
+
+// Newsletter Subscription
+export async function subscribeNewsletter(email: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_URL}/tariften/v1/newsletter/subscribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  
+  return await res.json();
+}

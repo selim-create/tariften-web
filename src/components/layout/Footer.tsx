@@ -4,22 +4,26 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { FaInstagram, FaTwitter, FaYoutube, FaTiktok, FaFacebookF, FaPinterest } from "react-icons/fa6";
+import { subscribeNewsletter } from "@/lib/api";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [email, setEmail] = useState("");
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success">("idle");
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      // Newsletter subscription - success state for now
-      // Backend integration will be added in future updates
-      setSubmitStatus("success");
-      setEmail("");
-      setTimeout(() => {
-        setSubmitStatus("idle");
-      }, 5000);
+    if (!email.trim()) return;
+    
+    try {
+      const result = await subscribeNewsletter(email);
+      if (result.success) {
+        setSubmitStatus("success");
+        setEmail("");
+        setTimeout(() => setSubmitStatus("idle"), 5000);
+      }
+    } catch (error) {
+      console.error("Newsletter error:", error);
     }
   };
 

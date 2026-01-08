@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { FaGear, FaFire, FaPen, FaHeart, FaBowlFood, FaClock, FaCheck, FaRotateLeft, FaBookmark } from "react-icons/fa6";
-import { getUserInteractions } from "@/lib/api";
+import { getUserInteractions, getUserRecipes } from "@/lib/api";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -35,16 +35,18 @@ export default function ProfilePage() {
 
       try {
         setLoading(true);
-        const cookedData = await getUserInteractions(token, 'cooked');
-        const favoritesData = await getUserInteractions(token, 'favorite');
+        const [cookedData, favoritesData, recipesData] = await Promise.all([
+          getUserInteractions(token, 'cooked'),
+          getUserInteractions(token, 'favorite'),
+          getUserRecipes(token)
+        ]);
         
         setStats({
           cookedCount: cookedData?.length || 0,
           favoriteCount: favoritesData?.length || 0,
-          recipeCount: 0
+          recipeCount: recipesData?.length || 0
         });
 
-        // Verileri state'e at
         setRecentActivity(cookedData || []);
         setFavorites(favoritesData || []);
 

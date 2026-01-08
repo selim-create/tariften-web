@@ -18,8 +18,8 @@ export default function ContactPage() {
         </div>
         <h3 className="text-xl font-bold text-slate-800 mb-2">E-posta Gönderin</h3>
         <p className="text-slate-500 mb-6">En kısa sürede dönüş yapacağız.</p>
-        <a href="mailto:info@tariften.com" className="text-xl font-bold text-[#db4c3f] hover:underline">
-            info@tariften.com
+        <a href="mailto:iletisim@tariften.com" className="text-xl font-bold text-[#db4c3f] hover:underline">
+            iletisim@tariften.com
         </a>
       </div>
     </div>
