@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 
@@ -82,15 +83,17 @@ export default function RootLayout({
         <GoogleAnalytics />
       </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans antialiased bg-[#fcfcfc] text-slate-800 flex flex-col min-h-screen`}>
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          <AuthProvider>
-            <Header />
-            <div className="flex-grow">
-              {children}
-            </div>
-            <Footer />
-          </AuthProvider>
-        </GoogleOAuthProvider>
+        <ThemeProvider>
+          <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+            <AuthProvider>
+              <Header />
+              <div className="flex-grow">
+                {children}
+              </div>
+              <Footer />
+            </AuthProvider>
+          </GoogleOAuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

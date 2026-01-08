@@ -14,3 +14,81 @@
 body {
   font-family: var(--font-sans);
 }
+
+/* Dark Mode Stilleri */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  @apply bg-slate-900 text-slate-100;
+}
+
+/* Dark mode için genel arka plan renkleri */
+.dark main {
+  @apply bg-slate-900;
+}
+
+.dark section {
+  @apply bg-slate-800;
+}
+
+/* Dark mode için text renkleri */
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  @apply text-slate-100;
+}
+
+.dark p {
+  @apply text-slate-300;
+}
+
+/* Dark mode için border renkleri */
+.dark [class*="border-gray"] {
+  @apply border-slate-700;
+}
+
+/* Dark mode için card/component stilleri */
+.dark [class*="bg-white"] {
+  @apply bg-slate-800;
+}
+
+.dark [class*="bg-gray-50"] {
+  @apply bg-slate-700;
+}
+
+.dark [class*="bg-gray-100"] {
+  @apply bg-slate-700;
+}
+
+.dark [class*="text-slate-900"] {
+  @apply text-slate-100;
+}
+
+.dark [class*="text-slate-800"] {
+  @apply text-slate-200;
+}
+
+.dark [class*="text-slate-700"] {
+  @apply text-slate-300;
+}
+
+.dark [class*="text-slate-600"] {
+  @apply text-slate-400;
+}
+
+.dark [class*="text-slate-500"] {
+  @apply text-slate-400;
+}
+
+.dark [class*="text-gray-500"] {
+  @apply text-slate-400;
+}
+
+.dark [class*="text-gray-600"] {
+  @apply text-slate-400;
+}

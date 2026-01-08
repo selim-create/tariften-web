@@ -5,16 +5,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 // İkonlar - Standart Paket
 import { 
   FaSearch, FaRegBookmark, FaRegMoon, FaArrowRight, FaUser, 
   FaPen, FaPlus, FaBookOpen 
 } from "react-icons/fa";
 // İkonlar - Yeni Nesil (FA6)
-import { FaGear, FaArrowRightFromBracket, FaBars, FaXmark } from "react-icons/fa6";
+import { FaGear, FaArrowRightFromBracket, FaBars, FaXmark, FaSun } from "react-icons/fa6";
 
 export default function Header() {
   const { user, logout, loading } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const pathname = usePathname();
   const router = useRouter(); 
   
@@ -35,7 +37,7 @@ export default function Header() {
   }, []);
 
   const handleDarkMode = () => {
-    alert("Karanlık mod altyapısı bir sonraki fazda eklenecektir. 🌙");
+    toggleDarkMode();
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -126,10 +128,10 @@ export default function Header() {
             </Link>
             <button 
               onClick={handleDarkMode} 
-              className={`w-9 h-9 rounded-full hover:bg-gray-100 text-slate-400 hover:text-slate-800 flex items-center justify-center transition ${isSearchOpen ? 'hidden md:flex' : 'flex'}`}
-              title="Karanlık Mod"
+              className={`w-9 h-9 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition ${isSearchOpen ? 'hidden md:flex' : 'flex'}`}
+              title={isDarkMode ? "Açık Mod" : "Karanlık Mod"}
             >
-              <FaRegMoon className="text-sm" />
+              {isDarkMode ? <FaSun className="text-sm text-yellow-400" /> : <FaRegMoon className="text-sm" />}
             </button>
           </div>
 
