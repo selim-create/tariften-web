@@ -3,10 +3,93 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getMenu, updateMenu, uploadMedia } from "@/lib/api"; // uploadMedia eklendi
-import { FaPen, FaArrowLeft, FaUtensils, FaUserGroup, FaFloppyDisk, FaTrash, FaImage, FaUpload, FaXmark } from "react-icons/fa6";
+import { getMenu, updateMenu, uploadMedia, getRecipes } from "@/lib/api";
+import { FaPen, FaArrowLeft, FaUtensils, FaUserGroup, FaFloppyDisk, FaTrash, FaImage, FaUpload, FaXmark, FaMagnifyingGlass, FaPlus } from "react-icons/fa6";
 import Link from "next/link";
-import { Menu, MenuSection } from "@/types";
+import { Menu, MenuSection, Recipe } from "@/types";
+
+// Recipe Search Component
+function RecipeSearchDropdown({ onSelectRecipe }: { onSelectRecipe: (recipe: Recipe) => void }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Recipe[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    const searchRecipes = async () => {
+      if (searchQuery.length < 2) {
+        setSearchResults([]);
+        setShowDropdown(false);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const response = await getRecipes({ query: searchQuery });
+        setSearchResults(response.data || []);
+        setShowDropdown(true);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const debounce = setTimeout(searchRecipes, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery]);
+
+  const handleSelect = (recipe: Recipe) => {
+    onSelectRecipe(recipe);
+    setSearchQuery("");
+    setShowDropdown(false);
+    setSearchResults([]);
+  };
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Tarif ara..."
+          className="w-full bg-white border border-gray-200 rounded-lg py-2 pl-10 pr-4 text-sm focus:border-[#db4c3f] outline-none"
+        />
+        <FaMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+      </div>
+      
+      {showDropdown && searchResults.length > 0 && (
+        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+          {searchResults.map((recipe) => (
+            <button
+              key={recipe.id}
+              onClick={() => handleSelect(recipe)}
+              className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition text-left border-b border-gray-100 last:border-0"
+            >
+              <div className="w-10 h-10 rounded-lg bg-gray-200 overflow-hidden shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={recipe.image || 'https://placehold.co/100'} className="w-full h-full object-cover" alt="" />
+              </div>
+              <div className="flex-grow">
+                <div className="font-bold text-slate-800 text-sm line-clamp-1">{recipe.title}</div>
+                <div className="text-xs text-gray-500">{recipe.calories} kcal</div>
+              </div>
+              <FaPlus className="text-gray-400 text-sm" />
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {isSearching && (
+        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl p-4 text-center text-sm text-gray-500">
+          Aranıyor...
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function EditMenuPage() {
   const router = useRouter();
@@ -120,6 +203,17 @@ export default function EditMenuPage() {
       const newSections = [...sections];
       newSections[sectionIndex].recipes.splice(recipeIndex, 1);
       setSections(newSections);
+  };
+
+  // Tarif Ekleme
+  const addRecipe = (sectionIndex: number, recipe: Recipe) => {
+      const newSections = [...sections];
+      // Check if recipe already exists in this section
+      const exists = newSections[sectionIndex].recipes.some(r => r.id === recipe.id);
+      if (!exists) {
+          newSections[sectionIndex].recipes.push(recipe);
+          setSections(newSections);
+      }
   };
 
   const handleSave = async () => {
@@ -266,6 +360,11 @@ export default function EditMenuPage() {
                                 <span className="text-sm font-bold text-[#db4c3f] uppercase tracking-wider bg-white px-3 py-1 rounded-lg border border-gray-100 shadow-sm">
                                     {section.title || section.type}
                                 </span>
+                            </div>
+                            
+                            {/* Tarif Arama */}
+                            <div className="mb-4">
+                                <RecipeSearchDropdown onSelectRecipe={(recipe) => addRecipe(sIdx, recipe)} />
                             </div>
                             
                             {section.recipes.length > 0 ? (
