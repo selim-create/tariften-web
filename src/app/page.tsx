@@ -63,7 +63,7 @@ export default async function Home() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-slate-900 font-heading flex items-center gap-2">
-              <FaEarthAmericas className="text-blue-500" /> Pasaportsuz Dünya Turu
+              <FaEarthAmericas className="text-blue-500" /> Vizesiz Dünya Turu
             </h2>
             <Link href="/recipes" className="text-sm font-bold text-brand hover:underline flex items-center gap-1">
               Tümünü Gör <FaArrowRight />
@@ -137,7 +137,7 @@ export default async function Home() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl md:text-3xl font-bold text-slate-900 font-heading mb-8 flex items-center gap-2">
-            <FaAward className="text-purple-500" /> Şefin Torpilli Listesi
+            <FaAward className="text-purple-500" /> Şefin Tavsiyesi
           </h2>
           
           {editorRecipes.data.length > 0 ? (
@@ -169,16 +169,41 @@ export default async function Home() {
       </section>
       <MenuShowcase />
       {/* 5. KATEGORİLER (Moods) */}
-      <section className="py-16 border-t border-gray-100 bg-white/50">
-        <div className="container mx-auto px-4 text-center">
-            <h2 className="text-xl font-bold text-slate-900 mb-6">Hangi Moddasın?</h2>
-            <div className="flex flex-wrap justify-center gap-4">
-               <Link href="/recipes?diet=Düşük Karbonhidrat" className="px-6 py-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-xl font-bold transition">🥗 Fit & Sağlıklı</Link>
-               <Link href="/recipes?difficulty=Kolay" className="px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-bold transition">⚡ Üşengeç Şef</Link>
-               <Link href="/recipes?difficulty=Şef" className="px-6 py-3 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-xl font-bold transition">🔥 Ziyafet</Link>
-               <Link href="/recipes?meal_type=Tatlı" className="px-6 py-3 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-xl font-bold transition">🧁 Tatlı Krizi</Link>
-               <Link href="/recipes?cuisine=Meksika%20Mutfağı" className="px-6 py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 rounded-xl font-bold transition">🌮 Acı Sever</Link>
-               <Link href="/recipes?meal_type=Kahvaltı" className="px-6 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-xl font-bold transition">🍳 Pazar Kahvaltısı</Link>
+      <section className="py-20 relative overflow-hidden bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50">
+        {/* Dekoratif Arkaplan Efektleri */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-orange-200 rounded-full blur-[120px] opacity-30 pointer-events-none animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-pink-200 rounded-full blur-[100px] opacity-40 pointer-events-none animate-pulse delay-1000"></div>
+        
+        <div className="container mx-auto px-4 text-center relative z-10">
+            <div className="mb-10 animate-fade-in-up">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 font-heading">Hangi Moddasın?</h2>
+              <p className="text-slate-600 text-lg">Ruh haline göre tarifini seç 🎭</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-4 max-w-5xl mx-auto">
+               <Link href="/recipes?diet=Düşük Karbonhidrat" className="group px-8 py-4 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
+                 <span className="text-2xl mb-1 block group-hover:animate-bounce">🥗</span>
+                 <span className="text-sm">Fit & Sağlıklı</span>
+               </Link>
+               <Link href="/recipes?difficulty=Kolay" className="group px-8 py-4 bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
+                 <span className="text-2xl mb-1 block group-hover:animate-bounce">⚡</span>
+                 <span className="text-sm">Üşengeç Şef</span>
+               </Link>
+               <Link href="/recipes?difficulty=Şef" className="group px-8 py-4 bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
+                 <span className="text-2xl mb-1 block group-hover:animate-bounce">🔥</span>
+                 <span className="text-sm">Ziyafet</span>
+               </Link>
+               <Link href="/recipes?meal_type=Tatlı" className="group px-8 py-4 bg-gradient-to-r from-pink-400 to-rose-500 hover:from-pink-500 hover:to-rose-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
+                 <span className="text-2xl mb-1 block group-hover:animate-bounce">🧁</span>
+                 <span className="text-sm">Tatlı Krizi</span>
+               </Link>
+               <Link href="/recipes?cuisine=Meksika%20Mutfağı" className="group px-8 py-4 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
+                 <span className="text-2xl mb-1 block group-hover:animate-bounce">🌮</span>
+                 <span className="text-sm">Acı Sever</span>
+               </Link>
+               <Link href="/recipes?meal_type=Kahvaltı" className="group px-8 py-4 bg-gradient-to-r from-indigo-400 to-purple-500 hover:from-indigo-500 hover:to-purple-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
+                 <span className="text-2xl mb-1 block group-hover:animate-bounce">🍳</span>
+                 <span className="text-sm">Pazar Kahvaltısı</span>
+               </Link>
             </div>
         </div>
       </section>

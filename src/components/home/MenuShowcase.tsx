@@ -21,7 +21,7 @@ export default async function MenuShowcase() {
         {/* Espirili Başlık Alanı */}
         <div className="text-center max-w-3xl mx-auto mb-12 animate-fade-in-up">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-xs font-bold uppercase tracking-widest mb-4">
-                <FaCrown /> Şefin Torpilli Listesi
+                <FaCrown /> Şefin Tavsiyesi
             </div>
             <h2 className="text-4xl md:text-5xl font-bold font-heading text-slate-900 mb-4">
               "Bugün ne pişirsem?" derdine <span className="text-[#db4c3f] italic">ilaç gibi</span> menüler.
