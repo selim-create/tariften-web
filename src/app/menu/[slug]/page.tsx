@@ -46,10 +46,20 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
   const getSectionStyle = (type: string) => {
     switch(type) {
         case 'starter': return { icon: <FaBowlFood/>, title: 'Başlangıç & Çorba', desc: 'İştah açıcı hafif lezzetler' };
+        case 'soup': return { icon: <FaBowlFood/>, title: 'Çorba', desc: 'Isıtan lezzetler' };
+        case 'meze': return { icon: <FaLemon/>, title: 'Mezeler', desc: 'Sofraya renk katan atıştırmalıklar' };
+        case 'hot_appetizer': return { icon: <FaUtensils/>, title: 'Ara Sıcak', desc: 'Sıcak başlangıçlar' };
         case 'side': return { icon: <FaLemon/>, title: 'Ara Sıcak & Meze', desc: 'Sofrayı zenginleştiren tatlar' }; 
         case 'salad': return { icon: <FaLeaf/>, title: 'Salata', desc: 'Taze ve ferah eşlikçiler' }; 
         case 'main': return { icon: <FaUtensils/>, title: 'Ana Yemek', desc: 'Sofranın yıldızları' };
+        case 'breakfast_main': return { icon: <FaUtensils/>, title: 'Ana Kahvaltılıklar', desc: 'Güne güçlü başlangıç' };
+        case 'breakfast_side': return { icon: <FaLemon/>, title: 'Hafif Yanlar', desc: 'Kahvaltı sofrası tamamlayıcıları' };
+        case 'savory': return { icon: <FaBowlFood/>, title: 'Tuzlular', desc: 'Tuzlu lezzetler' };
+        case 'sweet': return { icon: <FaIceCream/>, title: 'Tatlılar', desc: 'Tatlı ikramlar' };
         case 'dessert': return { icon: <FaIceCream/>, title: 'Tatlı', desc: 'Mutlu sonlar' };
+        case 'cold_canape': return { icon: <FaLemon/>, title: 'Soğuk Kanapeler', desc: 'Şık ikramlar' };
+        case 'hot_bites': return { icon: <FaBowlFood/>, title: 'Sıcak İkramlar', desc: 'Isıtan atıştırmalıklar' };
+        case 'dip_sauce': return { icon: <FaLemon/>, title: 'Dip & Soslar', desc: 'Tatlandırıcı eşlikçiler' };
         case 'drink': return { icon: <FaWineGlass/>, title: 'İçecek', desc: 'Tamamlayıcı yudumlar' };
         default: return { icon: <FaUtensils/>, title: 'Diğer Lezzetler', desc: 'Menüye özel ekstralar' };
     }
@@ -78,8 +88,8 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
 
         {/* Başlık İçeriği */}
         <div className="absolute bottom-0 left-0 w-full p-6 md:p-16 flex flex-col md:flex-row items-end justify-between gap-8 z-20">
-            <div className="max-w-4xl animate-fade-in-up">
-                <div className="flex flex-wrap gap-3 mb-4 font-sans">
+            <div className="max-w-4xl animate-fade-in-up flex-1 overflow-hidden">
+                <div className="flex flex-wrap gap-3 mb-4 font-sans flex-shrink-0">
                      <span className="bg-[#db4c3f] text-white px-3 py-1 rounded text-xs font-bold uppercase tracking-wider shadow-lg">{menu.concept}</span>
                      <span className="bg-white/20 backdrop-blur border border-white/20 text-white px-3 py-1 rounded text-xs font-bold uppercase tracking-wider flex items-center gap-2"><FaUsers /> {menu.guest_count} Kişilik</span>
                      {menu.event_type && (
@@ -89,7 +99,7 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight tracking-tight drop-shadow-lg">
                     {menu.title}
                 </h1>
-                <p className="text-lg md:text-xl text-gray-200 leading-relaxed font-sans max-w-2xl drop-shadow-md">
+                <p className="text-lg md:text-xl text-gray-200 leading-relaxed font-sans max-w-2xl drop-shadow-md line-clamp-3">
                     {menu.description}
                 </p>
             </div>

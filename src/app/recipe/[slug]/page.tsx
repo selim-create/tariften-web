@@ -111,7 +111,7 @@ export default async function RecipeDetailPage({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mb-12 items-start">
           
           {/* SOL: GÖRSEL veya VİDEO ALANI */}
-          <div className="relative group rounded-3xl overflow-hidden shadow-lg h-[300px] md:h-[450px] bg-gray-100">
+          <div className="relative group rounded-3xl overflow-hidden shadow-lg aspect-[4/3] bg-gray-100">
             
             {/* DÜZENLEME BUTONU (Yetkili Kişiler İçin) */}
             {/* DÜZELTME: recipe.author_id yerine recipe.author.id kullanıldı */}
