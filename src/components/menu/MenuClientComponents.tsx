@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Menu } from "@/types";
-import { FaShareNodes, FaPrint, FaCheck, FaCartShopping, FaFire, FaXmark, FaCopy, FaClipboardList, FaPenToSquare } from "react-icons/fa6";
+import { FaShareNodes, FaCheck, FaCartShopping, FaFire, FaXmark, FaCopy, FaClipboardList, FaPenToSquare } from "react-icons/fa6";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
@@ -30,15 +30,11 @@ function SuccessModal({ message, onClose }: { message: string, onClose: () => vo
 }
 
 // ---------------------------
-// Header Actions (Paylaş / Yazdır / Düzenle)
+// Header Actions (Paylaş / Düzenle)
 // ---------------------------
 export function MenuHeaderActions({ menu }: { menu: Menu }) {
   const [copied, setCopied] = useState(false);
   const { user } = useAuth();
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -94,13 +90,6 @@ export function MenuHeaderActions({ menu }: { menu: Menu }) {
         title="Paylaş"
       >
         {copied ? <FaCheck /> : <FaShareNodes />}
-      </button>
-      <button 
-        onClick={handlePrint} 
-        className="w-12 h-12 rounded-full bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition" 
-        title="Yazdır"
-      >
-        <FaPrint />
       </button>
     </div>
   );

@@ -114,7 +114,8 @@ export interface MenuSection {
     | 'sweet' 
     | 'cold_canape' 
     | 'hot_bites' 
-    | 'dip_sauce';
+    | 'dip_sauce'
+    | string; // Allow for custom types from backend
   title: string;
   recipes: Recipe[]; // Recipe objeleri veya sadece temel bilgiler
 }

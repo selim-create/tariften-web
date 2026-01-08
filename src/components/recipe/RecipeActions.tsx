@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toggleInteraction, checkInteractionStatus } from "@/lib/api";
-import { FaRegBookmark, FaShareNodes } from "react-icons/fa6";
+import { FaRegBookmark, FaShareNodes, FaCheck } from "react-icons/fa6";
 
 export default function RecipeActions({ recipeId, title }: { recipeId: number, title: string }) {
   const { user } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
     async function checkStatus() {
@@ -45,15 +46,18 @@ export default function RecipeActions({ recipeId, title }: { recipeId: number, t
           url: window.location.href,
         });
       } catch (error) {
-        // İptal edilirse sessiz kal
+        // User cancelled share, do nothing
+        console.log("Share cancelled");
       }
     } else {
       // Fallback for browsers without Web Share API
       try {
         await navigator.clipboard.writeText(window.location.href);
-        alert("Tarif linki kopyalandı!");
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 2000);
       } catch (err) {
         console.error('Failed to copy: ', err);
+        alert("Link kopyalanamadı. Lütfen manuel olarak kopyalayın.");
       }
     }
   };
@@ -74,10 +78,14 @@ export default function RecipeActions({ recipeId, title }: { recipeId: number, t
       
       <button 
         onClick={handleShare}
-        className="w-12 h-12 rounded-xl border border-gray-200 text-gray-400 hover:text-blue-500 hover:border-blue-500 hover:bg-blue-50 flex items-center justify-center transition" 
-        title="Paylaş"
+        className={`w-12 h-12 rounded-xl border flex items-center justify-center transition ${
+          shareSuccess
+            ? 'bg-green-500 text-white border-green-500'
+            : 'border-gray-200 text-gray-400 hover:text-blue-500 hover:border-blue-500 hover:bg-blue-50'
+        }`}
+        title={shareSuccess ? "Link kopyalandı!" : "Paylaş"}
       >
-        <FaShareNodes className="text-lg" />
+        {shareSuccess ? <FaCheck className="text-lg" /> : <FaShareNodes className="text-lg" />}
       </button>
     </div>
   );
