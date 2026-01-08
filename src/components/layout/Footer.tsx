@@ -86,6 +86,7 @@ export default function Footer() {
               <li><Link href="/contact" className="hover:text-[#db4c3f] transition">İletişim & Reklam</Link></li>
               <li><Link href="/terms" className="hover:text-[#db4c3f] transition">Kullanım Koşulları</Link></li>
               <li><Link href="/privacy" className="hover:text-[#db4c3f] transition">Gizlilik Politikası</Link></li>
+              <li><Link href="/kvkk" className="hover:text-[#db4c3f] transition">KVKK</Link></li>
             </ul>
           </div>
 

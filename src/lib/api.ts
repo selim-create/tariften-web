@@ -504,6 +504,7 @@ export async function getUserRecipes(token: string): Promise<any[]> {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
+      cache: 'no-store',
     });
     
     if (!res.ok) {
