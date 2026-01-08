@@ -499,16 +499,24 @@ export async function checkInteractionStatus(token: string, recipeId: number) {
 
 // Get User's Recipes
 export async function getUserRecipes(token: string): Promise<any[]> {
-  const res = await fetch(`${API_URL}/tariften/v1/recipes/search?author=me`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-  
-  if (!res.ok) return [];
-  
-  const data = await res.json();
-  return data.data || [];
+  try {
+    const res = await fetch(`${API_URL}/tariften/v1/recipes/search?author=me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    if (!res.ok) {
+      console.error('Failed to fetch user recipes:', res.status, res.statusText);
+      return [];
+    }
+    
+    const data = await res.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching user recipes:', error);
+    return [];
+  }
 }
 
 // Newsletter Subscription

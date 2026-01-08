@@ -33,39 +33,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedToken = localStorage.getItem("tariften_token");
     if (!storedToken) return;
 
-    try {
-      const response = await getCurrentUser(storedToken);
-      
-      // Token geçersiz veya süresi dolmuşsa logout yap
-      if (!response.success) {
-        console.log("Token expired or invalid, logging out...");
-        logout();
-        return;
-      }
-      
-      if (response.user) {
-        const userData = response.user;
-        const userToStore: User = {
-          id: userData.id,
-          user_login: userData.user_login || userData.username || "",
-          user_nicename: userData.user_nicename || userData.username || "",
-          user_email: userData.user_email || userData.email || "",
-          user_display_name: userData.user_display_name || userData.fullname || "",
-          avatar_url: userData.avatar_url || "",
-          diet: userData.diet || "",
-          experience: userData.experience || "",
-          bio: userData.bio || "",
-          token: storedToken
-        };
-        setUser(userToStore);
-        localStorage.setItem("tariften_user", JSON.stringify(userToStore));
-      }
-    } catch (error: any) {
-      console.error("Refresh user error:", error);
-      // 401 veya auth hatası ise logout yap
-      if (error?.status === 401 || error?.message?.includes('unauthorized')) {
-        logout();
-      }
+    const response = await getCurrentUser(storedToken);
+    
+    // Token geçersiz veya süresi dolmuşsa logout yap
+    if (!response.success) {
+      console.log("Token expired or invalid, logging out...");
+      logout();
+      return;
+    }
+    
+    if (response.user) {
+      const userData = response.user;
+      const userToStore: User = {
+        id: userData.id,
+        user_login: userData.user_login || userData.username || "",
+        user_nicename: userData.user_nicename || userData.username || "",
+        user_email: userData.user_email || userData.email || "",
+        user_display_name: userData.user_display_name || userData.fullname || "",
+        avatar_url: userData.avatar_url || "",
+        diet: userData.diet || "",
+        experience: userData.experience || "",
+        bio: userData.bio || "",
+        token: storedToken
+      };
+      setUser(userToStore);
+      localStorage.setItem("tariften_user", JSON.stringify(userToStore));
     }
   };
 
