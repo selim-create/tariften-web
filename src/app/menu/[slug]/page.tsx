@@ -2,7 +2,7 @@ import { getMenu } from "@/lib/api";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Metadata } from "next"; 
-import { FaUsers, FaArrowLeft, FaClock, FaUtensils, FaBowlFood, FaWineGlass, FaIceCream, FaLeaf, FaLemon, FaBowlRice, FaCookie, FaPepperHot } from "react-icons/fa6";
+import { FaUsers, FaArrowLeft, FaClock, FaUtensils, FaBowlFood, FaWineGlass, FaIceCream, FaLeaf, FaLemon, FaBowlRice, FaCookie, FaPepperHot, FaFire, FaEgg, FaCheese, FaCake, FaPlateWheat } from "react-icons/fa6";
 import { MenuHeaderActions, MenuFooterActions } from "@/components/menu/MenuClientComponents"; // YENİ IMPORT
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -45,22 +45,25 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
 
   const getSectionStyle = (type: string) => {
     switch(type) {
-        case 'starter': return { icon: <FaBowlFood/>, title: 'Başlangıç & Çorba', desc: 'İştah açıcı hafif lezzetler' };
-        case 'soup': return { icon: <FaBowlRice/>, title: 'Çorba', desc: 'Isıtan lezzetler' };
-        case 'meze': return { icon: <FaLemon/>, title: 'Mezeler', desc: 'Sofraya renk katan atıştırmalıklar' };
-        case 'hot_appetizer': return { icon: <FaPepperHot/>, title: 'Ara Sıcak', desc: 'Sıcak başlangıçlar' };
+        case 'starter': return { icon: <FaBowlFood/>, title: 'Başlangıç', desc: 'İştah açıcı hafif lezzetler' };
         case 'side': return { icon: <FaLemon/>, title: 'Ara Sıcak & Meze', desc: 'Sofrayı zenginleştiren tatlar' }; 
         case 'salad': return { icon: <FaLeaf/>, title: 'Salata', desc: 'Taze ve ferah eşlikçiler' }; 
         case 'main': return { icon: <FaUtensils/>, title: 'Ana Yemek', desc: 'Sofranın yıldızları' };
-        case 'breakfast_main': return { icon: <FaUtensils/>, title: 'Ana Kahvaltılıklar', desc: 'Güne güçlü başlangıç' };
-        case 'breakfast_side': return { icon: <FaLemon/>, title: 'Hafif Yanlar', desc: 'Kahvaltı sofrası tamamlayıcıları' };
-        case 'savory': return { icon: <FaPepperHot/>, title: 'Tuzlular', desc: 'Tuzlu lezzetler' };
-        case 'sweet': return { icon: <FaCookie/>, title: 'Tatlılar', desc: 'Tatlı ikramlar' };
         case 'dessert': return { icon: <FaIceCream/>, title: 'Tatlı', desc: 'Mutlu sonlar' };
-        case 'cold_canape': return { icon: <FaLemon/>, title: 'Soğuk Kanapeler', desc: 'Şık ikramlar' };
-        case 'hot_bites': return { icon: <FaPepperHot/>, title: 'Sıcak İkramlar', desc: 'Isıtan atıştırmalıklar' };
-        case 'dip_sauce': return { icon: <FaLemon/>, title: 'Dip & Soslar', desc: 'Tatlandırıcı eşlikçiler' };
         case 'drink': return { icon: <FaWineGlass/>, title: 'İçecek', desc: 'Tamamlayıcı yudumlar' };
+        
+        // YENİ EKLENEN TYPE'LAR
+        case 'soup': return { icon: <FaBowlFood/>, title: 'Çorba', desc: 'Sıcacık başlangıçlar' };
+        case 'meze': return { icon: <FaLemon/>, title: 'Mezeler', desc: 'Sofrayı açan lezzetler' };
+        case 'hot_appetizer': return { icon: <FaFire/>, title: 'Ara Sıcak', desc: 'Sıcak başlangıçlar' };
+        case 'breakfast_main': return { icon: <FaEgg/>, title: 'Ana Kahvaltılıklar', desc: 'Güne enerji veren tatlar' };
+        case 'breakfast_side': return { icon: <FaCheese/>, title: 'Hafif Yanlar', desc: 'Kahvaltıyı tamamlayanlar' };
+        case 'savory': return { icon: <FaCookie/>, title: 'Tuzlular', desc: 'Tuzlu atıştırmalıklar' };
+        case 'sweet': return { icon: <FaCake/>, title: 'Tatlılar', desc: 'Tatlı molası' };
+        case 'cold_canape': return { icon: <FaPlateWheat/>, title: 'Soğuk Kanapeler', desc: 'Zarif lokmalar' };
+        case 'hot_bites': return { icon: <FaFire/>, title: 'Sıcak İkramlar', desc: 'Sıcak servis edilenler' };
+        case 'dip_sauce': return { icon: <FaBowlRice/>, title: 'Dip & Soslar', desc: 'Eşlikçi soslar' };
+        
         default: return { icon: <FaUtensils/>, title: 'Diğer Lezzetler', desc: 'Menüye özel ekstralar' };
     }
   };
@@ -80,7 +83,7 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/30"></div>
         
         {/* Navbar Back Button */}
-        <div className="absolute top-8 left-0 w-full z-50 px-6 print:hidden">
+        <div className="absolute top-8 left-0 w-full z-40 px-6 print:hidden">
             <Link href="/menus" className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-white px-4 py-2 rounded-full text-sm font-sans font-bold hover:bg-white/20 transition">
                 <FaArrowLeft /> Menülere Dön
             </Link>
@@ -99,7 +102,7 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight tracking-tight drop-shadow-lg">
                     {menu.title}
                 </h1>
-                <p className="text-lg md:text-xl text-gray-200 leading-relaxed font-sans max-w-2xl drop-shadow-md line-clamp-3">
+                <p className="text-lg md:text-xl text-gray-200 leading-relaxed font-sans max-w-2xl drop-shadow-md line-clamp-4">
                     {menu.description}
                 </p>
             </div>
