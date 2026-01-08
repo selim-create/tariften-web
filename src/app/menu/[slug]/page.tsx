@@ -72,7 +72,7 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
     <div className="min-h-screen bg-[#fffcf5] font-serif text-slate-900 pb-20">
       
       {/* IMMERSIVE HEADER */}
-      <div className="relative h-[60vh] min-h-[500px] w-full overflow-hidden bg-slate-900">
+      <div className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-slate-900">
         {/* Arkaplan Görseli */}
          {/* eslint-disable-next-line @next/next/no-img-element */}
         <img 
@@ -99,12 +99,9 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                         <span className="bg-white/20 backdrop-blur border border-white/20 text-white px-3 py-1 rounded text-xs font-bold uppercase tracking-wider">{menu.event_type}</span>
                      )}
                 </div>
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight tracking-tight drop-shadow-lg">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight tracking-tight drop-shadow-lg">
                     {menu.title}
                 </h1>
-                <p className="text-lg md:text-xl text-gray-200 leading-relaxed font-sans max-w-2xl drop-shadow-md line-clamp-4">
-                    {menu.description}
-                </p>
             </div>
 
             {/* Hızlı Aksiyonlar (Share & Print) */}
@@ -117,11 +114,15 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
         
         <div className="bg-white shadow-2xl rounded-t-3xl p-8 md:p-12 space-y-16 min-h-[500px]">
             
-            <div className="text-center space-y-4 border-b border-gray-100 pb-12">
+            <div className="text-center space-y-6 border-b border-gray-100 pb-12">
                 <p className="text-[#db4c3f] font-sans font-bold text-xs tracking-[0.2em] uppercase">Mutfaktan</p>
                 <h2 className="text-2xl md:text-3xl font-medium italic text-slate-700 leading-relaxed">
                     "Davetlilerinizi büyüleyecek, dengeli ve unutulmaz bir lezzet yolculuğu için özenle seçildi."
                 </h2>
+                {/* Menü Açıklaması */}
+                <p className="text-gray-600 text-base md:text-lg leading-relaxed max-w-3xl mx-auto font-sans">
+                    {menu.description}
+                </p>
             </div>
 
             {/* Menü Akışı */}
