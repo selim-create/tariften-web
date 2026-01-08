@@ -13,6 +13,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
+    // Only run on client side to avoid hydration errors
+    if (typeof window === 'undefined') return;
+    
     // Check localStorage for saved preference
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") {

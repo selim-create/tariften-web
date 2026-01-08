@@ -13,7 +13,8 @@ export default function Footer() {
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email.trim()) {
-      // TODO: Add actual newsletter API integration here
+      // Newsletter subscription - success state for now
+      // Backend integration will be added in future updates
       setSubmitStatus("success");
       setEmail("");
       setTimeout(() => {
