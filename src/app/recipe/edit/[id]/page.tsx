@@ -42,7 +42,9 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     difficulty: [] as string[],
     diet: [] as string[],
     ingredients: [{ name: "", amount: "", unit: "" }],
-    steps: [""]
+    steps: [""],
+    chef_tip: "",
+    serving_weight: "",
   });
 
   const [options, setOptions] = useState({
@@ -87,7 +89,9 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                     : [{ name: "", amount: "", unit: "" }],
                  steps: (recipe.steps && recipe.steps.length > 0) 
                     ? (typeof recipe.steps[0] === 'string' ? recipe.steps as string[] : (recipe.steps as any[]).map(s => s.content)) 
-                    : [""]
+                    : [""],
+                 chef_tip: recipe.chef_tip || "",
+                 serving_weight: recipe.serving_weight ? String(recipe.serving_weight) : "",
              });
              
              const img = recipe.image || "";
@@ -211,6 +215,8 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
              <div className="space-y-6 animate-fade-in">
                 <div><label className="block text-xs font-bold text-gray-500 mb-1">Tarif Başlığı</label><input type="text" value={formData.title} onChange={(e) => handleInputChange("title", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-bold text-lg focus:outline-none focus:border-brand" /></div>
                 <div><label className="block text-xs font-bold text-gray-500 mb-1">Kısa Açıklama</label><textarea value={formData.excerpt} onChange={(e) => handleInputChange("excerpt", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-24 resize-none" /></div>
+                
+                <div><label className="block text-xs font-bold text-gray-500 mb-1">Şefin İpucu (Opsiyonel)</label><textarea value={formData.chef_tip} onChange={(e) => handleInputChange("chef_tip", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-20 resize-none" placeholder="Bu tarife özel bir ipucu... (Boş bırakılırsa otomatik oluşturulur)" /></div>
                 
                 {/* Medya Yükleme */}
                 <div>

@@ -252,7 +252,7 @@ function RecipesContent() {
                 <div className="sticky top-24 space-y-8 pr-0 lg:pr-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
                     <div className="relative">
                         <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400"><FaMagnifyingGlass /></div>
-                        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tarif ara..." className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#db4c3f] focus:border-transparent shadow-sm" />
+                        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tarif ara..." className="w-full bg-white border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] transition-colors shadow-sm" />
                     </div>
                     <div className="bg-white/50 rounded-2xl border border-gray-100 p-4 shadow-sm">
                         {renderFilterGroup("Öğün Tipi", <FaUtensils className="text-[#db4c3f]"/>, availableFilters.mealType, selectedMealTypes, setSelectedMealTypes, "mealType")}
