@@ -25,6 +25,13 @@ const LOADING_MESSAGES = [
   "En iyi kombinasyon hesaplanıyor... 🧮"
 ];
 
+const QUICK_SUGGESTIONS = [
+  'Pratik makarna',
+  'Tavuklu salata',
+  'Çikolatalı tatlı',
+  'Mercimek çorbası'
+];
+
 function RecipeSkeleton() {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden h-full flex flex-col animate-pulse">
@@ -213,16 +220,15 @@ function RecipesContent() {
   };
 
   // Prompt Modal'dan tarif oluştur
-  const handlePromptModalSubmit = async () => {
+  const handlePromptModalSubmit = () => {
     if (!aiPromptInput.trim()) return;
     
     setShowPromptModal(false);
     setQuery(aiPromptInput); // Arama kutusuna da yaz
     
-    // Kısa bir gecikme ile handleGenerateRecipe'i çağır
-    setTimeout(() => {
-      handleGenerateRecipe();
-    }, 100);
+    // aiPromptInput zaten dolu olduğu için handleGenerateRecipe doğrudan çalışacak
+    // Query state güncellemesi async olsa da aiPromptInput kullanılacak
+    handleGenerateRecipe();
   };
 
   const renderFilterGroup = (title: string, icon: React.ReactNode, items: string[], current: string[], setFn: (val: string[]) => void, sectionKey: string) => {
@@ -388,7 +394,7 @@ function RecipesContent() {
         
         {/* AI PROMPT MODAL - Boş aramada açılır */}
         {showPromptModal && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
             <div 
               className="absolute inset-0 bg-black/60 backdrop-blur-md" 
               onClick={() => setShowPromptModal(false)}
@@ -426,7 +432,7 @@ function RecipesContent() {
                 
                 <div className="flex flex-wrap gap-2 items-center">
                   <span className="text-xs text-gray-400">Hızlı öneriler:</span>
-                  {['Pratik makarna', 'Tavuklu salata', 'Çikolatalı tatlı', 'Mercimek çorbası'].map(suggestion => (
+                  {QUICK_SUGGESTIONS.map(suggestion => (
                     <button 
                       key={suggestion}
                       onClick={() => setAiPromptInput(suggestion)}
