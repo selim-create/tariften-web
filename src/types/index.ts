@@ -135,6 +135,7 @@ export interface Menu {
   event_type: string; // Bu alanın varlığından emin oluyoruz
   sections: MenuSection[];
   author_id: number;
+  author?: Author; // Optional author object
   seo?: {
     title: string;
     description: string;

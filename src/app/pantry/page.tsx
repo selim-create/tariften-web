@@ -8,7 +8,7 @@ import { getPantry, updatePantry, analyzePantry, generateAIRecipe, createRecipe 
 import { PantryItem } from "@/types";
 import { 
   FaPlus, FaTrash, FaChevronRight, FaWandMagicSparkles, FaBasketShopping, 
-  FaCamera, FaFire, FaUtensils, FaPen, FaXmark, FaCheck, 
+  FaCamera, FaCalendarDays, FaFire, FaUtensils, FaPen, FaXmark, FaCheck, 
   FaSpinner, FaFloppyDisk, FaCloudArrowUp, FaClockRotateLeft, FaRobot
 } from "react-icons/fa6";
 
