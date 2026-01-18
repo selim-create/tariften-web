@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { getUserInteractions } from "@/lib/api";
 import { Recipe } from "@/types";
-import { FaClock, FaFire, FaArrowLeft, FaPlus, FaBookOpen, FaCheckDouble, FaSpinner } from "react-icons/fa6";
+import { FaClock, FaFire, FaPlus, FaBookOpen, FaCheckDouble, FaSpinner } from "react-icons/fa6";
 
 export default function CookbookPage() {
   const { user } = useAuth();
@@ -41,34 +41,27 @@ export default function CookbookPage() {
       <div className="container mx-auto max-w-5xl">
         
         {/* Header */}
-        {/* MOBİL DÜZELTME: items-end yerine items-start kullanıldı */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-          <div>
-            <Link href="/profile" className="text-xs text-gray-400 hover:text-brand flex items-center gap-1 mb-2 transition">
-              <FaArrowLeft /> Profile Dön
-            </Link>
-            <h1 className="text-3xl font-bold text-slate-900 font-heading">Tarif Defterim</h1>
-          </div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <h1 className="text-3xl font-bold text-slate-900 font-heading">Tarif Defterim</h1>
           
-          <Link href="/recipe/create" className="bg-white border border-gray-200 hover:border-brand text-slate-700 hover:text-brand px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition shadow-sm">
-            <FaPlus /> Yeni Tarif Ekle
-          </Link>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-6 border-b border-gray-100">
-          <button 
-            onClick={() => setActiveTab('favorite')}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition flex items-center gap-2 ${activeTab === 'favorite' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-          >
-            <FaBookOpen /> Kaydettiklerim
-          </button>
-          <button 
-            onClick={() => setActiveTab('cooked')}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition flex items-center gap-2 ${activeTab === 'cooked' ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-          >
-            <FaCheckDouble /> Pişirdiklerim
-          </button>
+          {/* Tüm butonlar aynı satırda */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <button 
+              onClick={() => setActiveTab('favorite')}
+              className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition flex items-center gap-2 ${activeTab === 'favorite' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'bg-gray-100 text-slate-600 hover:bg-gray-200'}`}
+            >
+              <FaBookOpen /> Kaydettiklerim
+            </button>
+            <button 
+              onClick={() => setActiveTab('cooked')}
+              className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition flex items-center gap-2 ${activeTab === 'cooked' ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' : 'bg-gray-100 text-slate-600 hover:bg-gray-200'}`}
+            >
+              <FaCheckDouble /> Pişirdiklerim
+            </button>
+            <Link href="/recipe/create" className="bg-white border border-gray-200 hover:border-brand text-slate-700 hover:text-brand px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition">
+              <FaPlus /> Yeni Tarif Ekle
+            </Link>
+          </div>
         </div>
 
         {/* Liste Grid */}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getRecipes } from "@/lib/api";
 import { FaArrowRight, FaFire, FaAward } from "react-icons/fa";
-import { FaUtensils, FaClock, FaEarthAmericas } from "react-icons/fa6";
+import { FaUtensils, FaClock, FaEarthAmericas, FaLeaf, FaBed, FaHeart, FaCandyCane, FaPepperHot, FaMugHot } from "react-icons/fa6";
 import Hero from "@/components/home/Hero";
 import HomeCTA from "@/components/home/HomeCTA";
 import MenuShowcase from "@/components/home/MenuShowcase"; // YENİ
@@ -177,31 +177,31 @@ export default async function Home() {
         <div className="container mx-auto px-4 text-center relative z-10">
             <div className="mb-10 animate-fade-in-up">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 font-heading">Hangi Moddasın?</h2>
-              <p className="text-slate-600 text-lg">Ruh haline göre tarifini seç 🎭</p>
+              <p className="text-slate-600 text-lg">Ruh haline göre tarifini seç!</p>
             </div>
             <div className="flex flex-wrap justify-center gap-4 max-w-5xl mx-auto">
                <Link href="/recipes?diet=Düşük Karbonhidrat" className="group px-8 py-4 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <span className="text-2xl mb-1 block group-hover:animate-bounce">🥗</span>
+                 <FaLeaf className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
                  <span className="text-sm">Fit & Sağlıklı</span>
                </Link>
                <Link href="/recipes?difficulty=Kolay" className="group px-8 py-4 bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <span className="text-2xl mb-1 block group-hover:animate-bounce">⚡</span>
+                 <FaBed className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
                  <span className="text-sm">Üşengeç Şef</span>
                </Link>
                <Link href="/recipes?difficulty=Şef" className="group px-8 py-4 bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <span className="text-2xl mb-1 block group-hover:animate-bounce">🔥</span>
+                 <FaHeart className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
                  <span className="text-sm">Ziyafet</span>
                </Link>
                <Link href="/recipes?meal_type=Tatlı" className="group px-8 py-4 bg-gradient-to-r from-pink-400 to-rose-500 hover:from-pink-500 hover:to-rose-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <span className="text-2xl mb-1 block group-hover:animate-bounce">🧁</span>
+                 <FaCandyCane className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
                  <span className="text-sm">Tatlı Krizi</span>
                </Link>
                <Link href="/recipes?cuisine=Meksika%20Mutfağı" className="group px-8 py-4 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <span className="text-2xl mb-1 block group-hover:animate-bounce">🌮</span>
+                 <FaPepperHot className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
                  <span className="text-sm">Acı Sever</span>
                </Link>
                <Link href="/recipes?meal_type=Kahvaltı" className="group px-8 py-4 bg-gradient-to-r from-indigo-400 to-purple-500 hover:from-indigo-500 hover:to-purple-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <span className="text-2xl mb-1 block group-hover:animate-bounce">🍳</span>
+                 <FaMugHot className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
                  <span className="text-sm">Pazar Kahvaltısı</span>
                </Link>
             </div>

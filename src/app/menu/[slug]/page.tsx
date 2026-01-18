@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next"; 
 import { FaUsers, FaArrowLeft, FaClock, FaUtensils, FaBowlFood, FaWineGlass, FaIceCream, FaLeaf, FaLemon, FaBowlRice, FaCookie, FaFire, FaEgg, FaCheese, FaCakeCandles, FaPlateWheat } from "react-icons/fa6";
 import { MenuHeaderActions, MenuFooterActions } from "@/components/menu/MenuClientComponents"; // YENİ IMPORT
+import AuthorCard from "@/components/AuthorCard"; // YENİ: Yazar Kartı
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -183,6 +184,13 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                 </div>
                 <MenuFooterActions menu={menu} />
             </div>
+
+            {/* AUTHOR CARD */}
+            {menu.author && (
+              <div className="mt-8">
+                <AuthorCard author={menu.author} />
+              </div>
+            )}
 
         </div>
 

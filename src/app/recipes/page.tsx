@@ -225,9 +225,10 @@ function RecipesContent() {
            {isGenerating ? LOADING_MESSAGES[loadingMsgIndex] : `"${query || 'Özel'}" tarifini senin için sıfırdan yaratabilirim.`}
         </p>
         <button 
+          type="button"
           onClick={handleGenerateRecipe}
           disabled={isGenerating}
-          className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-[#db4c3f]/20 disabled:opacity-70"
+          className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-[#db4c3f]/20 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
         >
            {isGenerating ? "Hazırlanıyor..." : <><FaWandMagicSparkles /> AI ile Oluştur</>}
         </button>

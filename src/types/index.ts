@@ -78,7 +78,8 @@ export interface Nutrition {
 export interface Author {
   id: number;
   name: string;
-  avatar: string;
+  avatar?: string;
+  bio?: string;
 }
 
 export interface PantryItem {
@@ -135,6 +136,7 @@ export interface Menu {
   event_type: string; // Bu alanın varlığından emin oluyoruz
   sections: MenuSection[];
   author_id: number;
+  author?: Author; // Optional author object
   seo?: {
     title: string;
     description: string;

@@ -7,6 +7,7 @@ import { FaRegClock, FaRegBookmark } from "react-icons/fa";
 import RecipeDetailClient from "@/components/recipe/RecipeDetailClient";
 import RecipeActions from "@/components/recipe/RecipeActions"; 
 import EditButton from "@/components/recipe/EditButton"; // YENİ: Düzenle Butonu
+import AuthorCard from "@/components/AuthorCard"; // YENİ: Yazar Kartı
 import { Metadata } from 'next';
 import RecipeJsonLd from '@/components/RecipeJsonLd';
 
@@ -221,6 +222,13 @@ export default async function RecipeDetailPage({
 
         {/* ALT İÇERİK (Malzemeler, Hazırlanış, Benzer Tarifler) */}
         <RecipeDetailClient recipe={recipe} />
+
+        {/* AUTHOR CARD */}
+        {recipe.author && (
+          <div className="container mx-auto max-w-6xl px-4 mt-8">
+            <AuthorCard author={recipe.author} />
+          </div>
+        )}
 
       </div>
     </main>

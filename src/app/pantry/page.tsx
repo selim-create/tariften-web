@@ -434,11 +434,6 @@ export default function PantryPage() {
                 <button onClick={() => handleAiAction("rescue")} className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white p-1 rounded-2xl shadow-lg shadow-red-500/20 group hover:scale-[1.02] transition-transform text-left">
                     <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex items-center gap-4 h-full"><div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-2xl group-hover:animate-bounce"><FaFire /></div><div><div className="font-bold text-lg">Bozulacakları Kurtar</div><div className="text-xs text-white/80">Kritik ürünler için tarif.</div></div></div>
                 </button>
-                <button onClick={() => handleAiAction("plan")} className="w-full bg-white border-2 border-brand/10 hover:border-brand/30 p-4 rounded-2xl shadow-sm flex items-center gap-4 group transition-all text-left">
-                    <div className="w-12 h-12 bg-brand/5 text-brand rounded-full flex items-center justify-center text-xl group-hover:bg-brand group-hover:text-white transition-colors"><FaCalendarDays /></div>
-                    <div><div className="font-bold text-slate-800">3 Günlük Planla</div><div className="text-xs text-gray-500">Mevcut malzemelerle plan.</div></div>
-                    <FaChevronRight className="ml-auto text-gray-300 group-hover:text-brand" />
-                </button>
                 <button onClick={() => handleAiAction("suggest")} className="w-full bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex items-center gap-4 group hover:border-gray-300 transition-all text-left">
                     <div className="w-12 h-12 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center text-xl"><FaUtensils /></div>
                     <div><div className="font-bold text-slate-800">Rastgele Tarif Öner</div><div className="text-xs text-gray-500">Dolaptakilerle ne yapabilirim?</div></div>

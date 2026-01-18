@@ -64,7 +64,7 @@ export default function HomeCTA() {
                   Mutfağını Yönetmeye Nereden Başlamak İstersin?
                 </h2>
                 <p className="text-slate-400 text-lg">
-                  Senn için hazırladığımız araçlarla zaman kazan ve harika lezzetler yarat.
+                  Senin için hazırladığımız araçlarla zaman kazan ve harika lezzetler yarat.
                 </p>
               </div>
 
