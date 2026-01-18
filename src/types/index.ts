@@ -78,7 +78,8 @@ export interface Nutrition {
 export interface Author {
   id: number;
   name: string;
-  avatar: string;
+  avatar?: string;
+  bio?: string;
 }
 
 export interface PantryItem {

@@ -51,7 +51,6 @@ export default function ProfilePage() {
         setRecentActivity(cookedData || []);
         setFavorites(favoritesData || []);
         setUserRecipes(recipesData || []); // YENİ
-        setFavorites(favoritesData || []);
 
       } catch (error) {
         console.error("Stats error", error);

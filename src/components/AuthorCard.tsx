@@ -1,12 +1,6 @@
 import Image from "next/image";
 import { FaUser } from "react-icons/fa6";
-
-interface Author {
-  id: number;
-  name: string;
-  avatar?: string;
-  bio?: string;
-}
+import { Author } from "@/types";
 
 interface AuthorCardProps {
   author: Author | null;
