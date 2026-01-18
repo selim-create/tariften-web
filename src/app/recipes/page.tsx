@@ -25,6 +25,13 @@ const LOADING_MESSAGES = [
   "En iyi kombinasyon hesaplanıyor... 🧮"
 ];
 
+const QUICK_SUGGESTIONS = [
+  'Pratik makarna',
+  'Tavuklu salata',
+  'Çikolatalı tatlı',
+  'Mercimek çorbası'
+];
+
 function RecipeSkeleton() {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden h-full flex flex-col animate-pulse">
@@ -73,6 +80,10 @@ function RecipesContent() {
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
 
   const [modal, setModal] = useState({ show: false, type: 'success', message: '' });
+  
+  // AI Prompt Modal için
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [aiPromptInput, setAiPromptInput] = useState("");
 
   // 1. Kategorileri Çek
   useEffect(() => {
@@ -165,24 +176,59 @@ function RecipesContent() {
 
   // AI OLUŞTURMA
   const handleGenerateRecipe = async () => {
-    if (!user || !user.token) { showModalMessage('error', "AI Şef'i kullanmak için lütfen giriş yapın."); return; } // Token kontrolü eklendi
-    if (!query) return;
+    if (!user || !user.token) { 
+      showModalMessage('error', "AI Şef'i kullanmak için lütfen giriş yapın."); 
+      return; 
+    }
+    
+    // Eğer query boşsa ve aiPromptInput da boşsa, prompt modal'ını aç
+    if (!query.trim() && !aiPromptInput.trim()) {
+      setShowPromptModal(true);
+      return;
+    }
+    
+    // Kullanılacak arama terimi
+    const searchTerm = aiPromptInput.trim() || query.trim();
+    
     setIsGenerating(true);
     setLoadingMsgIndex(0);
+    
     try {
-        const aiResponse = await generateAIRecipe(user.token, query);
-        if (aiResponse.success && aiResponse.recipe) {
-            const saveResponse = await createRecipe(user.token, aiResponse.recipe);
-            if (saveResponse.success) {
-                const redirectTarget = saveResponse.slug || saveResponse.id;
-                router.push(`/recipe/${redirectTarget}`); 
-            } else showModalMessage('error', "Kaydedilemedi.");
-        } else showModalMessage('error', "Yapay zeka yanıt veremedi.");
+      const aiResponse = await generateAIRecipe(user.token, searchTerm);
+      if (aiResponse.success && aiResponse.recipe) {
+        const saveResponse = await createRecipe(user.token, aiResponse.recipe);
+        if (saveResponse.success) {
+          const redirectTarget = saveResponse.slug || saveResponse.id;
+          router.push(`/recipe/${redirectTarget}`); 
+        } else {
+          showModalMessage('error', "Kaydedilemedi.");
+        }
+      } else {
+        showModalMessage('error', "Yapay zeka yanıt veremedi.");
+      }
     } catch (error: any) {
-        const errorMsg = error.message?.toLowerCase() || "";
-        if (errorMsg.includes("quota") || errorMsg.includes("billing")) showModalMessage('error', "Şefimiz şu an aşırı yoğun 👨‍🍳 Lütfen sonra tekrar deneyin.");
-        else showModalMessage('error', "Bir sorun oluştu.");
-    } finally { setIsGenerating(false); }
+      const errorMsg = error.message?.toLowerCase() || "";
+      if (errorMsg.includes("quota") || errorMsg.includes("billing")) {
+        showModalMessage('error', "Şefimiz şu an aşırı yoğun 👨‍🍳 Lütfen sonra tekrar deneyin.");
+      } else {
+        showModalMessage('error', "Bir sorun oluştu.");
+      }
+    } finally { 
+      setIsGenerating(false);
+      setAiPromptInput(""); // Input'u temizle
+    }
+  };
+
+  // Prompt Modal'dan tarif oluştur
+  const handlePromptModalSubmit = () => {
+    if (!aiPromptInput.trim()) return;
+    
+    setShowPromptModal(false);
+    setQuery(aiPromptInput); // Arama kutusuna da yaz
+    
+    // aiPromptInput zaten dolu olduğu için handleGenerateRecipe doğrudan çalışacak
+    // Query state güncellemesi async olsa da aiPromptInput kullanılacak
+    handleGenerateRecipe();
   };
 
   const renderFilterGroup = (title: string, icon: React.ReactNode, items: string[], current: string[], setFn: (val: string[]) => void, sectionKey: string) => {
@@ -344,6 +390,79 @@ function RecipesContent() {
                     <button onClick={() => setShowAIModal(false)} className="absolute top-4 right-4 text-white/50 hover:text-white"><FaXmark className="text-2xl"/></button>
                 </div>
             </div>
+        )}
+        
+        {/* AI PROMPT MODAL - Boş aramada açılır */}
+        {showPromptModal && (
+          <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
+            <div 
+              className="absolute inset-0 bg-black/60 backdrop-blur-md" 
+              onClick={() => setShowPromptModal(false)}
+            ></div>
+            <div className="relative z-10 bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-fade-in">
+              <button 
+                onClick={() => setShowPromptModal(false)} 
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+              >
+                <FaXmark className="text-xl"/>
+              </button>
+              
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-[#db4c3f]/20 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaWandMagicSparkles className="text-4xl text-[#db4c3f]" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2 font-heading">AI Şef&apos;e Sor!</h3>
+                <p className="text-gray-500">Bir tarif adı yaz veya elindeki malzemeleri listele</p>
+              </div>
+              
+              <div className="space-y-4">
+                <input 
+                  type="text"
+                  value={aiPromptInput}
+                  onChange={(e) => setAiPromptInput(e.target.value)}
+                  placeholder="Örn: Fırında tavuk veya domates, peynir, makarna..."
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-4 focus:border-[#db4c3f] focus:ring-4 focus:ring-[#db4c3f]/10 outline-none text-lg transition"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && aiPromptInput.trim()) {
+                      handlePromptModalSubmit();
+                    }
+                  }}
+                />
+                
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-xs text-gray-400">Hızlı öneriler:</span>
+                  {QUICK_SUGGESTIONS.map(suggestion => (
+                    <button 
+                      key={suggestion}
+                      onClick={() => setAiPromptInput(suggestion)}
+                      className="text-xs bg-gray-100 hover:bg-[#db4c3f]/10 text-gray-600 hover:text-[#db4c3f] px-3 py-1.5 rounded-full transition"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+                
+                <button 
+                  onClick={handlePromptModalSubmit}
+                  disabled={!aiPromptInput.trim() || isGenerating}
+                  className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#db4c3f]/20"
+                >
+                  {isGenerating ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      Hazırlanıyor...
+                    </>
+                  ) : (
+                    <>
+                      <FaWandMagicSparkles />
+                      Tarif Oluştur
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
         
         {/* HATA MODALI */}
