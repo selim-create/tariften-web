@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -287,7 +289,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !commentText.trim()) return;
+    if (!user || !user.token || !commentText.trim()) return;
 
     setIsSubmitting(true);
     try {
@@ -306,7 +308,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   };
 
   const handleDeleteComment = async (commentId: number) => {
-    if (!user) return;
+    if (!user || !user.token) return;
     
     if (!confirm("Bu yorumu silmek istediğinizden emin misiniz?")) return;
 
@@ -320,7 +322,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   };
 
   const handleLikeComment = async (commentId: number) => {
-    if (!user) {
+    if (!user || !user.token) {
       alert("Beğenmek için giriş yapmalısınız.");
       return;
     }
@@ -358,7 +360,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   };
 
   const handleRating = async (rating: number) => {
-    if (!user) {
+    if (!user || !user.token) {
       alert("Değerlendirmek için giriş yapmalısınız.");
       return;
     }
