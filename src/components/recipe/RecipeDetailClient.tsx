@@ -37,6 +37,32 @@ const calculateEstimatedWeight = (recipe: Recipe): number => {
   return Math.round(totalWeight / servings);
 }; 
 
+// Mock Comment Data
+const getMockComments = (): Comment[] => [
+  {
+    id: 1,
+    content: "Bu tarif harika oldu! Ailece çok beğendik, elinize sağlık.",
+    author: {
+      id: 1,
+      name: "Ayşe Yılmaz",
+      avatar: undefined
+    },
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    likes: 12
+  },
+  {
+    id: 2,
+    content: "Çok lezzetli bir tarif, mutlaka tekrar yapacağım. Teşekkürler!",
+    author: {
+      id: 2,
+      name: "Mehmet Demir",
+      avatar: undefined
+    },
+    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    likes: 8
+  }
+];
+
 export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const { user } = useAuth();
   
@@ -59,6 +85,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasMoreComments, setHasMoreComments] = useState(false);
+  const [commentIdCounter, setCommentIdCounter] = useState(1000); // Counter for generating unique IDs
 
   // --- INITIALIZATION EFFECT ---
   useEffect(() => {
@@ -142,31 +169,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
     fetchSimilar();
 
     // 4. Load Comments (Mock data for now)
-    const mockComments: Comment[] = [
-      {
-        id: 1,
-        content: "Bu tarif harika oldu! Ailece çok beğendik, elinize sağlık.",
-        author: {
-          id: 1,
-          name: "Ayşe Yılmaz",
-          avatar: undefined
-        },
-        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        likes: 12
-      },
-      {
-        id: 2,
-        content: "Çok lezzetli bir tarif, mutlaka tekrar yapacağım. Teşekkürler!",
-        author: {
-          id: 2,
-          name: "Mehmet Demir",
-          avatar: undefined
-        },
-        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        likes: 8
-      }
-    ];
-    setComments(mockComments);
+    setComments(getMockComments());
     setHasMoreComments(false);
 
   }, [recipe, user?.token]);
@@ -274,9 +277,9 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
       // TODO: API call when backend is ready
       // await addComment(user.token, recipe.id, commentText);
       
-      // Mock: Add comment locally
+      // Mock: Add comment locally with unique ID
       const newComment: Comment = {
-        id: Date.now() + Math.floor(Math.random() * 1000), // More robust temporary ID
+        id: commentIdCounter,
         content: commentText,
         author: {
           id: user.id,
@@ -288,6 +291,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
       };
       
       setComments(prev => [newComment, ...prev]);
+      setCommentIdCounter(prev => prev + 1);
       setCommentText('');
     } catch (error) {
       console.error("Yorum gönderme hatası:", error);
@@ -317,7 +321,15 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
 
   const loadMoreComments = async () => {
     // TODO: API call to load more comments when backend is ready
-    console.log("Load more comments");
+    // Example structure:
+    // try {
+    //   const moreComments = await fetchComments(recipe.id, page + 1);
+    //   setComments(prev => [...prev, ...moreComments]);
+    //   setHasMoreComments(moreComments.length > 0);
+    // } catch (error) {
+    //   console.error("Daha fazla yorum yüklenemedi:", error);
+    // }
+    console.log("Load more comments - API integration needed");
   };
 
   const baseServings = typeof recipe.servings === 'string' ? parseInt(recipe.servings) : recipe.servings || 2;
