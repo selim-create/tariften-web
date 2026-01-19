@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { FaGear, FaFire, FaPen, FaHeart, FaBowlFood, FaClock, FaCheck } from "react-icons/fa6";
 import { getUserInteractions, getUserRecipes } from "@/lib/api";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { isPlaceholderImage } from "@/lib/utils";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -203,33 +205,21 @@ export default function ProfilePage() {
 }
 
 // Yardımcı Bileşenler (Dosya içinde tanımladım, ayrı dosyaya da alınabilir)
-// Placeholder URL patterns to filter out
-const PLACEHOLDER_PATTERNS = ['placehold.co', 'placeholder', 'via.placeholder'];
 
 function RecipeCard({ recipe, type }: { recipe: any, type: 'cooked' | 'favorite' | 'created' }) {
-    const [imgError, setImgError] = useState(false);
-    
-    // Placeholder veya kırık görsel kontrolü
-    const isValidImage = recipe.image && 
-                         !PLACEHOLDER_PATTERNS.some(pattern => recipe.image.includes(pattern)) &&
-                         !imgError;
-    
     return (
         <Link href={`/recipe/${recipe.slug}`} className="flex gap-4 bg-white p-4 rounded-2xl border border-gray-100 hover:shadow-md transition group">
             <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden relative flex-shrink-0">
-                {isValidImage ? (
+                {isPlaceholderImage(recipe.image) ? (
+                    <ImagePlaceholder title={recipe.title} variant="card" />
+                ) : (
                     <Image 
                       src={recipe.image} 
                       alt={recipe.title} 
                       fill 
                       className="object-cover group-hover:scale-105 transition"
-                      onError={() => setImgError(true)}
                       unoptimized={recipe.image?.includes('pexels.com') || recipe.image?.includes('unsplash.com')}
                     />
-                ) : (
-                    <div className="flex items-center justify-center h-full bg-gradient-to-br from-orange-50 to-red-50">
-                        <FaBowlFood className="text-2xl text-brand/40" />
-                    </div>
                 )}
             </div>
             <div className="flex-1 py-1">

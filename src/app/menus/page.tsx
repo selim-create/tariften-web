@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getMenus } from "@/lib/api";
 import { FaPlus, FaUsers, FaArrowRight, FaWandMagicSparkles } from "react-icons/fa6";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { isPlaceholderImage } from "@/lib/utils";
 
 export const revalidate = 60; // Her dakika yenile
 
@@ -68,12 +70,16 @@ export default async function MenusArchivePage() {
                     <div className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
                         <div className="relative h-56 overflow-hidden">
                             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition z-10"></div>
-                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img 
-                                src={menu.image || "https://placehold.co/600x400?text=Menu"} 
-                                alt={menu.title} 
-                                className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
-                            />
+                            {isPlaceholderImage(menu.image) ? (
+                              <ImagePlaceholder title={menu.title} variant="card" />
+                            ) : (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img 
+                                  src={menu.image} 
+                                  alt={menu.title} 
+                                  className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
+                              />
+                            )}
                             <div className="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-900 shadow-sm">
                                 {menu.concept}
                             </div>

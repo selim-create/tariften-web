@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { getUserInteractions } from "@/lib/api";
 import { Recipe } from "@/types";
 import { FaClock, FaFire, FaPlus, FaBookOpen, FaCheckDouble, FaSpinner } from "react-icons/fa6";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { isPlaceholderImage } from "@/lib/utils";
 
 export default function CookbookPage() {
   const { user } = useAuth();
@@ -76,8 +78,9 @@ export default function CookbookPage() {
                 className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full"
               >
                 <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                  {/* GÖRSEL DÜZELTME: img yerine Image ve unoptimized */}
-                  {recipe.image ? (
+                  {isPlaceholderImage(recipe.image) ? (
+                    <ImagePlaceholder title={recipe.title} variant="card" />
+                  ) : (
                     <Image 
                       src={recipe.image} 
                       alt={recipe.title} 
@@ -85,8 +88,6 @@ export default function CookbookPage() {
                       unoptimized={true}
                       className="object-cover group-hover:scale-105 transition duration-500" 
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">🥘</div>
                   )}
                   {recipe.cuisine?.[0] && (
                     <span className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2 py-1 rounded-md text-[10px] font-bold text-slate-700 shadow-sm uppercase tracking-wide">

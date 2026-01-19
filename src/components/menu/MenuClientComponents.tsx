@@ -5,6 +5,8 @@ import { Menu } from "@/types";
 import { FaShareNodes, FaCheck, FaCartShopping, FaFire, FaXmark, FaCopy, FaClipboardList, FaPenToSquare } from "react-icons/fa6";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { isPlaceholderImage } from "@/lib/utils";
 
 // ---------------------------
 // Success Modal (Şık Bildirim)
@@ -221,8 +223,12 @@ export function MenuFooterActions({ menu }: { menu: Menu }) {
                                             className="flex items-center gap-4 p-3 rounded-2xl hover:bg-orange-50 border border-gray-100 hover:border-orange-200 transition group"
                                         >
                                             <div className="w-14 h-14 rounded-xl bg-gray-200 overflow-hidden shrink-0 shadow-sm">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img src={recipe.image || 'https://placehold.co/100'} className="w-full h-full object-cover" alt="" />
+                                                {isPlaceholderImage(recipe.image) ? (
+                                                  <ImagePlaceholder title={recipe.title} variant="card" />
+                                                ) : (
+                                                  // eslint-disable-next-line @next/next/no-img-element
+                                                  <img src={recipe.image} className="w-full h-full object-cover" alt="" />
+                                                )}
                                             </div>
                                             <div className="flex-grow">
                                                 <h4 className="font-bold text-slate-900 group-hover:text-[#db4c3f] transition line-clamp-1">{recipe.title}</h4>
