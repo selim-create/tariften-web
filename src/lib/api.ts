@@ -541,3 +541,168 @@ export async function subscribeNewsletter(email: string): Promise<{ success: boo
     return { success: false, message: 'Bir hata oluştu.' };
   }
 }
+
+// --- YORUM (COMMENT) İŞLEMLERİ ---
+
+/**
+ * Fetch comments for a recipe with pagination
+ * @param recipeId - Recipe ID
+ * @param page - Page number (default: 1)
+ * @param perPage - Comments per page (default: 10)
+ * @returns Promise with { success, comments, pages, total }
+ */
+export async function getComments(recipeId: number, page: number = 1, perPage: number = 10) {
+  const response = await fetch(
+    `${API_URL}/recipes/${recipeId}/comments?page=${page}&per_page=${perPage}`,
+    { cache: 'no-store' }
+  );
+  
+  if (!response.ok) {
+    throw new Error('Yorumlar yüklenemedi');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Add a new comment to a recipe
+ * @param token - User authentication token
+ * @param recipeId - Recipe ID
+ * @param content - Comment text
+ * @returns Promise with { success, comment }
+ */
+export async function addComment(token: string, recipeId: number, content: string) {
+  const response = await fetch(`${API_URL}/recipes/${recipeId}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Yorum eklenemedi');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Delete a comment (requires ownership or admin)
+ * @param token - User authentication token
+ * @param commentId - Comment ID to delete
+ * @returns Promise with { success }
+ */
+export async function deleteComment(token: string, commentId: number) {
+  const response = await fetch(`${API_URL}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Yorum silinemedi');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Toggle like on a comment
+ * @param token - User authentication token
+ * @param commentId - Comment ID to like/unlike
+ * @returns Promise with { success, likes }
+ */
+export async function toggleCommentLike(token: string, commentId: number) {
+  const response = await fetch(`${API_URL}/comments/${commentId}/like`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error('Beğeni işlemi başarısız');
+  }
+  
+  return response.json();
+}
+
+// --- DEĞERLENDİRME (RATING) İŞLEMLERİ ---
+
+/**
+ * Get aggregate rating for a recipe
+ * @param recipeId - Recipe ID
+ * @returns Promise with { success, average, count }
+ */
+export async function getRecipeRating(recipeId: number) {
+  try {
+    const response = await fetch(`${API_URL}/recipes/${recipeId}/rating`, {
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      return { success: false, average: 0, count: 0 };
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Rating fetch error:', error);
+    return { success: false, average: 0, count: 0 };
+  }
+}
+
+/**
+ * Get user's rating for a recipe
+ * @param token - User authentication token
+ * @param recipeId - Recipe ID
+ * @returns Promise with { success, rating }
+ */
+export async function getUserRating(token: string, recipeId: number) {
+  try {
+    const response = await fetch(`${API_URL}/recipes/${recipeId}/rating/user`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      return { success: false, rating: null };
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('User rating fetch error:', error);
+    return { success: false, rating: null };
+  }
+}
+
+/**
+ * Submit or update user rating for a recipe (1-5 stars)
+ * @param token - User authentication token
+ * @param recipeId - Recipe ID
+ * @param rating - Rating value (1-5)
+ * @returns Promise with { success, new_average, new_count }
+ */
+export async function submitRating(token: string, recipeId: number, rating: number) {
+  const response = await fetch(`${API_URL}/recipes/${recipeId}/rating`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ rating }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Değerlendirme gönderilemedi');
+  }
+  
+  return response.json();
+}

@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { 
-  FaCheck, FaLightbulb, FaThumbsUp, FaXmark, FaClock, FaFire, FaArrowRight, FaHeart, FaCircleUser
+  FaCheck, FaLightbulb, FaThumbsUp, FaXmark, FaClock, FaFire, FaArrowRight, FaHeart, FaCircleUser, FaStar
 } from "react-icons/fa6";
 import { Recipe, Comment } from "@/types";
 import { useAuth } from "@/context/AuthContext";
-import { toggleInteraction, getRecipes, checkInteractionStatus } from "@/lib/api";
+import { toggleInteraction, getRecipes, checkInteractionStatus, getComments, addComment, deleteComment, toggleCommentLike, getRecipeRating, getUserRating, submitRating } from "@/lib/api";
 import { getRandomChefTip } from "@/lib/chefTips";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
@@ -37,32 +37,6 @@ const calculateEstimatedWeight = (recipe: Recipe): number => {
   return Math.round(totalWeight / servings);
 }; 
 
-// Mock Comment Data
-const getMockComments = (): Comment[] => [
-  {
-    id: 1,
-    content: "Bu tarif harika oldu! Ailece çok beğendik, elinize sağlık.",
-    author: {
-      id: 1,
-      name: "Ayşe Yılmaz",
-      avatar: undefined
-    },
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    likes: 12
-  },
-  {
-    id: 2,
-    content: "Çok lezzetli bir tarif, mutlaka tekrar yapacağım. Teşekkürler!",
-    author: {
-      id: 2,
-      name: "Mehmet Demir",
-      avatar: undefined
-    },
-    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    likes: 8
-  }
-];
-
 export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const { user } = useAuth();
   
@@ -85,7 +59,14 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasMoreComments, setHasMoreComments] = useState(false);
-  const [commentIdCounter, setCommentIdCounter] = useState(-1000); // Negative IDs for mock data to avoid conflicts
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Rating State
+  const [userRating, setUserRating] = useState<number | null>(null);
+  const [averageRating, setAverageRating] = useState<number>(0);
+  const [ratingCount, setRatingCount] = useState<number>(0);
+  const [hasRated, setHasRated] = useState(false);
 
   // --- INITIALIZATION EFFECT ---
   useEffect(() => {
@@ -168,11 +149,49 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
     }
     fetchSimilar();
 
-    // 4. Load Comments (Mock data for now)
-    setComments(getMockComments());
-    setHasMoreComments(false);
+    // 4. Load Comments - API'den çek
+    async function fetchComments() {
+      try {
+        const response = await getComments(recipe.id, 1, 10);
+        if (response.success) {
+          setComments(response.comments || []);
+          setHasMoreComments((response.pages || 1) > 1);
+          setCurrentPage(1);
+          setTotalPages(response.pages || 1);
+        }
+      } catch (error) {
+        console.error("Yorumlar yüklenemedi:", error);
+        setComments([]); // Hata durumunda boş array
+      }
+    }
+    
+    fetchComments();
 
-  }, [recipe, user?.token]);
+    // 5. Load Rating
+    async function fetchRating() {
+      try {
+        const response = await getRecipeRating(recipe.id);
+        if (response.success) {
+          setAverageRating(response.average || 0);
+          setRatingCount(response.count || 0);
+        }
+        
+        // Kullanıcının kendi puanını kontrol et
+        if (user?.token) {
+          const userRatingResponse = await getUserRating(user.token, recipe.id);
+          if (userRatingResponse.success && userRatingResponse.rating) {
+            setUserRating(userRatingResponse.rating);
+            setHasRated(true);
+          }
+        }
+      } catch (error) {
+        console.error("Rating yüklenemedi:", error);
+      }
+    }
+    
+    fetchRating();
+
+  }, [recipe.id, user?.token]);
 
   // --- HELPER VALUES ---
   const calories = typeof recipe.calories === 'string' ? parseInt(recipe.calories) : recipe.calories || 450;
@@ -270,67 +289,95 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !commentText.trim()) return;
+    if (!user || !user.token || !commentText.trim()) return;
 
     setIsSubmitting(true);
     try {
-      // TODO: API call when backend is ready
-      // await addComment(user.token, recipe.id, commentText);
+      const response = await addComment(user.token, recipe.id, commentText);
       
-      // Mock: Add comment locally with unique ID
-      const newComment: Comment = {
-        id: commentIdCounter,
-        content: commentText,
-        author: {
-          id: user.id,
-          name: user.user_display_name,
-          avatar: user.avatar_url
-        },
-        created_at: new Date().toISOString(),
-        likes: 0
-      };
-      
-      setComments(prev => [newComment, ...prev]);
-      setCommentIdCounter(prev => prev - 1); // Decrement for next mock comment
-      setCommentText('');
+      if (response.success && response.comment) {
+        setComments(prev => [response.comment, ...prev]);
+        setCommentText('');
+      }
     } catch (error) {
       console.error("Yorum gönderme hatası:", error);
-      // TODO: Replace with toast notification
-      alert("Yorum gönderilemedi, lütfen tekrar deneyin.");
+      alert(error instanceof Error ? error.message : "Yorum gönderilemedi, lütfen tekrar deneyin.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteComment = async (commentId: number) => {
-    if (!user) return;
+    if (!user || !user.token) return;
     
     if (!confirm("Bu yorumu silmek istediğinizden emin misiniz?")) return;
 
-    // TODO: API call when backend is ready
-    // try {
-    //   await deleteComment(user.token, commentId);
-    //   setComments(prev => prev.filter(c => c.id !== commentId));
-    // } catch (error) {
-    //   console.error("Yorum silme hatası:", error);
-    //   alert("Yorum silinemedi, lütfen tekrar deneyin.");
-    // }
-    
-    // Mock: Remove comment locally
-    setComments(prev => prev.filter(c => c.id !== commentId));
+    try {
+      await deleteComment(user.token, commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch (error) {
+      console.error("Yorum silme hatası:", error);
+      alert(error instanceof Error ? error.message : "Yorum silinemedi, lütfen tekrar deneyin.");
+    }
+  };
+
+  const handleLikeComment = async (commentId: number) => {
+    if (!user || !user.token) {
+      alert("Beğenmek için giriş yapmalısınız.");
+      return;
+    }
+
+    try {
+      const response = await toggleCommentLike(user.token, commentId);
+      
+      if (response.success) {
+        setComments(prev => prev.map(c => 
+          c.id === commentId 
+            ? { ...c, likes: response.likes }
+            : c
+        ));
+      }
+    } catch (error) {
+      console.error("Beğeni hatası:", error);
+    }
   };
 
   const loadMoreComments = async () => {
-    // TODO: API call to load more comments when backend is ready
-    // Example structure:
-    // try {
-    //   const moreComments = await fetchComments(recipe.id, page + 1);
-    //   setComments(prev => [...prev, ...moreComments]);
-    //   setHasMoreComments(moreComments.length > 0);
-    // } catch (error) {
-    //   console.error("Daha fazla yorum yüklenemedi:", error);
-    // }
-    console.log("Load more comments - API integration needed");
+    if (currentPage >= totalPages) return;
+    
+    try {
+      const nextPage = currentPage + 1;
+      const response = await getComments(recipe.id, nextPage, 10);
+      
+      if (response.success) {
+        setComments(prev => [...prev, ...(response.comments || [])]);
+        setCurrentPage(nextPage);
+        setHasMoreComments(nextPage < (response.pages || 1));
+      }
+    } catch (error) {
+      console.error("Daha fazla yorum yüklenemedi:", error);
+    }
+  };
+
+  const handleRating = async (rating: number) => {
+    if (!user || !user.token) {
+      alert("Değerlendirmek için giriş yapmalısınız.");
+      return;
+    }
+
+    try {
+      const response = await submitRating(user.token, recipe.id, rating);
+      
+      if (response.success) {
+        setUserRating(rating);
+        setAverageRating(response.new_average || rating);
+        setRatingCount(response.new_count || 1);
+        setHasRated(true);
+      }
+    } catch (error) {
+      console.error("Değerlendirme hatası:", error);
+      alert("Değerlendirme kaydedilemedi, lütfen tekrar deneyin.");
+    }
   };
 
   const baseServings = typeof recipe.servings === 'string' ? parseInt(recipe.servings) : recipe.servings || 2;
@@ -491,6 +538,54 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
       {/* COMMENT SECTION */}
       <div className="container mx-auto max-w-4xl px-4 py-12">
         <section className="bg-white rounded-2xl border border-gray-100 p-8">
+          {/* DEĞERLENDİRME BÖLÜMÜ */}
+          <div className="mb-8 p-6 bg-orange-50 rounded-xl border border-orange-100">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h4 className="font-bold text-gray-900 mb-1">Bu tarifi değerlendirin</h4>
+                <p className="text-sm text-gray-600">
+                  {ratingCount > 0 
+                    ? `${ratingCount} kişi değerlendirdi • Ortalama: ${averageRating.toFixed(1)}/5`
+                    : "Henüz değerlendirme yok. İlk siz değerlendirin!"
+                  }
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => handleRating(star)}
+                    disabled={!user}
+                    className={`p-1 transition-transform hover:scale-110 ${!user ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                    title={!user ? "Değerlendirmek için giriş yapın" : `${star} yıldız`}
+                  >
+                    <FaStar 
+                      size={28} 
+                      className={`transition-colors ${
+                        (userRating && star <= userRating) || (!userRating && star <= Math.round(averageRating))
+                          ? 'text-yellow-400' 
+                          : 'text-gray-300 hover:text-yellow-200'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {hasRated && (
+              <p className="text-xs text-green-600 mt-2">
+                ✓ Bu tarife {userRating} yıldız verdiniz
+              </p>
+            )}
+            
+            {!user && (
+              <p className="text-xs text-gray-500 mt-2">
+                Değerlendirmek için <Link href="/login" className="text-[#db4c3f] font-medium hover:underline">giriş yapın</Link>
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-bold text-gray-900">
               Yorumlar <span className="text-gray-400 font-normal">({comments.length})</span>
@@ -586,9 +681,8 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                     {/* Beğeni butonu ve silme */}
                     <div className="flex items-center gap-4 mt-3">
                       <button 
-                        disabled
-                        className="flex items-center gap-1 text-xs text-gray-400 cursor-not-allowed opacity-50"
-                        title="Beğeni özelliği yakında eklenecek"
+                        onClick={() => handleLikeComment(comment.id)}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#db4c3f] transition-colors"
                       >
                         <FaHeart size={14} /> {comment.likes || 0}
                       </button>
