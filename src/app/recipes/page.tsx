@@ -14,6 +14,8 @@ import {
   FaMagnifyingGlass, FaUtensils, FaLeaf, FaWandMagicSparkles, FaSpinner, FaRobot,
   FaCheck, FaXmark, FaGlobe, FaPlus, FaMinus
 } from "react-icons/fa6";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { isPlaceholderImage } from "@/lib/utils";
 
 const LOADING_MESSAGES = [
   "Şef malzemeleri kokluyor... 👃",
@@ -333,16 +335,20 @@ function RecipesContent() {
                         {recipes.map((recipe) => (
                             <Link href={`/recipe/${recipe.slug}`} key={recipe.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full">
                                 <div className="aspect-[4/3] overflow-hidden bg-gray-100 relative">
-                                    <div className="relative w-full h-full">
-                                        {/* GÖRSEL DÜZELTME: Image bileşeni ve unoptimized */}
-                                        <Image 
-                                            src={recipe.image || "/placeholder.jpg"} 
-                                            alt={recipe.title} 
-                                            fill
-                                            unoptimized={true}
-                                            className="object-cover group-hover:scale-105 transition duration-700" 
-                                        />
-                                    </div>
+                                    {isPlaceholderImage(recipe.image) ? (
+                                        <ImagePlaceholder title={recipe.title} variant="card" />
+                                    ) : (
+                                        <div className="relative w-full h-full">
+                                            {/* GÖRSEL DÜZELTME: Image bileşeni ve unoptimized */}
+                                            <Image 
+                                                src={recipe.image} 
+                                                alt={recipe.title} 
+                                                fill
+                                                unoptimized={true}
+                                                className="object-cover group-hover:scale-105 transition duration-700" 
+                                            />
+                                        </div>
+                                    )}
                                     {recipe.cuisine?.[0] && <span className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2.5 py-1 rounded-md text-xs font-bold text-slate-700 shadow-sm">{recipe.cuisine[0]}</span>}
                                 </div>
                                 <div className="p-5 flex flex-col flex-grow">
