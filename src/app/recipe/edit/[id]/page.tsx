@@ -179,7 +179,16 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     if (!user || !user.token) return showError("Lütfen giriş yapın.");
     setSaving(true);
     try {
-      const result = await updateRecipe(user.token, { ...formData, id: recipeId });
+      // Görsel silindiyse açıkça belirt
+      const dataToSend = {
+        ...formData,
+        id: recipeId,
+        // Görsel boşsa, backend'e silinmesi gerektiğini bildir
+        image: formData.image || null,
+        clear_image: formData.image === "" || formData.image === null,
+      };
+      
+      const result = await updateRecipe(user.token, dataToSend);
       if (result.success) {
         showSuccess("Tarif başarıyla güncellendi! 🎉");
         setTimeout(() => router.push(`/recipe/${result.slug || recipeId}`), 2000);
@@ -227,9 +236,9 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                         <button onClick={() => setMediaType('video')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${mediaType === 'video' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'}`}><FaVideo className="inline mr-1"/> Video</button>
                     </div>
                     <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-brand/50 transition bg-gray-50 relative overflow-hidden">
-                        {(previewUrl || formData.image) ? (
+                        {(previewUrl || (typeof formData.image === 'string' && formData.image)) ? (
                             <div className="relative h-48 w-full group">
-                                <img src={previewUrl || (formData.image as string)} alt="Preview" className="h-full w-full object-contain rounded-lg" />
+                                <img src={previewUrl || (typeof formData.image === 'string' ? formData.image : '')} alt="Preview" className="h-full w-full object-contain rounded-lg" />
                                 <button onClick={() => { handleInputChange("image", ""); setPreviewUrl(""); }} className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg hover:scale-110 transition"><FaTrash /></button>
                                 {mediaUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold rounded-lg">Yükleniyor...</div>}
                             </div>
@@ -243,12 +252,18 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                                     </div>
                                 )}
                                 {mediaType === 'url' && (
-                                    <input type="text" value={formData.image as string} onChange={(e) => { handleInputChange("image", e.target.value); setPreviewUrl(e.target.value); }} className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand" placeholder="https://..." />
+                                    <input 
+                                      type="text" 
+                                      value={typeof formData.image === 'string' ? formData.image : ''}
+                                      onChange={(e) => { handleInputChange("image", e.target.value); setPreviewUrl(e.target.value); }} 
+                                      className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand" 
+                                      placeholder="https://..." 
+                                    />
                                 )}
                                 {mediaType === 'video' && (
                                     <input 
                                         type="text" 
-                                        value={formData.image as string}
+                                        value={typeof formData.image === 'string' ? formData.image : ''}
                                         onChange={(e) => {
                                            let url = e.target.value;
                                            handleInputChange("image", url);
