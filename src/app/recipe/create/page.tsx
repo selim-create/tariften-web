@@ -200,9 +200,9 @@ export default function CreateRecipePage() {
                     </div>
                     
                     <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-brand/50 transition bg-gray-50 relative overflow-hidden">
-                        {(previewUrl || formData.image) ? (
+                        {(previewUrl || (typeof formData.image === 'string' && formData.image)) ? (
                             <div className="relative h-48 w-full group">
-                                <img src={previewUrl || (formData.image as string)} alt="Preview" className="h-full w-full object-contain rounded-lg" />
+                                <img src={previewUrl || (typeof formData.image === 'string' ? formData.image : '')} alt="Preview" className="h-full w-full object-contain rounded-lg" />
                                 <button onClick={() => { handleInputChange("image", ""); setPreviewUrl(""); }} className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg hover:scale-110 transition"><FaTrash /></button>
                                 {mediaUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold rounded-lg">Yükleniyor...</div>}
                             </div>
@@ -216,11 +216,18 @@ export default function CreateRecipePage() {
                                     </div>
                                 )}
                                 {mediaType === 'url' && (
-                                    <input type="text" onChange={(e) => { handleInputChange("image", e.target.value); setPreviewUrl(e.target.value); }} className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand" placeholder="https://ornek.com/resim.jpg" />
+                                    <input 
+                                      type="text" 
+                                      value={typeof formData.image === 'string' ? formData.image : ''}
+                                      onChange={(e) => { handleInputChange("image", e.target.value); setPreviewUrl(e.target.value); }} 
+                                      className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand" 
+                                      placeholder="https://ornek.com/resim.jpg" 
+                                    />
                                 )}
                                 {mediaType === 'video' && (
                                     <input 
                                         type="text" 
+                                        value={typeof formData.image === 'string' ? formData.image : ''}
                                         onChange={(e) => {
                                            let url = e.target.value;
                                            if(url.includes("youtube.com") || url.includes("youtu.be")) {
