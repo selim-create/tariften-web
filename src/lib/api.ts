@@ -553,7 +553,7 @@ export async function subscribeNewsletter(email: string): Promise<{ success: boo
  */
 export async function getComments(recipeId: number, page: number = 1, perPage: number = 10) {
   const response = await fetch(
-    `${API_URL}/recipes/${recipeId}/comments?page=${page}&per_page=${perPage}`,
+    `${API_URL}/tariften/v1/recipes/${recipeId}/comments?page=${page}&per_page=${perPage}`,
     { cache: 'no-store' }
   );
   
@@ -572,7 +572,7 @@ export async function getComments(recipeId: number, page: number = 1, perPage: n
  * @returns Promise with { success, comment }
  */
 export async function addComment(token: string, recipeId: number, content: string) {
-  const response = await fetch(`${API_URL}/recipes/${recipeId}/comments`, {
+  const response = await fetch(`${API_URL}/tariften/v1/recipes/${recipeId}/comments`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -596,7 +596,7 @@ export async function addComment(token: string, recipeId: number, content: strin
  * @returns Promise with { success }
  */
 export async function deleteComment(token: string, commentId: number) {
-  const response = await fetch(`${API_URL}/comments/${commentId}`, {
+  const response = await fetch(`${API_URL}/tariften/v1/comments/${commentId}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -618,7 +618,7 @@ export async function deleteComment(token: string, commentId: number) {
  * @returns Promise with { success, likes }
  */
 export async function toggleCommentLike(token: string, commentId: number) {
-  const response = await fetch(`${API_URL}/comments/${commentId}/like`, {
+  const response = await fetch(`${API_URL}/tariften/v1/comments/${commentId}/like`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -641,7 +641,7 @@ export async function toggleCommentLike(token: string, commentId: number) {
  */
 export async function getRecipeRating(recipeId: number) {
   try {
-    const response = await fetch(`${API_URL}/recipes/${recipeId}/rating`, {
+    const response = await fetch(`${API_URL}/tariften/v1/recipes/${recipeId}/rating`, {
       cache: 'no-store'
     });
     
@@ -664,7 +664,7 @@ export async function getRecipeRating(recipeId: number) {
  */
 export async function getUserRating(token: string, recipeId: number) {
   try {
-    const response = await fetch(`${API_URL}/recipes/${recipeId}/rating/user`, {
+    const response = await fetch(`${API_URL}/tariften/v1/recipes/${recipeId}/rating/user`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -690,7 +690,7 @@ export async function getUserRating(token: string, recipeId: number) {
  * @returns Promise with { success, new_average, new_count }
  */
 export async function submitRating(token: string, recipeId: number, rating: number) {
-  const response = await fetch(`${API_URL}/recipes/${recipeId}/rating`, {
+  const response = await fetch(`${API_URL}/tariften/v1/recipes/${recipeId}/rating`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
