@@ -143,3 +143,15 @@ export interface Menu {
     keywords: string;
   };
 }
+
+export interface Comment {
+  id: number;
+  content: string;
+  author: {
+    id: number;
+    name: string;
+    avatar?: string;
+  };
+  created_at: string;
+  likes?: number;
+}

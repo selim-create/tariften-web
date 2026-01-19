@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { 
-  FaCheck, FaLightbulb, FaThumbsUp, FaXmark, FaClock, FaFire, FaArrowRight
+  FaCheck, FaLightbulb, FaThumbsUp, FaXmark, FaClock, FaFire, FaArrowRight, FaHeart, FaCircleUser
 } from "react-icons/fa6";
-import { Recipe } from "@/types";
+import { Recipe, Comment } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { toggleInteraction, getRecipes, checkInteractionStatus } from "@/lib/api";
 import { getRandomChefTip } from "@/lib/chefTips";
@@ -53,6 +53,12 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   // Benzer Tarifler State
   const [similarRecipes, setSimilarRecipes] = useState<Recipe[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(true);
+
+  // Comment State
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasMoreComments, setHasMoreComments] = useState(false);
 
   // --- INITIALIZATION EFFECT ---
   useEffect(() => {
@@ -135,6 +141,34 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
     }
     fetchSimilar();
 
+    // 4. Load Comments (Mock data for now)
+    const mockComments: Comment[] = [
+      {
+        id: 1,
+        content: "Bu tarif harika oldu! Ailece çok beğendik, elinize sağlık.",
+        author: {
+          id: 1,
+          name: "Ayşe Yılmaz",
+          avatar: undefined
+        },
+        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        likes: 12
+      },
+      {
+        id: 2,
+        content: "Çok lezzetli bir tarif, mutlaka tekrar yapacağım. Teşekkürler!",
+        author: {
+          id: 2,
+          name: "Mehmet Demir",
+          avatar: undefined
+        },
+        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        likes: 8
+      }
+    ];
+    setComments(mockComments);
+    setHasMoreComments(false);
+
   }, [recipe, user?.token]);
 
   // --- HELPER VALUES ---
@@ -215,6 +249,74 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             console.error("Pişirme işlemi kaydedilemedi:", error);
         }
     }
+  };
+
+  // Comment Handlers
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Bugün";
+    if (diffDays === 1) return "Dün";
+    if (diffDays < 7) return `${diffDays} gün önce`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} hafta önce`;
+    return `${Math.floor(diffDays / 30)} ay önce`;
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !commentText.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      // TODO: API call when backend is ready
+      // await addComment(user.token, recipe.id, commentText);
+      
+      // Mock: Add comment locally
+      const newComment: Comment = {
+        id: Date.now(),
+        content: commentText,
+        author: {
+          id: user.id,
+          name: user.user_display_name,
+          avatar: user.avatar_url
+        },
+        created_at: new Date().toISOString(),
+        likes: 0
+      };
+      
+      setComments(prev => [newComment, ...prev]);
+      setCommentText('');
+    } catch (error) {
+      console.error("Yorum gönderme hatası:", error);
+      alert("Yorum gönderilemedi, lütfen tekrar deneyin.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!user) return;
+    
+    if (!confirm("Bu yorumu silmek istediğinizden emin misiniz?")) return;
+
+    try {
+      // TODO: API call when backend is ready
+      // await deleteComment(user.token, commentId);
+      
+      // Mock: Remove comment locally
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch (error) {
+      console.error("Yorum silme hatası:", error);
+      alert("Yorum silinemedi, lütfen tekrar deneyin.");
+    }
+  };
+
+  const loadMoreComments = async () => {
+    // TODO: API call to load more comments
+    console.log("Load more comments");
   };
 
   const baseServings = typeof recipe.servings === 'string' ? parseInt(recipe.servings) : recipe.servings || 2;
@@ -370,6 +472,141 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* COMMENT SECTION */}
+      <div className="container mx-auto max-w-4xl px-4 py-12">
+        <section className="bg-white rounded-2xl border border-gray-100 p-8">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-2xl font-bold text-gray-900">
+              Yorumlar <span className="text-gray-400 font-normal">({comments.length})</span>
+            </h3>
+          </div>
+
+          {/* Yorum Yazma Alanı - Sadece Giriş Yapmış Kullanıcılar */}
+          {user ? (
+            <form onSubmit={handleSubmitComment} className="mb-8">
+              <div className="flex gap-4">
+                <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden flex-shrink-0">
+                  {user.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img 
+                      src={user.avatar_url} 
+                      alt={user.user_display_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <FaCircleUser className="text-gray-400 text-3xl" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <textarea
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Bu tarif hakkında ne düşünüyorsunuz?"
+                    className="w-full p-4 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-orange-100 focus:border-orange-300 transition-all min-h-[100px]"
+                    rows={3}
+                  />
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-xs text-gray-400">
+                      Yorum yaparken topluluk kurallarına uyun.
+                    </p>
+                    <button
+                      type="submit"
+                      disabled={!commentText.trim() || isSubmitting}
+                      className="px-6 py-2.5 bg-[#db4c3f] text-white font-medium rounded-xl hover:bg-[#b03d32] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                          Gönderiliyor...
+                        </>
+                      ) : (
+                        'Yorum Yap'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          ) : (
+            <div className="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-100 text-center">
+              <p className="text-gray-600 mb-3">Yorum yapmak için giriş yapmalısınız.</p>
+              <Link 
+                href="/login" 
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#db4c3f] text-white font-medium rounded-xl hover:bg-[#b03d32] transition-colors"
+              >
+                Giriş Yap
+              </Link>
+            </div>
+          )}
+
+          {/* Yorum Listesi */}
+          <div className="space-y-6">
+            {comments.length > 0 ? (
+              comments.map((comment) => (
+                <div key={comment.id} className="flex gap-4 pb-6 border-b border-gray-50 last:border-0 last:pb-0">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex-shrink-0">
+                    {comment.author.avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img 
+                        src={comment.author.avatar}
+                        alt={comment.author.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <FaCircleUser className="text-gray-400 text-2xl" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-gray-900">{comment.author.name}</span>
+                      <span className="text-xs text-gray-400">• {formatDate(comment.created_at)}</span>
+                    </div>
+                    <p className="text-gray-600 text-sm leading-relaxed">{comment.content}</p>
+                    
+                    {/* Beğeni butonu ve silme */}
+                    <div className="flex items-center gap-4 mt-3">
+                      <button className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#db4c3f] transition-colors">
+                        <FaHeart size={14} /> {comment.likes || 0}
+                      </button>
+                      {user && user.id === comment.author.id && (
+                        <button 
+                          onClick={() => handleDeleteComment(comment.id)}
+                          className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          Sil
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaCircleUser className="w-8 h-8 text-gray-300" />
+                </div>
+                <p className="text-gray-500">Henüz yorum yapılmamış.</p>
+                <p className="text-sm text-gray-400 mt-1">Bu tarif hakkında ilk yorumu siz yapın!</p>
+              </div>
+            )}
+          </div>
+
+          {/* Daha Fazla Yükle (Pagination) */}
+          {hasMoreComments && (
+            <button 
+              onClick={loadMoreComments}
+              className="w-full mt-6 py-3 bg-gray-50 text-gray-600 font-medium rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              Daha Fazla Yorum Göster
+            </button>
+          )}
+        </section>
       </div>
 
       {/* SUCCESS MODAL */}
