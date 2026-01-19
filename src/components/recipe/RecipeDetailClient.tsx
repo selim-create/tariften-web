@@ -276,7 +276,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
       
       // Mock: Add comment locally
       const newComment: Comment = {
-        id: Date.now(),
+        id: Date.now() + Math.floor(Math.random() * 1000), // More robust temporary ID
         content: commentText,
         author: {
           id: user.id,
@@ -302,20 +302,21 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
     
     if (!confirm("Bu yorumu silmek istediğinizden emin misiniz?")) return;
 
-    try {
-      // TODO: API call when backend is ready
-      // await deleteComment(user.token, commentId);
-      
-      // Mock: Remove comment locally
-      setComments(prev => prev.filter(c => c.id !== commentId));
-    } catch (error) {
-      console.error("Yorum silme hatası:", error);
-      alert("Yorum silinemedi, lütfen tekrar deneyin.");
-    }
+    // TODO: API call when backend is ready
+    // try {
+    //   await deleteComment(user.token, commentId);
+    //   setComments(prev => prev.filter(c => c.id !== commentId));
+    // } catch (error) {
+    //   console.error("Yorum silme hatası:", error);
+    //   alert("Yorum silinemedi, lütfen tekrar deneyin.");
+    // }
+    
+    // Mock: Remove comment locally
+    setComments(prev => prev.filter(c => c.id !== commentId));
   };
 
   const loadMoreComments = async () => {
-    // TODO: API call to load more comments
+    // TODO: API call to load more comments when backend is ready
     console.log("Load more comments");
   };
 
