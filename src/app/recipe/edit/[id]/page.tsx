@@ -184,8 +184,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         ...formData,
         id: recipeId,
         // Görsel boşsa, backend'e silinmesi gerektiğini bildir
-        image: formData.image || null,
-        clear_image: formData.image === "" || formData.image === null,
+        clear_image: !formData.image,
       };
       
       const result = await updateRecipe(user.token, dataToSend);
