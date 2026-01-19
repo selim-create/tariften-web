@@ -7,6 +7,8 @@ import { getMenu, updateMenu, uploadMedia, getRecipes } from "@/lib/api";
 import { FaPen, FaArrowLeft, FaUtensils, FaUserGroup, FaFloppyDisk, FaTrash, FaImage, FaUpload, FaXmark, FaMagnifyingGlass, FaPlus } from "react-icons/fa6";
 import Link from "next/link";
 import { Menu, MenuSection, Recipe } from "@/types";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { isPlaceholderImage } from "@/lib/utils";
 
 // Recipe Search Component
 function RecipeSearchDropdown({ onSelectRecipe }: { onSelectRecipe: (recipe: Recipe) => void }) {
@@ -69,8 +71,12 @@ function RecipeSearchDropdown({ onSelectRecipe }: { onSelectRecipe: (recipe: Rec
               className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition text-left border-b border-gray-100 last:border-0"
             >
               <div className="w-10 h-10 rounded-lg bg-gray-200 overflow-hidden shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={recipe.image || 'https://placehold.co/100'} className="w-full h-full object-cover" alt={recipe.title} />
+                {isPlaceholderImage(recipe.image) ? (
+                  <ImagePlaceholder title={recipe.title} variant="card" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={recipe.image} className="w-full h-full object-cover" alt={recipe.title} />
+                )}
               </div>
               <div className="flex-grow">
                 <div className="font-bold text-slate-800 text-sm line-clamp-1">{recipe.title}</div>
@@ -372,8 +378,12 @@ export default function EditMenuPage() {
                                     {section.recipes.map((recipe, rIdx) => (
                                         <div key={recipe.id} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm group">
                                             <div className="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden shrink-0">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img src={recipe.image || 'https://placehold.co/100'} className="w-full h-full object-cover" alt="" />
+                                                {isPlaceholderImage(recipe.image) ? (
+                                                  <ImagePlaceholder title={recipe.title} variant="card" />
+                                                ) : (
+                                                  // eslint-disable-next-line @next/next/no-img-element
+                                                  <img src={recipe.image} className="w-full h-full object-cover" alt="" />
+                                                )}
                                             </div>
                                             <div className="flex-grow">
                                                 <div className="font-bold text-slate-800 text-sm">{recipe.title}</div>

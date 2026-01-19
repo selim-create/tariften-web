@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Metadata } from "next"; 
 import { FaUsers, FaArrowLeft, FaClock, FaUtensils, FaBowlFood, FaWineGlass, FaIceCream, FaLeaf, FaLemon, FaBowlRice, FaCookie, FaFire, FaEgg, FaCheese, FaCakeCandles, FaPlateWheat } from "react-icons/fa6";
-import { MenuHeaderActions, MenuFooterActions } from "@/components/menu/MenuClientComponents"; // YENİ IMPORT
-import AuthorCard from "@/components/AuthorCard"; // YENİ: Yazar Kartı
+import { MenuHeaderActions, MenuFooterActions } from "@/components/menu/MenuClientComponents";
+import AuthorCard from "@/components/AuthorCard";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { isPlaceholderImage } from "@/lib/utils";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -150,12 +152,16 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                                     <Link key={recipe.id} href={`/recipe/${recipe.slug}`} className="group block h-full print:no-underline">
                                         <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col print:border-0 print:shadow-none">
                                             <div className="relative aspect-[16/9] overflow-hidden print:hidden">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img 
-                                                    src={recipe.image || "https://placehold.co/600x400?text=Tarif"} 
-                                                    alt={recipe.title} 
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition duration-700" 
-                                                />
+                                                {isPlaceholderImage(recipe.image) ? (
+                                                  <ImagePlaceholder title={recipe.title} variant="card" />
+                                                ) : (
+                                                  // eslint-disable-next-line @next/next/no-img-element
+                                                  <img 
+                                                      src={recipe.image} 
+                                                      alt={recipe.title} 
+                                                      className="w-full h-full object-cover group-hover:scale-105 transition duration-700" 
+                                                  />
+                                                )}
                                                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded-lg text-xs font-bold font-sans flex items-center gap-1 shadow-sm text-slate-700">
                                                     <FaClock className="text-[#db4c3f]"/> {recipe.prep_time} dk
                                                 </div>

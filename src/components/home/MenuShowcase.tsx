@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getMenus } from "@/lib/api";
 import { FaArrowRight, FaCrown, FaUsers, FaWandMagicSparkles } from "react-icons/fa6";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { isPlaceholderImage } from "@/lib/utils";
 
 export default async function MenuShowcase() {
   // 'vitrin' etiketli menüleri getir. 
@@ -39,12 +41,16 @@ export default async function MenuShowcase() {
                         
                         {/* Görsel */}
                         <div className="relative aspect-[4/3] rounded-3xl overflow-hidden mb-4">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img 
-                                src={menu.image || "https://placehold.co/600x400?text=Menu"} 
-                                alt={menu.title} 
-                                className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
-                            />
+                            {isPlaceholderImage(menu.image) ? (
+                              <ImagePlaceholder title={menu.title} variant="card" />
+                            ) : (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img 
+                                  src={menu.image} 
+                                  alt={menu.title} 
+                                  className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
+                              />
+                            )}
                             <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-slate-900 shadow-sm flex items-center gap-1">
                                 <FaUsers className="text-[#db4c3f]"/> {menu.guest_count} Kişilik
                             </div>
