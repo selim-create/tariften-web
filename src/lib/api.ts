@@ -544,7 +544,13 @@ export async function subscribeNewsletter(email: string): Promise<{ success: boo
 
 // --- YORUM (COMMENT) İŞLEMLERİ ---
 
-// Yorum listesini getir
+/**
+ * Fetch comments for a recipe with pagination
+ * @param recipeId - Recipe ID
+ * @param page - Page number (default: 1)
+ * @param perPage - Comments per page (default: 10)
+ * @returns Promise with { success, comments, pages, total }
+ */
 export async function getComments(recipeId: number, page: number = 1, perPage: number = 10) {
   const response = await fetch(
     `${API_URL}/recipes/${recipeId}/comments?page=${page}&per_page=${perPage}`,
@@ -558,7 +564,13 @@ export async function getComments(recipeId: number, page: number = 1, perPage: n
   return response.json();
 }
 
-// Yorum ekle
+/**
+ * Add a new comment to a recipe
+ * @param token - User authentication token
+ * @param recipeId - Recipe ID
+ * @param content - Comment text
+ * @returns Promise with { success, comment }
+ */
 export async function addComment(token: string, recipeId: number, content: string) {
   const response = await fetch(`${API_URL}/recipes/${recipeId}/comments`, {
     method: 'POST',
@@ -577,7 +589,12 @@ export async function addComment(token: string, recipeId: number, content: strin
   return response.json();
 }
 
-// Yorum sil
+/**
+ * Delete a comment (requires ownership or admin)
+ * @param token - User authentication token
+ * @param commentId - Comment ID to delete
+ * @returns Promise with { success }
+ */
 export async function deleteComment(token: string, commentId: number) {
   const response = await fetch(`${API_URL}/comments/${commentId}`, {
     method: 'DELETE',
@@ -594,7 +611,12 @@ export async function deleteComment(token: string, commentId: number) {
   return response.json();
 }
 
-// Yorum beğeni toggle
+/**
+ * Toggle like on a comment
+ * @param token - User authentication token
+ * @param commentId - Comment ID to like/unlike
+ * @returns Promise with { success, likes }
+ */
 export async function toggleCommentLike(token: string, commentId: number) {
   const response = await fetch(`${API_URL}/comments/${commentId}/like`, {
     method: 'POST',
@@ -612,7 +634,11 @@ export async function toggleCommentLike(token: string, commentId: number) {
 
 // --- DEĞERLENDİRME (RATING) İŞLEMLERİ ---
 
-// Tarif değerlendirmelerini getir
+/**
+ * Get aggregate rating for a recipe
+ * @param recipeId - Recipe ID
+ * @returns Promise with { success, average, count }
+ */
 export async function getRecipeRating(recipeId: number) {
   try {
     const response = await fetch(`${API_URL}/recipes/${recipeId}/rating`, {
@@ -630,7 +656,12 @@ export async function getRecipeRating(recipeId: number) {
   }
 }
 
-// Kullanıcının değerlendirmesini getir
+/**
+ * Get user's rating for a recipe
+ * @param token - User authentication token
+ * @param recipeId - Recipe ID
+ * @returns Promise with { success, rating }
+ */
 export async function getUserRating(token: string, recipeId: number) {
   try {
     const response = await fetch(`${API_URL}/recipes/${recipeId}/rating/user`, {
@@ -651,7 +682,13 @@ export async function getUserRating(token: string, recipeId: number) {
   }
 }
 
-// Değerlendirme gönder
+/**
+ * Submit or update user rating for a recipe (1-5 stars)
+ * @param token - User authentication token
+ * @param recipeId - Recipe ID
+ * @param rating - Rating value (1-5)
+ * @returns Promise with { success, new_average, new_count }
+ */
 export async function submitRating(token: string, recipeId: number, rating: number) {
   const response = await fetch(`${API_URL}/recipes/${recipeId}/rating`, {
     method: 'POST',
