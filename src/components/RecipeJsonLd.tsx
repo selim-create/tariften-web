@@ -64,9 +64,17 @@ export default function RecipeJsonLd({ recipe }: RecipeJsonLdProps) {
     })) || [],
   };
 
-  // aggregateRating sadece gerçek rating varsa ekle (sahte puan Google cezası alabilir)
-  if (recipe.rating && recipe.rating > 0) {
-    // Rating count tahmini: Her puan için ~10 oy + base 5 oy
+  // aggregateRating - API'den gelen gerçek verilerle
+  if (recipe.rating_count && recipe.rating_count > 0 && recipe.average_rating) {
+    jsonLd.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: recipe.average_rating.toFixed(1),
+      ratingCount: recipe.rating_count,
+      bestRating: 5,
+      worstRating: 1
+    };
+  } else if (recipe.rating && recipe.rating > 0) {
+    // Fallback: Eski rating alanı varsa kullan
     const VOTES_PER_RATING = 10;
     const BASE_VOTE_COUNT = 5;
     jsonLd.aggregateRating = {

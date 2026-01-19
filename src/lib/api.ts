@@ -541,3 +541,131 @@ export async function subscribeNewsletter(email: string): Promise<{ success: boo
     return { success: false, message: 'Bir hata oluştu.' };
   }
 }
+
+// --- YORUM (COMMENT) İŞLEMLERİ ---
+
+// Yorum listesini getir
+export async function getComments(recipeId: number, page: number = 1, perPage: number = 10) {
+  const response = await fetch(
+    `${API_URL}/recipes/${recipeId}/comments?page=${page}&per_page=${perPage}`,
+    { cache: 'no-store' }
+  );
+  
+  if (!response.ok) {
+    throw new Error('Yorumlar yüklenemedi');
+  }
+  
+  return response.json();
+}
+
+// Yorum ekle
+export async function addComment(token: string, recipeId: number, content: string) {
+  const response = await fetch(`${API_URL}/recipes/${recipeId}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Yorum eklenemedi');
+  }
+  
+  return response.json();
+}
+
+// Yorum sil
+export async function deleteComment(token: string, commentId: number) {
+  const response = await fetch(`${API_URL}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Yorum silinemedi');
+  }
+  
+  return response.json();
+}
+
+// Yorum beğeni toggle
+export async function toggleCommentLike(token: string, commentId: number) {
+  const response = await fetch(`${API_URL}/comments/${commentId}/like`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error('Beğeni işlemi başarısız');
+  }
+  
+  return response.json();
+}
+
+// --- DEĞERLENDİRME (RATING) İŞLEMLERİ ---
+
+// Tarif değerlendirmelerini getir
+export async function getRecipeRating(recipeId: number) {
+  try {
+    const response = await fetch(`${API_URL}/recipes/${recipeId}/rating`, {
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      return { success: false, average: 0, count: 0 };
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Rating fetch error:', error);
+    return { success: false, average: 0, count: 0 };
+  }
+}
+
+// Kullanıcının değerlendirmesini getir
+export async function getUserRating(token: string, recipeId: number) {
+  try {
+    const response = await fetch(`${API_URL}/recipes/${recipeId}/rating/user`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      return { success: false, rating: null };
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('User rating fetch error:', error);
+    return { success: false, rating: null };
+  }
+}
+
+// Değerlendirme gönder
+export async function submitRating(token: string, recipeId: number, rating: number) {
+  const response = await fetch(`${API_URL}/recipes/${recipeId}/rating`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ rating }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Değerlendirme gönderilemedi');
+  }
+  
+  return response.json();
+}

@@ -52,6 +52,8 @@ export interface Recipe {
   serving_weight?: number;
   keywords?: string;
   cooked_count?: number;
+  average_rating?: number;
+  rating_count?: number;
 }
 
 export interface Ingredient {
