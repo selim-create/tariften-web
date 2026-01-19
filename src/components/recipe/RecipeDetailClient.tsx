@@ -85,7 +85,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasMoreComments, setHasMoreComments] = useState(false);
-  const [commentIdCounter, setCommentIdCounter] = useState(1000); // Counter for generating unique IDs
+  const [commentIdCounter, setCommentIdCounter] = useState(-1000); // Negative IDs for mock data to avoid conflicts
 
   // --- INITIALIZATION EFFECT ---
   useEffect(() => {
@@ -291,10 +291,11 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
       };
       
       setComments(prev => [newComment, ...prev]);
-      setCommentIdCounter(prev => prev + 1);
+      setCommentIdCounter(prev => prev - 1); // Decrement for next mock comment
       setCommentText('');
     } catch (error) {
       console.error("Yorum gönderme hatası:", error);
+      // TODO: Replace with toast notification
       alert("Yorum gönderilemedi, lütfen tekrar deneyin.");
     } finally {
       setIsSubmitting(false);
@@ -584,7 +585,11 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                     
                     {/* Beğeni butonu ve silme */}
                     <div className="flex items-center gap-4 mt-3">
-                      <button className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#db4c3f] transition-colors">
+                      <button 
+                        disabled
+                        className="flex items-center gap-1 text-xs text-gray-400 cursor-not-allowed opacity-50"
+                        title="Beğeni özelliği yakında eklenecek"
+                      >
                         <FaHeart size={14} /> {comment.likes || 0}
                       </button>
                       {user && user.id === comment.author.id && (
