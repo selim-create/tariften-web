@@ -10,6 +10,8 @@ import { Recipe } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { toggleInteraction, getRecipes, checkInteractionStatus } from "@/lib/api";
 import { getRandomChefTip } from "@/lib/chefTips";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { isPlaceholderImage } from "@/lib/utils";
 
 // Helper: Tahmini porsiyon ağırlığı hesapla
 const WEIGHT_PER_PIECE = 50; // Malzeme adedi başına ortalama gram
@@ -340,7 +342,9 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                       return (
                         <Link key={r.id} href={`/recipe/${r.slug}`} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4 hover:shadow-lg transition cursor-pointer group">
                             <div className="w-24 h-24 bg-gray-200 rounded-xl overflow-hidden relative flex-shrink-0">
-                                {r.image ? (
+                                {isPlaceholderImage(r.image) ? (
+                                    <ImagePlaceholder title={r.title} variant="card" />
+                                ) : (
                                     <Image 
                                       src={r.image} 
                                       alt={r.title} 
@@ -348,8 +352,6 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                                       unoptimized={true}
                                       className="object-cover group-hover:scale-105 transition" 
                                     />
-                                ) : (
-                                    <div className="flex items-center justify-center h-full text-2xl">🥘</div>
                                 )}
                             </div>
                             <div className="flex flex-col justify-center">

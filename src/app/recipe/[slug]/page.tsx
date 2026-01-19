@@ -10,6 +10,8 @@ import EditButton from "@/components/recipe/EditButton"; // YENİ: Düzenle Buto
 import AuthorCard from "@/components/AuthorCard"; // YENİ: Yazar Kartı
 import { Metadata } from 'next';
 import RecipeJsonLd from '@/components/RecipeJsonLd';
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { isPlaceholderImage } from "@/lib/utils";
 
 // YouTube Video ID'sini çıkaran yardımcı fonksiyon
 function getYoutubeVideoId(url: string) {
@@ -127,8 +129,11 @@ export default async function RecipeDetailPage({
                 allowFullScreen
                 title={recipe.title}
               />
+            ) : isPlaceholderImage(recipe.image) ? (
+              // DURUM B: Placeholder
+              <ImagePlaceholder title={recipe.title} variant="detail" />
             ) : (
-              // DURUM B: Standart Resim (veya Placeholder)
+              // DURUM C: Standart Resim
               <>
                 <img 
                   src={recipe.image} 
