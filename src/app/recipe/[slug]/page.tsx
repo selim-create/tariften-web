@@ -162,17 +162,17 @@ export default async function RecipeDetailPage({
             
             {/* Kategoriler (Tıklanabilir Linkler) */}
             <div className="flex flex-wrap gap-2 mb-4">
-              {recipe.meal_type.map(m => (
+              {(recipe.meal_type || []).map(m => (
                  <Link href={`/recipes?meal_type=${encodeURIComponent(m)}`} key={m} className="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider border border-blue-100 hover:bg-blue-100 transition">
                     {m}
                  </Link>
               ))}
-              {recipe.cuisine.map(c => (
+              {(recipe.cuisine || []).map(c => (
                 <Link href={`/recipes?cuisine=${encodeURIComponent(c)}`} key={c} className="bg-orange-50 text-orange-700 text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider border border-orange-100 hover:bg-orange-100 transition">
                   {c}
                 </Link>
               ))}
-              {recipe.diet.map(d => (
+              {(recipe.diet || []).map(d => (
                 <Link href={`/recipes?diet=${encodeURIComponent(d)}`} key={d} className="bg-green-50 text-green-700 text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider border border-green-100 hover:bg-green-100 transition">
                   {d}
                 </Link>
