@@ -1,7 +1,8 @@
 "use server";
 
 import { APIResponse, Recipe, PantryItem, Menu } from "@/types";
-import { revalidatePath } from "next/cache"; 
+import { revalidatePath } from "next/cache";
+import { parseIngredients, parseSteps } from "./recipeUtils"; 
 
 // ⚠️ DİKKAT: Backend URL'inizi buraya girin. Localhost kullanıyorsanız güncelleyin.
 const API_URL = "https://api.tariften.com/wp-json";
@@ -114,7 +115,16 @@ export async function getRecipes(filters: RecipeFilters | string = {}): Promise<
 // Tekil Tarif
 export async function getRecipe(slug: string): Promise<Recipe | null> {
   const data = await fetchDynamic(`${API_URL}/tariften/v1/recipes/search?slug=${encodeURIComponent(slug)}`);
-  return (data && data.data && data.data.length > 0) ? data.data[0] : null;
+  
+  if (!data || !data.data || data.data.length === 0) return null;
+  
+  const recipe = data.data[0];
+  
+  // Parse JSON string fields using utilities
+  recipe.ingredients = parseIngredients(recipe.ingredients);
+  recipe.steps = parseSteps(recipe.steps);
+  
+  return recipe;
 }
 
 export async function getRecipeById(id: number): Promise<Recipe | null> {
