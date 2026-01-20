@@ -84,6 +84,7 @@ export interface RecipeFilters {
   mealType?: string[];
   difficulty?: string[];
   collection?: string[];
+  source?: string;  // 'rejimde', 'user', 'ai' vb.
   sort?: string;
   page?: number;
 }
@@ -101,6 +102,7 @@ export async function getRecipes(filters: RecipeFilters | string = {}): Promise<
     if (filters.mealType?.length) params.append("meal_type", filters.mealType.join(","));
     if (filters.difficulty?.length) params.append("difficulty", filters.difficulty.join(","));
     if (filters.collection?.length) params.append("collection", filters.collection.join(","));
+    if (filters.source) params.append("source", filters.source);
     if (filters.sort) params.append("orderby", filters.sort);
     if (filters.page) params.append("page", filters.page.toString());
   }

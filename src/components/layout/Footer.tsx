@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { FaInstagram, FaTwitter, FaYoutube, FaTiktok, FaFacebookF, FaPinterest } from "react-icons/fa6";
 import { subscribeNewsletter } from "@/lib/api";
+import RejimdeIcon from '@/components/icons/RejimdeIcon';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -36,7 +37,7 @@ export default function Footer() {
     <footer className="bg-white border-t border-gray-100 pt-16 pb-8">
       <div className="container mx-auto px-4 md:px-6">
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 mb-12">
           
           {/* Marka */}
           <div className="col-span-1 md:col-span-1">
@@ -87,6 +88,24 @@ export default function Footer() {
               <li><Link href="/terms" className="hover:text-[#db4c3f] transition">Kullanım Koşulları</Link></li>
               <li><Link href="/privacy" className="hover:text-[#db4c3f] transition">Gizlilik Politikası</Link></li>
               <li><Link href="/kvkk" className="hover:text-[#db4c3f] transition">KVKK</Link></li>
+            </ul>
+          </div>
+
+          {/* İş Birlikleri */}
+          <div>
+            <h4 className="font-bold text-slate-900 mb-4">İş Birliklerimiz</h4>
+            <ul className="space-y-2 text-sm text-slate-500">
+              <li>
+                <a 
+                  href="https://rejimde.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 hover:text-emerald-600 transition"
+                >
+                  <RejimdeIcon className="w-4 h-4" />
+                  Rejimde.com
+                </a>
+              </li>
             </ul>
           </div>
 
