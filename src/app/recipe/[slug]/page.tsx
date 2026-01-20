@@ -12,6 +12,7 @@ import { Metadata } from 'next';
 import RecipeJsonLd from '@/components/RecipeJsonLd';
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
+import RejindeBanner from '@/components/RejindeBanner';
 
 // YouTube Video ID'sini çıkaran yardımcı fonksiyon
 function getYoutubeVideoId(url: string) {
@@ -111,6 +112,10 @@ export default async function RecipeDetailPage({
 
       {/* HERO SECTION */}
       <div className="container mx-auto max-w-6xl px-4 py-6">
+        
+        {/* Rejimde Banner - tarif içeriğinin üstünde */}
+        <RejindeBanner recipeId={recipe.id} />
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mb-12 items-start">
           
           {/* SOL: GÖRSEL veya VİDEO ALANI */}
