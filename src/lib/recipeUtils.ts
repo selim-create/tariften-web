@@ -32,6 +32,13 @@ export function parseIngredients(ingredients: Ingredient[] | string | null | und
 type StepInput = string[] | Array<{content: string}> | string | null | undefined;
 
 /**
+ * Type guard to check if a value is a step object with content
+ */
+function isStepObject(step: unknown): step is {content: string} {
+  return typeof step === 'object' && step !== null && 'content' in step && typeof (step as {content: unknown}).content === 'string';
+}
+
+/**
  * Parse recipe steps - handles both string and array formats
  */
 export function parseSteps(steps: StepInput): string[] {
@@ -42,7 +49,7 @@ export function parseSteps(steps: StepInput): string[] {
   // Handle both formats: string[] or {content: string}[]
   return parsed.map(step => {
     if (typeof step === 'string') return step;
-    if (typeof step === 'object' && step !== null && 'content' in step) return step.content;
+    if (isStepObject(step)) return step.content;
     return '';
   }).filter(Boolean);
 }
