@@ -114,7 +114,31 @@ export async function getRecipes(filters: RecipeFilters | string = {}): Promise<
 // Tekil Tarif
 export async function getRecipe(slug: string): Promise<Recipe | null> {
   const data = await fetchDynamic(`${API_URL}/tariften/v1/recipes/search?slug=${encodeURIComponent(slug)}`);
-  return (data && data.data && data.data.length > 0) ? data.data[0] : null;
+  
+  if (!data || !data.data || data.data.length === 0) return null;
+  
+  const recipe = data.data[0];
+  
+  // Parse JSON string fields if they come as strings from the database
+  if (recipe.ingredients && typeof recipe.ingredients === 'string') {
+    try {
+      recipe.ingredients = JSON.parse(recipe.ingredients);
+    } catch (e) {
+      console.warn('Failed to parse ingredients:', e);
+      recipe.ingredients = [];
+    }
+  }
+  
+  if (recipe.steps && typeof recipe.steps === 'string') {
+    try {
+      recipe.steps = JSON.parse(recipe.steps);
+    } catch (e) {
+      console.warn('Failed to parse steps:', e);
+      recipe.steps = [];
+    }
+  }
+  
+  return recipe;
 }
 
 export async function getRecipeById(id: number): Promise<Recipe | null> {

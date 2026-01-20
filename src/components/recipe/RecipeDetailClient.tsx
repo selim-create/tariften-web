@@ -12,6 +12,7 @@ import { toggleInteraction, getRecipes, checkInteractionStatus, getComments, add
 import { getRandomChefTip } from "@/lib/chefTips";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
+import { parseIngredients, parseSteps } from "@/lib/recipeUtils";
 
 // Helper: Tahmini porsiyon ağırlığı hesapla
 const WEIGHT_PER_PIECE = 50; // Malzeme adedi başına ortalama gram
@@ -202,33 +203,28 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   };
 
   // Steps Parsing (API string[] veya Step[] dönebiliyor, tipte string[] tanımladık ama kontrol edelim)
-  let steps: string[] = [];
-  if (recipe.steps && recipe.steps.length > 0) {
-    if (typeof recipe.steps[0] === 'object' && recipe.steps[0] !== null && 'content' in recipe.steps[0]) {
-        // Eski yapı (Step objesi)
-        steps = (recipe.steps as any[]).map(s => s.content);
-    } else {
-        // Yeni yapı (String array)
-        steps = recipe.steps as any as string[];
-    }
-  } else if (recipe.content) {
-    steps = recipe.content
-      .replace(/<[^>]*>/g, '\n')
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 5);
-  }
+  const steps = parseSteps(recipe.steps).length > 0 
+    ? parseSteps(recipe.steps)
+    : recipe.content
+      ? recipe.content
+          .replace(/<[^>]*>/g, '\n')
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 5)
+      : [];
 
   // Ingredients Fallback
   const DEMO_INGREDIENTS = [
     { name: "Tavuk Göğsü", amount: 500, unit: "gr" },
     { name: "Mantar", amount: 400, unit: "gr" },
   ];
-  const ingredients = (recipe.ingredients && recipe.ingredients.length > 0) 
-    ? recipe.ingredients.map(ing => ({
+  
+  const parsedIngredients = parseIngredients(recipe.ingredients);
+  const ingredients = parsedIngredients.length > 0
+    ? parsedIngredients.map(ing => ({
         ...ing,
         amount: typeof ing.amount === 'string' ? parseFloat(ing.amount) : ing.amount
-    }))
+      }))
     : DEMO_INGREDIENTS.map(ing => ({ ...ing, amount: Number(ing.amount) }));
 
   // Chef tip - dinamik veya default

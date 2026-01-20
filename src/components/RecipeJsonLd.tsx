@@ -1,4 +1,5 @@
 import { Recipe } from '@/types';
+import { parseIngredients, parseSteps } from '@/lib/recipeUtils';
 
 interface RecipeJsonLdProps {
   recipe: Recipe;
@@ -52,16 +53,16 @@ export default function RecipeJsonLd({ recipe }: RecipeJsonLdProps) {
       ...(recipe.nutrition?.carbs && { carbohydrateContent: `${recipe.nutrition.carbs}g` }),
       ...(recipe.nutrition?.fat && { fatContent: `${recipe.nutrition.fat}g` }),
     },
-    recipeIngredient: recipe.ingredients?.map(
+    recipeIngredient: parseIngredients(recipe.ingredients).map(
       (ing) => `${ing.amount} ${ing.unit} ${ing.name}`
-    ) || [],
-    recipeInstructions: recipe.steps?.map((step, index) => ({
+    ),
+    recipeInstructions: parseSteps(recipe.steps).map((step, index) => ({
       '@type': 'HowToStep',
       position: index + 1,
       name: `Adım ${index + 1}`,
       text: step,
       url: `${siteUrl}/recipe/${recipe.slug}#adim-${index + 1}`,
-    })) || [],
+    })),
   };
 
   // aggregateRating - API'den gelen gerçek verilerle
