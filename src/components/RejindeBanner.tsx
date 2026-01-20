@@ -30,6 +30,8 @@ export default function RejindeBanner({ recipeId }: Props) {
         });
         
         if (!res.ok) {
+          // Endpoint doesn't exist or returned error - silently fail
+          setDietInfo(null);
           setLoading(false);
           return;
         }
@@ -40,9 +42,12 @@ export default function RejindeBanner({ recipeId }: Props) {
         if (data.source === 'rejimde' && data.diet_url && data.diet_status !== 'deleted') {
           // URL'in hala geçerli olduğunu kontrol et (opsiyonel)
           setDietInfo(data);
+        } else {
+          setDietInfo(null);
         }
       } catch (e) {
         console.error('Diyet bilgisi alınamadı:', e);
+        setDietInfo(null);
       } finally {
         setLoading(false);
       }
