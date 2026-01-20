@@ -1,3 +1,5 @@
+import { Ingredient } from '@/types';
+
 /**
  * Safely parse a field that might be a JSON string or already an array
  */
@@ -43,11 +45,4 @@ export function parseSteps(steps: StepInput): string[] {
     if (typeof step === 'object' && step !== null && 'content' in step) return step.content;
     return '';
   }).filter(Boolean);
-}
-
-// Import the Ingredient type
-interface Ingredient {
-  name: string;
-  amount: number | string;
-  unit: string;
 }
