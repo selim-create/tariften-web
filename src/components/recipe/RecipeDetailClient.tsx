@@ -203,8 +203,9 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   };
 
   // Steps Parsing (API string[] veya Step[] dönebiliyor, tipte string[] tanımladık ama kontrol edelim)
-  const steps = parseSteps(recipe.steps).length > 0 
-    ? parseSteps(recipe.steps)
+  const parsedSteps = parseSteps(recipe.steps);
+  const steps = parsedSteps.length > 0 
+    ? parsedSteps
     : recipe.content
       ? recipe.content
           .replace(/<[^>]*>/g, '\n')

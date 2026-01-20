@@ -1,7 +1,8 @@
 "use server";
 
 import { APIResponse, Recipe, PantryItem, Menu } from "@/types";
-import { revalidatePath } from "next/cache"; 
+import { revalidatePath } from "next/cache";
+import { parseIngredients, parseSteps } from "./recipeUtils"; 
 
 // ⚠️ DİKKAT: Backend URL'inizi buraya girin. Localhost kullanıyorsanız güncelleyin.
 const API_URL = "https://api.tariften.com/wp-json";
@@ -119,24 +120,9 @@ export async function getRecipe(slug: string): Promise<Recipe | null> {
   
   const recipe = data.data[0];
   
-  // Parse JSON string fields if they come as strings from the database
-  if (recipe.ingredients && typeof recipe.ingredients === 'string') {
-    try {
-      recipe.ingredients = JSON.parse(recipe.ingredients);
-    } catch (e) {
-      console.warn('Failed to parse ingredients:', e);
-      recipe.ingredients = [];
-    }
-  }
-  
-  if (recipe.steps && typeof recipe.steps === 'string') {
-    try {
-      recipe.steps = JSON.parse(recipe.steps);
-    } catch (e) {
-      console.warn('Failed to parse steps:', e);
-      recipe.steps = [];
-    }
-  }
+  // Parse JSON string fields using utilities
+  recipe.ingredients = parseIngredients(recipe.ingredients);
+  recipe.steps = parseSteps(recipe.steps);
   
   return recipe;
 }

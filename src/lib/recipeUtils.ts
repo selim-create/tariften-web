@@ -22,15 +22,17 @@ export function parseJsonField<T>(field: T | string | null | undefined): T | nul
 /**
  * Parse recipe ingredients - handles both string and array formats
  */
-export function parseIngredients(ingredients: any): Array<{name: string; amount: number | string; unit: string}> {
-  const parsed = parseJsonField<Array<{name: string; amount: number | string; unit: string}>>(ingredients);
+export function parseIngredients(ingredients: Ingredient[] | string | null | undefined): Ingredient[] {
+  const parsed = parseJsonField<Ingredient[]>(ingredients);
   return Array.isArray(parsed) ? parsed : [];
 }
+
+type StepInput = string[] | Array<{content: string}> | string | null | undefined;
 
 /**
  * Parse recipe steps - handles both string and array formats
  */
-export function parseSteps(steps: any): string[] {
+export function parseSteps(steps: StepInput): string[] {
   const parsed = parseJsonField<string[] | Array<{content: string}>>(steps);
   
   if (!Array.isArray(parsed)) return [];
@@ -41,4 +43,11 @@ export function parseSteps(steps: any): string[] {
     if (typeof step === 'object' && step !== null && 'content' in step) return step.content;
     return '';
   }).filter(Boolean);
+}
+
+// Import the Ingredient type
+interface Ingredient {
+  name: string;
+  amount: number | string;
+  unit: string;
 }
