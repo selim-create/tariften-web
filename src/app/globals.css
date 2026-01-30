@@ -1,11 +1,11 @@
 @import "tailwindcss";
-
+@plugin "@tailwindcss/typography";
 @theme {
   /* Renk Tanımları (v4 stili) */
   --color-brand: #db4c3f;
   --color-brand-dark: #b03d32;
 
-  /* Font Tanımları (Layout'tan gelen değişkenleri bağlama) */
+  /* Font Tanımları */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-heading: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
 }
@@ -91,4 +91,96 @@ body {
 
 .dark [class*="text-gray-600"] {
   @apply text-slate-400;
+}
+
+@layer components {
+  /* --- WORDPRESS GUTENBERG UYUMLULUĞU --- */
+
+  /* İçerik Hizalamaları */
+  .prose .aligncenter {
+    @apply mx-auto block text-center;
+  }
+  
+  .prose .alignright {
+    @apply float-right ml-4 mb-4;
+  }
+  
+  .prose .alignleft {
+    @apply float-left mr-4 mb-4;
+  }
+  
+  .prose .alignwide {
+    @apply w-full max-w-[120%] -ml-[10%]; /* Container dışına taşma efekti */
+  }
+
+  .prose .alignfull {
+    @apply w-screen relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw];
+  }
+
+  /* Görseller ve Figürler */
+  .prose figure {
+    @apply my-8 block mx-auto;
+  }
+  
+  .prose figcaption {
+    @apply text-center text-sm text-gray-500 mt-2 italic;
+  }
+  
+  .prose img {
+    @apply rounded-xl shadow-sm mx-auto;
+  }
+
+  /* Embedler (YouTube, Twitter vs.) */
+  .prose iframe {
+    @apply w-full aspect-video rounded-xl shadow-md my-8 mx-auto;
+  }
+  
+  .prose .wp-block-embed {
+    @apply my-8;
+  }
+
+  /* Tablolar */
+  .prose table {
+    @apply w-full border-collapse my-8 text-sm text-left;
+  }
+  
+  .prose thead th {
+    @apply bg-gray-50 p-3 font-bold text-slate-800 border-b-2 border-gray-100;
+  }
+  
+  .prose tbody td {
+    @apply p-3 border-b border-gray-50 text-gray-600;
+  }
+
+  /* Alıntılar (Blockquote) */
+  .prose blockquote {
+    @apply border-l-4 border-[#db4c3f] bg-orange-50/50 p-6 rounded-r-xl italic text-slate-700 font-medium my-8;
+  }
+  
+  .prose blockquote p {
+    @apply m-0; /* Varsayılan margin'i sıfırla */
+  }
+  
+  .prose cite {
+    @apply block mt-2 text-sm font-bold text-[#db4c3f] not-italic;
+  }
+
+  /* Listeler */
+  .prose ul {
+    @apply list-disc list-outside ml-5 space-y-2 marker:text-[#db4c3f];
+  }
+  
+  .prose ol {
+    @apply list-decimal list-outside ml-5 space-y-2 marker:text-[#db4c3f] marker:font-bold;
+  }
+  
+  /* Kod Blokları */
+  .prose pre {
+    @apply bg-slate-900 text-gray-100 p-4 rounded-xl overflow-x-auto text-sm my-6;
+  }
+  
+  /* Butonlar (wp-block-button) - Düzeltildi */
+  .wp-block-button__link {
+    @apply inline-block bg-[#db4c3f] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#b03d32] transition no-underline;
+  }
 }

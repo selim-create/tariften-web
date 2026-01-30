@@ -6,6 +6,8 @@ import { FaUtensils, FaClock, FaEarthAmericas, FaLeaf, FaBed, FaHeart, FaCandyCa
 import Hero from "@/components/home/Hero";
 import HomeCTA from "@/components/home/HomeCTA";
 import MenuShowcase from "@/components/home/MenuShowcase"; // YENİ
+import BlogShowcase from "@/components/home/BlogShowcase";
+import { Suspense } from "react";
 
 export const dynamic = 'force-dynamic';
 
@@ -167,6 +169,12 @@ export default async function Home() {
           )}
         </div>
       </section>
+      
+      {/* --- YENİ EKLENEN BLOG ALANI --- */}
+      <Suspense fallback={<div className="h-96 bg-gray-50 animate-pulse"></div>}>
+        <BlogShowcase />
+      </Suspense>
+
       <MenuShowcase />
       {/* 5. KATEGORİLER (Moods) */}
       <section className="py-20 relative overflow-hidden bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50">

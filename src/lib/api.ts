@@ -1,6 +1,6 @@
 "use server";
 
-import { APIResponse, Recipe, PantryItem, Menu } from "@/types";
+import { APIResponse, Recipe, PantryItem, Menu, BlogPost } from "@/types"
 import { revalidatePath } from "next/cache";
 import { parseIngredients, parseSteps } from "./recipeUtils"; 
 
@@ -551,6 +551,82 @@ export async function subscribeNewsletter(email: string): Promise<{ success: boo
   } catch (error) {
     console.error('Newsletter subscription error:', error);
     return { success: false, message: 'Bir hata oluştu.' };
+  }
+}
+
+// --- BLOG İŞLEMLERİ ---
+
+export async function getBlogPosts(page: number = 1, perPage: number = 9): Promise<{ data: BlogPost[], totalPages: number }> {
+  try {
+    const res = await fetch(`${API_URL}/wp/v2/posts?_embed&page=${page}&per_page=${perPage}`, {
+      // Geliştirme aşamasında 0 yapabilirsin, canlıda 60 (1 dakika) idealdir.
+      next: { revalidate: 60 } 
+    });
+
+    if (!res.ok) throw new Error("Blog yazıları getirilemedi");
+
+    const totalPages = parseInt(res.headers.get('X-WP-TotalPages') || '1');
+    const data = await res.json();
+
+    return { data, totalPages };
+  } catch (error) {
+    console.error("Blog Fetch Error:", error);
+    return { data: [], totalPages: 0 };
+  }
+}
+
+// src/lib/api.ts içindeki getBlogPost fonksiyonu
+
+export async function getBlogPost(slug: string): Promise<BlogPost | null> {
+  try {
+    // Konsola hangi slug'ı aradığımızı yazdıralım
+    console.log(`🔍 Blog aranıyor: ${slug}`);
+    
+    // URL'yi encode edelim (Türkçe karakter veya boşluk varsa patlamasın)
+    const url = `${API_URL}/wp/v2/posts?_embed&slug=${encodeURIComponent(slug)}`;
+    console.log(`📡 İstek atılıyor: ${url}`);
+
+    const res = await fetch(url, {
+      next: { revalidate: 3600 }
+    });
+
+    if (!res.ok) {
+        console.error("❌ API Hatası:", res.status, res.statusText);
+        return null;
+    }
+
+    const data = await res.json();
+    
+    // Sonucu görelim
+    console.log(`✅ API Yanıtı (${slug}):`, data.length > 0 ? "Bulundu" : "BULUNAMADI");
+
+    return data.length > 0 ? data[0] : null;
+  } catch (error) {
+    console.error("Single Blog Fetch Error:", error);
+    return null;
+  }
+}
+
+// Son eklenen 3 yazıyı çekmek için (Anasayfa veya Sidebar için)
+export async function getLatestPosts(): Promise<BlogPost[]> {
+    const { data } = await getBlogPosts(1, 3);
+    return data;
+}
+
+// Benzer İçerikleri Getir
+export async function getRelatedPosts(categoryId: number, currentPostId: number): Promise<BlogPost[]> {
+  try {
+    // Aynı kategoriden, şu anki yazı hariç 3 tane getir
+    const res = await fetch(`${API_URL}/wp/v2/posts?_embed&categories=${categoryId}&exclude=${currentPostId}&per_page=3`, {
+      next: { revalidate: 3600 }
+    });
+
+    if (!res.ok) return [];
+    
+    return await res.json();
+  } catch (error) {
+    console.error("Related Posts Error:", error);
+    return [];
   }
 }
 

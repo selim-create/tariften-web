@@ -157,3 +157,37 @@ export interface Comment {
   created_at: string;
   likes?: number;
 }
+
+export interface BlogPost {
+  id: number;
+  date: string;
+  slug: string;
+  title: {
+    rendered: string;
+  };
+  content: {
+    rendered: string;
+  };
+  excerpt: {
+    rendered: string;
+  };
+  categories: number[]; // Benzer içerikler için gerekli
+  featured_media: number;
+  // Rank Math / Yoast SEO verileri genelde bu alanda döner
+  yoast_head_json?: {
+    title: string;
+    description: string;
+    og_title?: string;
+    og_description?: string;
+    og_image?: { url: string }[];
+    twitter_card?: string;
+    schema?: any;
+  };
+  _embedded?: {
+    'wp:featuredmedia'?: Array<{
+      source_url: string;
+      alt_text: string;
+    }>;
+    // Author verisine artık ihtiyacımız yok ama embedded içinde gelmeye devam edebilir
+  };
+}
