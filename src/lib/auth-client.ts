@@ -132,3 +132,23 @@ export async function uploadAvatar(token: string, file: File) {
     throw error;
   }
 }
+
+// Hesap Silme (Client-side)
+export async function deleteAccount(token: string) {
+  try {
+    const res = await fetch(`${API_URL}/tariften/v1/auth/delete`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Hesap silinemedi.");
+    
+    return data;
+  } catch (error) {
+    throw error;
+  }
+}

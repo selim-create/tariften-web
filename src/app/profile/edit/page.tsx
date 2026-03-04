@@ -4,17 +4,20 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { FaArrowLeft, FaCamera, FaFloppyDisk, FaSpinner, FaCheck, FaTriangleExclamation } from "react-icons/fa6"; 
-import { updateProfile, uploadAvatar } from "@/lib/auth-client"; 
+import { FaArrowLeft, FaCamera, FaFloppyDisk, FaSpinner, FaCheck, FaTriangleExclamation, FaTrashCan } from "react-icons/fa6"; 
+import { updateProfile, uploadAvatar, deleteAccount } from "@/lib/auth-client"; 
 import { useAuth } from "@/context/AuthContext";
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const { user, login, loading: authLoading } = useAuth(); 
+  const { user, login, logout, loading: authLoading } = useAuth(); 
   
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -118,6 +121,28 @@ export default function EditProfilePage() {
         setError(err.message || "Güncelleme başarısız.");
     } finally {
         setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "HESABIMI SIL") return;
+    
+    setDeleteLoading(true);
+    try {
+        const token = user?.token || localStorage.getItem('tariften_token');
+        if (!token) throw new Error("Oturum bulunamadı.");
+        
+        await deleteAccount(token);
+        
+        // Logout yap ve anasayfaya yönlendir
+        logout();
+        router.push('/');
+    } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Hesap silinirken bir hata oluştu.");
+        setShowDeleteModal(false);
+    } finally {
+        setDeleteLoading(false);
     }
   };
 
@@ -309,7 +334,85 @@ export default function EditProfilePage() {
             </button>
 
         </form>
+
+        {/* Tehlikeli Bölge - Hesap Silme */}
+        <div className="mt-10 bg-white p-6 rounded-2xl shadow-sm border border-red-200">
+            <h3 className="font-bold text-red-600 text-sm border-b border-red-100 pb-3 mb-4 flex items-center gap-2">
+                <FaTrashCan /> Tehlikeli Bölge
+            </h3>
+            <p className="text-sm text-slate-600 mb-4">
+                Hesabınızı sildiğinizde tüm verileriniz (tarifleriniz, favorileriniz, dolap verileriniz) kalıcı olarak silinir. Bu işlem geri alınamaz.
+            </p>
+            <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 rounded-xl border border-red-200 flex items-center justify-center gap-2 transition-all"
+            >
+                <FaTrashCan /> Hesabımı Sil
+            </button>
+        </div>
       </div>
+
+      {/* Hesap Silme Onay Modalı */}
+      {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-fade-in">
+                  <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                          <FaTriangleExclamation className="text-red-500 text-xl" />
+                      </div>
+                      <div>
+                          <h3 className="font-bold text-slate-800 text-lg">Hesabı Sil</h3>
+                          <p className="text-xs text-slate-500">Bu işlem geri alınamaz</p>
+                      </div>
+                  </div>
+
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-4">
+                      <p className="text-sm text-red-700">
+                          Hesabınız ve aşağıdaki verileriniz <strong>kalıcı olarak</strong> silinecektir:
+                      </p>
+                      <ul className="text-xs text-red-600 mt-2 space-y-1 list-disc list-inside">
+                          <li>Profil bilgileri ve fotoğrafınız</li>
+                          <li>Oluşturduğunuz tüm tarifler</li>
+                          <li>Favori ve pişirdiklerim listeniz</li>
+                          <li>Dolap verileriniz</li>
+                          <li>Yorumlarınız</li>
+                      </ul>
+                  </div>
+
+                  <div className="mb-4">
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">
+                          Onaylamak için <span className="text-red-600">HESABIMI SIL</span> yazın:
+                      </label>
+                      <input
+                          type="text"
+                          value={deleteConfirmText}
+                          onChange={(e) => setDeleteConfirmText(e.target.value)}
+                          placeholder="HESABIMI SIL"
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all"
+                      />
+                  </div>
+
+                  <div className="flex gap-3">
+                      <button
+                          type="button"
+                          onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }}
+                          className="flex-1 bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold py-3 rounded-xl transition-all"
+                      >
+                          Vazgeç
+                      </button>
+                      <button
+                          type="button"
+                          onClick={handleDeleteAccount}
+                          disabled={deleteConfirmText !== "HESABIMI SIL" || deleteLoading}
+                          className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                          {deleteLoading ? <><FaSpinner className="animate-spin" /> Siliniyor...</> : <><FaTrashCan /> Sil</>}
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
 
     </main>
   );
