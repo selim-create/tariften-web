@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import AppBanner from '@/components/layout/AppBanner';
+import Footer from '@/components/layout/Footer';
+import Header from '@/components/layout/Header';
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -30,6 +31,9 @@ export const metadata: Metadata = {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
     apple: '/favicon.ico',
+  },
+  itunes: {
+    appId: '6760183583',
   },
   robots: {
     index: true,
@@ -91,6 +95,7 @@ export default function RootLayout({
                 {children}
               </div>
               <Footer />
+              <AppBanner /> {/* Dinamik mobil banner'ımız */}
             </AuthProvider>
           </GoogleOAuthProvider>
         </ThemeProvider>
