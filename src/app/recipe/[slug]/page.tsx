@@ -1,20 +1,19 @@
 import { getRecipe } from "@/lib/api";
 import Link from "next/link";
-// Image importunu kaldırdık (img etiketi kullanıyoruz)
 import { notFound } from "next/navigation";
 import { FaClock, FaFire, FaChartSimple, FaChevronRight, FaPlay, FaUtensils, FaLeaf } from "react-icons/fa6";
 import { FaRegClock, FaRegBookmark } from "react-icons/fa";
 import RecipeDetailClient from "@/components/recipe/RecipeDetailClient";
 import RecipeActions from "@/components/recipe/RecipeActions"; 
-import EditButton from "@/components/recipe/EditButton"; // YENİ: Düzenle Butonu
-import AuthorCard from "@/components/AuthorCard"; // YENİ: Yazar Kartı
+import EditButton from "@/components/recipe/EditButton";
+import AuthorCard from "@/components/AuthorCard";
 import { Metadata } from 'next';
 import RecipeJsonLd from '@/components/RecipeJsonLd';
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
 import RejindeBanner from '@/components/RejindeBanner';
+import NewsletterForm from "@/components/newsletter/NewsletterForm";
 
-// YouTube Video ID'sini çıkaran yardımcı fonksiyon
 function getYoutubeVideoId(url: string) {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -22,7 +21,6 @@ function getYoutubeVideoId(url: string) {
   return (match && match[2].length === 11) ? match[2] : null;
 }
 
-// Dinamik Metadata
 export async function generateMetadata({ 
   params 
 }: { 
@@ -81,25 +79,15 @@ export default async function RecipeDetailPage({
     notFound();
   }
 
-  // 1. Video Kontrolü
   const videoId = getYoutubeVideoId(recipe.image);
-
-  // 2. Placeholder Kontrolü
-  // const isPlaceholder = !videoId && (recipe.image.includes("placehold.co") || !recipe.image);
-  // ARTIK GÖRSELİ GİZLEMEK İÇİN KULLANMIYORUZ, HER TÜRLÜ GÖSTERİYORUZ
-
-  // 3. AI Tespiti (Akıllı Rozet)
-  // Görsel kaynağı Placehold.co, Unsplash veya Pexels ise bu bir AI tarifidir.
   const isAiRecipe = recipe.image.includes("placehold.co") || 
                      recipe.image.includes("images.unsplash.com") || 
                      recipe.image.includes("pexels.com");
   
   return (
     <main className="min-h-screen bg-[#fcfcfc] pb-20 font-sans text-slate-800">
-      
       <RecipeJsonLd recipe={recipe} />
       
-      {/* BREADCRUMB */}
       <div className="container mx-auto max-w-6xl px-4 pt-6 pb-2">
         <nav className="flex items-center text-xs text-gray-400 gap-2 overflow-hidden whitespace-nowrap">
           <Link href="/" className="hover:text-brand transition">Anasayfa</Link>
@@ -110,23 +98,14 @@ export default async function RecipeDetailPage({
         </nav>
       </div>
 
-      {/* HERO SECTION */}
       <div className="container mx-auto max-w-6xl px-4 py-6">
-        
-        {/* Rejimde Banner - tarif içeriğinin üstünde */}
         <RejindeBanner recipeId={recipe.id} />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mb-12 items-start">
-          
-          {/* SOL: GÖRSEL veya VİDEO ALANI */}
           <div className="relative group rounded-3xl overflow-hidden shadow-lg aspect-[4/3] bg-gray-100">
-            
-            {/* DÜZENLEME BUTONU (Yetkili Kişiler İçin) */}
-            {/* DÜZELTME: recipe.author_id yerine recipe.author.id kullanıldı */}
             <EditButton authorId={recipe.author?.id} recipeId={recipe.id} />
 
             {videoId ? (
-              // DURUM A: YouTube Videosu
               <iframe
                 src={`https://www.youtube.com/embed/${videoId}?rel=0`}
                 className="w-full h-full object-cover"
@@ -135,10 +114,8 @@ export default async function RecipeDetailPage({
                 title={recipe.title}
               />
             ) : isPlaceholderImage(recipe.image) ? (
-              // DURUM B: Placeholder
               <ImagePlaceholder title={recipe.title} variant="detail" />
             ) : (
-              // DURUM C: Standart Resim
               <>
                 <img 
                   src={recipe.image} 
@@ -149,7 +126,6 @@ export default async function RecipeDetailPage({
               </>
             )}
 
-            {/* AI Rozeti (AI kaynaklı görsel ise veya video yoksa göster) */}
             {!videoId && isAiRecipe && (
               <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-xs font-bold text-brand shadow-sm flex items-center gap-1 z-10">
                 AI Önerisi ✨
@@ -157,10 +133,7 @@ export default async function RecipeDetailPage({
             )}
           </div>
 
-          {/* SAĞ: BAŞLIK VE BİLGİLER */}
           <div className="flex flex-col h-full justify-center">
-            
-            {/* Kategoriler (Tıklanabilir Linkler) */}
             <div className="flex flex-wrap gap-2 mb-4">
               {(recipe.meal_type || []).map(m => (
                  <Link href={`/recipes?meal_type=${encodeURIComponent(m)}`} key={m} className="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider border border-blue-100 hover:bg-blue-100 transition">
@@ -179,22 +152,18 @@ export default async function RecipeDetailPage({
               ))}
             </div>
 
-            {/* Başlık */}
             <h1 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4 font-heading leading-tight">
               {recipe.title}
             </h1>
             
-            {/* Spot / Açıklama */}
             <div className="text-gray-500 text-lg mb-8 font-light leading-relaxed border-l-4 border-brand/20 pl-4">
               {recipe.excerpt || <span className="italic opacity-60">Lezzeti garanti bir tarif!</span>}
             </div>
 
-            {/* KPI KARTLARI */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
               <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
                 <FaRegClock className="mx-auto text-brand mb-1 text-lg group-hover:scale-110 transition" />
                 <div className="text-[10px] text-gray-400 font-medium uppercase">Hazırlama</div>
-                {/* Fallback eklendi: prep_time string gelebilir */}
                 <div className="font-bold text-slate-700">{recipe.prep_time || 0} dk</div>
               </div>
               <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
@@ -214,7 +183,6 @@ export default async function RecipeDetailPage({
               </div>
             </div>
 
-            {/* Aksiyon Butonları */}
             <div className="flex flex-wrap items-center gap-3 mt-auto pt-6 border-t border-gray-100">
               <Link 
                 href={`/pilot/${recipe.slug}`} 
@@ -222,24 +190,27 @@ export default async function RecipeDetailPage({
               >
                 <FaPlay className="text-sm" /> Pilotu Başlat
               </Link>
-
-              {/* YENİ: Çalışan Kaydet/Paylaş Butonları */}
               <RecipeActions recipeId={recipe.id} title={recipe.title} />
             </div>
-
           </div>
         </div>
 
-        {/* ALT İÇERİK (Malzemeler, Hazırlanış, Benzer Tarifler) */}
         <RecipeDetailClient recipe={recipe} />
 
-        {/* AUTHOR CARD */}
         {recipe.author && (
           <div className="container mx-auto max-w-6xl px-4 mt-8">
             <AuthorCard author={recipe.author} />
           </div>
         )}
 
+        <div className="mt-12">
+          <NewsletterForm
+            source="tariften_recipe_inline"
+            variant="horizontal"
+            title="Yarın ne pişireceğini bugünden düşünme."
+            description="Mevsimlik tarifler, pratik alternatifler ve mutfakta zaman kazandıran seçkiler e-postana gelsin."
+          />
+        </div>
       </div>
     </main>
   );
