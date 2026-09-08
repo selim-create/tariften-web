@@ -12,7 +12,7 @@ import RecipeJsonLd from '@/components/RecipeJsonLd';
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
 import RejindeBanner from '@/components/RejindeBanner';
-import NewsletterForm from "@/components/newsletter/NewsletterForm";
+import InlineNewsletterPlacement from "@/components/newsletter/InlineNewsletterPlacement";
 
 function getYoutubeVideoId(url: string) {
   if (!url) return null;
@@ -197,20 +197,19 @@ export default async function RecipeDetailPage({
 
         <RecipeDetailClient recipe={recipe} />
 
+        <InlineNewsletterPlacement
+          source="tariften_recipe_inline"
+          targetHeading="Bu tarifi denedin mi?"
+          title="Yarın ne pişireceğini bugünden düşünme."
+          description="Mevsimlik tarifler, pratik alternatifler ve mutfakta zaman kazandıran seçkiler e-postana gelsin."
+          className="mb-10"
+        />
+
         {recipe.author && (
           <div className="container mx-auto max-w-6xl px-4 mt-8">
             <AuthorCard author={recipe.author} />
           </div>
         )}
-
-        <div className="mt-12">
-          <NewsletterForm
-            source="tariften_recipe_inline"
-            variant="horizontal"
-            title="Yarın ne pişireceğini bugünden düşünme."
-            description="Mevsimlik tarifler, pratik alternatifler ve mutfakta zaman kazandıran seçkiler e-postana gelsin."
-          />
-        </div>
       </div>
     </main>
   );
