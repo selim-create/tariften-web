@@ -7,6 +7,7 @@ import { MenuHeaderActions, MenuFooterActions } from "@/components/menu/MenuClie
 import AuthorCard from "@/components/AuthorCard";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
+import NewsletterForm from "@/components/newsletter/NewsletterForm";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -54,8 +55,6 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
         case 'main': return { icon: <FaUtensils/>, title: 'Ana Yemek', desc: 'Sofranın yıldızları' };
         case 'dessert': return { icon: <FaIceCream/>, title: 'Tatlı', desc: 'Mutlu sonlar' };
         case 'drink': return { icon: <FaWineGlass/>, title: 'İçecek', desc: 'Tamamlayıcı yudumlar' };
-        
-        // YENİ EKLENEN TYPE'LAR
         case 'soup': return { icon: <FaBowlFood/>, title: 'Çorba', desc: 'Sıcacık başlangıçlar' };
         case 'meze': return { icon: <FaLemon/>, title: 'Mezeler', desc: 'Sofrayı açan lezzetler' };
         case 'hot_appetizer': return { icon: <FaFire/>, title: 'Ara Sıcak', desc: 'Sıcak başlangıçlar' };
@@ -66,18 +65,13 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
         case 'cold_canape': return { icon: <FaPlateWheat/>, title: 'Soğuk Kanapeler', desc: 'Zarif lokmalar' };
         case 'hot_bites': return { icon: <FaFire/>, title: 'Sıcak İkramlar', desc: 'Sıcak servis edilenler' };
         case 'dip_sauce': return { icon: <FaBowlRice/>, title: 'Dip & Soslar', desc: 'Eşlikçi soslar' };
-        
         default: return { icon: <FaUtensils/>, title: 'Diğer Lezzetler', desc: 'Menüye özel ekstralar' };
     }
   };
 
   return (
     <div className="min-h-screen bg-[#fffcf5] font-serif text-slate-900 pb-20">
-      
-      {/* IMMERSIVE HEADER */}
       <div className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-slate-900">
-        {/* Arkaplan Görseli */}
-         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img 
             src={menu.image} 
             alt={menu.title} 
@@ -85,14 +79,12 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/30"></div>
         
-        {/* Navbar Back Button */}
         <div className="absolute top-8 left-0 w-full z-40 px-6 print:hidden">
             <Link href="/menus" className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-white px-4 py-2 rounded-full text-sm font-sans font-bold hover:bg-white/20 transition">
                 <FaArrowLeft /> Menülere Dön
             </Link>
         </div>
 
-        {/* Başlık İçeriği */}
         <div className="absolute bottom-0 left-0 w-full p-6 md:p-16 flex flex-col md:flex-row items-end justify-between gap-8 z-20">
             <div className="max-w-4xl animate-fade-in-up flex-1 overflow-hidden">
                 <div className="flex flex-wrap gap-3 mb-4 font-sans flex-shrink-0">
@@ -107,34 +99,27 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                 </h1>
             </div>
 
-            {/* Hızlı Aksiyonlar (Share & Print) */}
             <MenuHeaderActions menu={menu} />
         </div>
       </div>
 
-      {/* CONTENT BODY */}
       <div className="container mx-auto max-w-5xl px-4 md:px-6 -mt-10 relative z-30">
-        
         <div className="bg-white shadow-2xl rounded-t-3xl p-8 md:p-12 space-y-16 min-h-[500px]">
-            
             <div className="text-center space-y-6 border-b border-gray-100 pb-12">
                 <p className="text-[#db4c3f] font-sans font-bold text-xs tracking-[0.2em] uppercase">Mutfaktan</p>
                 <h2 className="text-2xl md:text-3xl font-medium italic text-slate-700 leading-relaxed">
                     "Davetlilerinizi büyüleyecek, dengeli ve unutulmaz bir lezzet yolculuğu için özenle seçildi."
                 </h2>
-                {/* Menü Açıklaması */}
                 <p className="text-gray-600 text-base md:text-lg leading-relaxed max-w-3xl mx-auto font-sans">
                     {menu.description}
                 </p>
             </div>
 
-            {/* Menü Akışı */}
             <div className="space-y-16">
                 {menu.sections.map((section, idx) => {
                     const style = getSectionStyle(section.type);
                     return (
                         <div key={idx} className="relative break-inside-avoid">
-                            {/* Section Header */}
                             <div className="flex items-center gap-4 mb-8 sticky top-20 bg-white/95 backdrop-blur py-2 z-10 print:static">
                                 <div className="w-12 h-12 rounded-full bg-[#fff5f5] flex items-center justify-center text-[#db4c3f] text-xl shrink-0">
                                     {style.icon}
@@ -146,7 +131,6 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                                 <div className="flex-grow h-px bg-gray-100 ml-4"></div>
                             </div>
 
-                            {/* Recipes Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {section.recipes.map((recipe) => (
                                     <Link key={recipe.id} href={`/recipe/${recipe.slug}`} className="group block h-full print:no-underline">
@@ -155,7 +139,6 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                                                 {isPlaceholderImage(recipe.image) ? (
                                                   <ImagePlaceholder title={recipe.title} variant="card" />
                                                 ) : (
-                                                  // eslint-disable-next-line @next/next/no-img-element
                                                   <img 
                                                       src={recipe.image} 
                                                       alt={recipe.title} 
@@ -182,7 +165,6 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                 })}
             </div>
 
-            {/* Bottom Actions (Shopping & Pilot) */}
             <div className="mt-16 p-8 bg-slate-50 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 font-sans border border-slate-100 print:hidden">
                 <div>
                     <h4 className="text-xl font-bold text-slate-900 mb-1">Hazır mısınız?</h4>
@@ -191,15 +173,21 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                 <MenuFooterActions menu={menu} />
             </div>
 
-            {/* AUTHOR CARD */}
             {menu.author && (
               <div className="mt-8">
                 <AuthorCard author={menu.author} />
               </div>
             )}
 
+            <div className="print:hidden">
+              <NewsletterForm
+                source="tariften_menu_inline"
+                variant="horizontal"
+                title="Bir sonraki sofrayı daha kolay planla."
+                description="Haftalık menü fikirleri, alışverişi kolaylaştıran öneriler ve yeni tarif seçkileri e-postana gelsin."
+              />
+            </div>
         </div>
-
       </div>
     </div>
   );

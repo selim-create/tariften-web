@@ -10,6 +10,9 @@ import type { HipostaNewsletterOption, NewsletterSourceId } from '@/lib/hiposta-
 type Props = {
   source: NewsletterSourceId;
   className?: string;
+  variant?: 'card' | 'horizontal';
+  title?: string;
+  description?: string;
 };
 
 function HipostaMiniMark() {
@@ -31,7 +34,14 @@ function cadenceLabel(value: string) {
   return value;
 }
 
-export default function NewsletterForm({ source, className = '' }: Props) {
+export default function NewsletterForm({
+  source,
+  className = '',
+  variant = 'card',
+  title = 'Tariften Bültenleri',
+  description = 'Günün ve haftanın mutfak kararlarını kolaylaştıran seçkiler e-postana gelsin.',
+}: Props) {
+  const isHorizontal = variant === 'horizontal';
   const [email, setEmail] = useState('');
   const [consent, setConsent] = useState(false);
   const [website, setWebsite] = useState('');
@@ -101,12 +111,7 @@ export default function NewsletterForm({ source, className = '' }: Props) {
     }
 
     setSubmitting(true);
-    const result = await subscribeNewsletters({
-      email,
-      newsletters: selected,
-      source,
-      website,
-    });
+    const result = await subscribeNewsletters({ email, newsletters: selected, source, website });
     setSubmitting(false);
 
     if (result.success) {
@@ -124,7 +129,7 @@ export default function NewsletterForm({ source, className = '' }: Props) {
 
   if (status === 'success') {
     return (
-      <div className={`rounded-2xl border border-emerald-100 bg-emerald-50/80 p-5 ${className}`}>
+      <div className={`${isHorizontal ? 'rounded-[28px] px-6 py-5 md:px-8' : 'rounded-2xl p-5'} border border-emerald-100 bg-emerald-50/80 ${className}`}>
         <div className="flex items-start gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-emerald-600 shadow-sm"><FaCheck className="text-xs" /></span>
           <div>
@@ -136,13 +141,86 @@ export default function NewsletterForm({ source, className = '' }: Props) {
     );
   }
 
+  if (isHorizontal) {
+    return (
+      <section className={`overflow-hidden rounded-[30px] border border-[#eaded9] bg-gradient-to-br from-[#fff8f5] via-white to-[#fffdf7] shadow-[0_20px_60px_rgba(120,60,40,0.08)] ${className}`}>
+        <div className="grid gap-0 lg:grid-cols-[0.9fr_1.35fr]">
+          <div className="relative flex flex-col justify-between overflow-hidden border-b border-[#efe6e2] px-6 py-7 lg:border-b-0 lg:border-r lg:px-8 lg:py-8">
+            <div className="absolute -left-16 -top-20 h-48 w-48 rounded-full bg-[#db4c3f]/8 blur-3xl" />
+            <div className="relative">
+              <div className="mb-5 flex items-center gap-3">
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#db4c3f] text-white shadow-[0_8px_24px_rgba(219,76,63,0.22)]"><FaEnvelope /></span>
+                <span className="rounded-full border border-[#efd2cd] bg-white/80 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#b84a3f]">Tariften seçkileri</span>
+              </div>
+              <h3 className="max-w-md text-2xl font-bold leading-tight text-slate-900 md:text-[28px]">{title}</h3>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-slate-500">{description}</p>
+            </div>
+            <div className="relative mt-6 flex items-center gap-2 text-[10px] text-slate-400">
+              <span>Tariften bültenleri</span><span>•</span><span>Hiposta altyapısıyla</span>
+            </div>
+          </div>
+
+          <div className="px-6 py-7 lg:px-8 lg:py-8">
+            {loadingOptions ? (
+              <div className="mb-4 flex items-center gap-2 text-xs text-slate-400"><FaSpinner className="animate-spin" /> Bültenler hazırlanıyor</div>
+            ) : primaryOptions.length === 0 ? (
+              <p className="mb-4 text-xs text-slate-400">Tariften bültenleri şu anda aboneliğe açık değil.</p>
+            ) : (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {primaryOptions.map((option) => {
+                  const checked = selected.includes(option.slug);
+                  return (
+                    <label key={option.slug} className={`flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 transition ${checked ? 'border-[#e6aaa4] bg-[#fff7f5] text-slate-800 shadow-sm' : 'border-slate-200 bg-white text-slate-500'}`}>
+                      <input type="checkbox" checked={checked} onChange={() => toggle(option.slug)} className="sr-only" />
+                      <span className={`grid h-4 w-4 place-items-center rounded-full ${checked ? 'bg-[#db4c3f] text-white' : 'border border-slate-300 text-transparent'}`}><FaCheck className="text-[7px]" /></span>
+                      <span className="text-xs font-bold">{option.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              {networkOptions.length > 0 && (
+                <button type="button" onClick={() => setModalOpen(true)} className="group inline-flex items-center gap-2 rounded-full border border-blue-100 bg-gradient-to-r from-blue-50/80 via-white to-amber-50/70 px-3.5 py-2 text-left transition hover:border-blue-200 hover:shadow-sm">
+                  <FaCompass className="text-[#173bdc]" />
+                  <HipostaMiniMark />
+                  <span className="text-[11px] font-bold text-slate-600">ağından keşfet</span>
+                  {selectedNetworkSlugs.length > 0 && <span className="rounded-full bg-[#173bdc] px-2 py-0.5 text-[9px] font-extrabold text-white">+{selectedNetworkSlugs.length}</span>}
+                </button>
+              )}
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="E-posta adresin" required className="min-w-0 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#db4c3f] focus:ring-4 focus:ring-red-50" />
+                <button type="submit" disabled={submitting || loadingOptions || selected.length === 0 || !consent} className="rounded-2xl bg-[#db4c3f] px-6 py-3.5 text-sm font-extrabold text-white shadow-[0_8px_24px_rgba(219,76,63,0.2)] transition hover:bg-[#b03d32] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
+                  {submitting ? <FaSpinner className="animate-spin" /> : 'Bültene katıl'}
+                </button>
+              </div>
+              <input type="text" value={website} onChange={(event) => setWebsite(event.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute left-[-9999px] h-px w-px opacity-0" />
+            </form>
+
+            <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-[10px] leading-relaxed text-slate-400">
+              <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#db4c3f] focus:ring-[#db4c3f]" />
+              <span>Seçtiğim bültenleri e-posta ile almak istiyorum. <Link href="/kvkk" className="font-semibold text-slate-500 underline underline-offset-2 hover:text-[#db4c3f]">KVKK Aydınlatma Metni</Link></span>
+            </label>
+            {status === 'error' && <p className="mt-2 text-xs font-semibold text-red-500">{message}</p>}
+          </div>
+        </div>
+
+        <HipostaNewsletterModal open={modalOpen} options={networkOptions} selected={selectedNetworkSlugs} onClose={closeModal} onApply={applyNetworkSelection} />
+      </section>
+    );
+  }
+
   return (
     <div className={`rounded-2xl border border-slate-100 bg-slate-50 p-5 ${className}`}>
       <div className="mb-4 flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-[#db4c3f] shadow-sm"><FaEnvelope /></span>
         <div>
-          <h4 className="font-bold text-slate-900">Tariften Bültenleri</h4>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">Günün ve haftanın mutfak kararlarını kolaylaştıran seçkiler e-postana gelsin.</p>
+          <h4 className="font-bold text-slate-900">{title}</h4>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">{description}</p>
         </div>
       </div>
 
@@ -197,14 +275,7 @@ export default function NewsletterForm({ source, className = '' }: Props) {
       </label>
 
       {status === 'error' && <p className="mt-2 text-xs font-semibold text-red-500">{message}</p>}
-
-      <HipostaNewsletterModal
-        open={modalOpen}
-        options={networkOptions}
-        selected={selectedNetworkSlugs}
-        onClose={closeModal}
-        onApply={applyNetworkSelection}
-      />
+      <HipostaNewsletterModal open={modalOpen} options={networkOptions} selected={selectedNetworkSlugs} onClose={closeModal} onApply={applyNetworkSelection} />
     </div>
   );
 }

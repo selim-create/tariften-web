@@ -7,6 +7,9 @@ export const TARIFTEN_PUBLISHER = 'tariften';
 export const NEWSLETTER_SOURCE_IDS = [
   'tariften_footer',
   'tariften_registration',
+  'tariften_blog_inline',
+  'tariften_recipe_inline',
+  'tariften_menu_inline',
 ] as const;
 
 export type NewsletterSourceId = (typeof NEWSLETTER_SOURCE_IDS)[number];
