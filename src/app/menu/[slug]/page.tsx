@@ -7,7 +7,7 @@ import { MenuHeaderActions, MenuFooterActions } from "@/components/menu/MenuClie
 import AuthorCard from "@/components/AuthorCard";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
-import NewsletterForm from "@/components/newsletter/NewsletterForm";
+import InlineNewsletterPlacement from "@/components/newsletter/InlineNewsletterPlacement";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -165,6 +165,14 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                 })}
             </div>
 
+            <InlineNewsletterPlacement
+              source="tariften_menu_inline"
+              targetHeading="Hazır mısınız?"
+              title="Bir sonraki sofrayı daha kolay planla."
+              description="Haftalık menü fikirleri, alışverişi kolaylaştıran öneriler ve yeni tarif seçkileri e-postana gelsin."
+              className="mb-8"
+            />
+
             <div className="mt-16 p-8 bg-slate-50 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 font-sans border border-slate-100 print:hidden">
                 <div>
                     <h4 className="text-xl font-bold text-slate-900 mb-1">Hazır mısınız?</h4>
@@ -178,15 +186,6 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                 <AuthorCard author={menu.author} />
               </div>
             )}
-
-            <div className="print:hidden">
-              <NewsletterForm
-                source="tariften_menu_inline"
-                variant="horizontal"
-                title="Bir sonraki sofrayı daha kolay planla."
-                description="Haftalık menü fikirleri, alışverişi kolaylaştıran öneriler ve yeni tarif seçkileri e-postana gelsin."
-              />
-            </div>
         </div>
       </div>
     </div>
