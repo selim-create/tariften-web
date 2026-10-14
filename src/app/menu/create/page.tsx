@@ -20,7 +20,9 @@ export default function CreateMenuPage() {
   const [step, setStep] = useState(1); // 1: Concept, 2: Details, 3: Review
   const [job, setJob] = useState<MenuJob | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
-  const [recoveryChecked, setRecoveryChecked] = useState(false);
+  const [recoveryCheckedFor, setRecoveryCheckedFor] = useState("");
+  // Never expose one signed-in account's saved job to a second account.
+  const storageKey = `${MENU_STORAGE}:${user?.id ?? "guest"}`;
 
   
   const [formData, setFormData] = useState({
@@ -32,11 +34,11 @@ export default function CreateMenuPage() {
   });
 
   useEffect(() => {
-    if (!user?.token || recoveryChecked) return;
-    setRecoveryChecked(true);
+    if (!user?.token || recoveryCheckedFor === storageKey) return;
+    setRecoveryCheckedFor(storageKey);
     (async () => {
       try {
-        const raw = localStorage.getItem(MENU_STORAGE);
+        const raw = localStorage.getItem(storageKey);
         if (!raw) return;
         const saved = JSON.parse(raw) as { id?: number; requestId?: string; formData?: typeof formData };
         if (saved.formData?.concept) {
@@ -49,7 +51,7 @@ export default function CreateMenuPage() {
           setJob(recovered);
           setStep(3);
           if (recovered.status === "ready" && recovered.slug) {
-            localStorage.removeItem(MENU_STORAGE);
+            localStorage.removeItem(storageKey);
             router.push(`/menu/${recovered.slug}`);
           }
         } else {
@@ -59,7 +61,7 @@ export default function CreateMenuPage() {
         setErrorMessage("Önceki menü sorgulanamadı: " + messageOf(error));
       }
     })();
-  }, [user?.token, router, recoveryChecked]);
+  }, [user?.token, router, recoveryCheckedFor, storageKey]);
 
   const continueMenuJob = async (initial: MenuJob) => {
     if (!user?.token) return;
@@ -70,7 +72,7 @@ export default function CreateMenuPage() {
       // At most one recipe per request. Each progress point persists server-side.
       for (let attempt = 0; attempt < 100; attempt++) {
         if (current.status === "ready") {
-          localStorage.removeItem(MENU_STORAGE);
+          localStorage.removeItem(storageKey);
           router.push(`/menu/${current.slug}`);
           return;
         }
@@ -95,10 +97,10 @@ export default function CreateMenuPage() {
           throw error;
         }
         setJob(current);
-        const stored = localStorage.getItem(MENU_STORAGE);
+        const stored = localStorage.getItem(storageKey);
         let savedRequestId = "";
         try { savedRequestId = stored ? (JSON.parse(stored) as { requestId?: string }).requestId || "" : ""; } catch {}
-        localStorage.setItem(MENU_STORAGE, JSON.stringify({ id: current.id, requestId: savedRequestId, formData }));
+        localStorage.setItem(storageKey, JSON.stringify({ id: current.id, requestId: savedRequestId, formData }));
         if (current.status === "generating" && current.completed === previousCompleted) {
           // The previous request may still be running; avoid rapid polling.
           await new Promise(resolve => setTimeout(resolve, 1800));
@@ -124,7 +126,7 @@ export default function CreateMenuPage() {
       return;
     }
     setLoading(true);
-    const savedRaw = localStorage.getItem(MENU_STORAGE);
+    const savedRaw = localStorage.getItem(storageKey);
     let requestId = crypto.randomUUID();
     if (savedRaw) {
       try {
@@ -132,7 +134,7 @@ export default function CreateMenuPage() {
         if (stored.requestId) requestId = stored.requestId;
       } catch { /* Invalid browser state. Start with fresh UUID. */ }
     }
-    localStorage.setItem(MENU_STORAGE, JSON.stringify({ requestId, formData }));
+    localStorage.setItem(storageKey, JSON.stringify({ requestId, formData }));
     let started: MenuJob | null = null;
     try {
       started = await generateAIMenu(user.token, formData, requestId);
@@ -148,7 +150,7 @@ export default function CreateMenuPage() {
     }
     if (!started) return;
     setJob(started);
-    localStorage.setItem(MENU_STORAGE, JSON.stringify({ id: started.id, requestId, formData }));
+    localStorage.setItem(storageKey, JSON.stringify({ id: started.id, requestId, formData }));
     await continueMenuJob(started);
   };
 
