@@ -254,6 +254,14 @@ export async function findMenuJob(token: string, requestId: string): Promise<Men
   return data as MenuJob;
 }
 
+export async function retryMenuJob(token: string, id: number): Promise<MenuJob> {
+  const res = await fetch(`${API_URL}/tariften/v1/ai/menu-job/${id}/retry`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` },
+  });
+  return parseMenuJobResponse(res);
+}
+
 export async function advanceMenuJob(token: string, id: number): Promise<MenuJob> {
   const res = await fetch(`${API_URL}/tariften/v1/ai/menu-job/${id}/advance`, {
     method: "POST",
