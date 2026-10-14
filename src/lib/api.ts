@@ -207,8 +207,63 @@ export async function updateRecipe(token: string, recipeData: any) {
   }
 }
 
+export type MenuJob = {
+  success: boolean;
+  id: number;
+  slug: string;
+  status: "generating" | "ready" | "needs_attention";
+  total: number;
+  completed: number;
+  remaining?: number;
+  message?: string;
+  failures?: Array<{ name: string; error: string }>;
+};
+
+async function parseMenuJobResponse(res: Response): Promise<MenuJob> {
+  const raw = await res.text();
+  let data: Record<string, unknown> | null = null;
+  try { data = JSON.parse(raw) as Record<string, unknown>; } catch { /* Reverse-proxy timeout or HTML error. */ }
+  if (!res.ok || !data?.success) {
+    const message = typeof data?.message === "string" ? data.message
+      : res.status === 409 ? "Önceki tarif hâlâ oluşturuluyor. Durumu kontrol edelim."
+      : res.status >= 500 ? "Menü sunucusuna ulaşılamadı. Mevcut işinizi kontrol edip devam edin."
+      : "Menü işlemi tamamlanamadı.";
+    throw new Error(message);
+  }
+  return data as MenuJob;
+}
+
+export async function fetchMenuJob(token: string, id: number): Promise<MenuJob> {
+  const res = await fetch(`${API_URL}/tariften/v1/ai/menu-job/${id}`, {
+    headers: { "Authorization": `Bearer ${token}` },
+    cache: "no-store",
+  });
+  return parseMenuJobResponse(res);
+}
+
+export async function findMenuJob(token: string, requestId: string): Promise<MenuJob | null> {
+  const res = await fetch(`${API_URL}/tariften/v1/ai/menu-job/find?request_id=${encodeURIComponent(requestId)}`, {
+    headers: { "Authorization": `Bearer ${token}` },
+    cache: "no-store",
+  });
+  const text = await res.text();
+  let data: Record<string, unknown> | null = null;
+  try { data = JSON.parse(text) as Record<string, unknown>; } catch { /* HTML gateway response */ }
+  if (!res.ok) throw new Error(typeof data?.message === "string" ? data.message : "Menü durumu sorgulanamadı.");
+  if (!data?.found && !data?.id) return null;
+  return data as MenuJob;
+}
+
+export async function advanceMenuJob(token: string, id: number): Promise<MenuJob> {
+  const res = await fetch(`${API_URL}/tariften/v1/ai/menu-job/${id}/advance`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` },
+  });
+  return parseMenuJobResponse(res);
+}
+
 // AI Menü Oluştur
-export async function generateAIMenu(token: string, params: { concept: string, guest_count: number, event_type: string, diet?: string, cuisine?: string }) {
+export async function generateAIMenu(token: string, params: { concept: string, guest_count: number, event_type: string, diet?: string, cuisine?: string }, requestId: string): Promise<MenuJob> {
   try {
     const res = await fetch(`${API_URL}/tariften/v1/ai/generate-menu`, {
       method: "POST",
@@ -216,12 +271,10 @@ export async function generateAIMenu(token: string, params: { concept: string, g
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
-      body: JSON.stringify(params),
+      body: JSON.stringify({ ...params, async: true, request_id: requestId }),
     });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Menü oluşturulamadı.");
-    return data; // { success: true, slug: '...', id: ... }
+    return parseMenuJobResponse(res);
   } catch (error) {
     console.error("Generate Menu Error:", error);
     throw error;
