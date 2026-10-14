@@ -79,8 +79,8 @@ export default function CreateMenuPage() {
           setErrorMessage(current.message || "Bazı tarifler oluşturulamadı. Menü taslak olarak saklandı.");
           return;
         }
+        const previousCompleted = current.completed;
         try {
-          const previousCompleted = current.completed;
           current = await advanceMenuJob(user.token, current.id);
         } catch (error) {
           // A response can be lost while WordPress successfully saves a step.
