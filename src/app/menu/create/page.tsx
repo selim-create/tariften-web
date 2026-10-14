@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { generateAIMenu } from "@/lib/api";
+import { generateAIMenu, advanceMenuJob, retryMenuJob, fetchMenuJob, findMenuJob, type MenuJob } from "@/lib/api";
 import { FaWandMagicSparkles, FaArrowRight, FaArrowLeft, FaCheck, FaUtensils, FaUserGroup, FaChampagneGlasses } from "react-icons/fa6";
+
+const MENU_STORAGE = "tariften_active_menu_job_v2";
+
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : "İşlem tamamlanamadı. Mevcut menü durumunu kontrol edin.";
+}
 
 export default function CreateMenuPage() {
   const router = useRouter();
@@ -12,6 +18,12 @@ export default function CreateMenuPage() {
   
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1); // 1: Concept, 2: Details, 3: Review
+  const [job, setJob] = useState<MenuJob | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [recoveryCheckedFor, setRecoveryCheckedFor] = useState("");
+  // Never expose one signed-in account's saved job to a second account.
+  const storageKey = `${MENU_STORAGE}:${user?.id ?? "guest"}`;
+
   
   const [formData, setFormData] = useState({
     concept: "",
@@ -21,26 +33,141 @@ export default function CreateMenuPage() {
     cuisine: "Türk"
   });
 
-  const handleSubmit = async () => {
-    if (!user || !user.token) {
-        // Basit bir login yönlendirmesi yerine daha şık bir uyarı yapılabilir
-        alert("Giriş yapmalısınız."); 
-        router.push("/login");
-        return;
-    }
-    setLoading(true);
-    try {
-      const res = await generateAIMenu(user.token, formData);
-      if (res.success && res.slug) {
-        router.push(`/menu/${res.slug}`);
-      } else {
-        alert(res.message);
-        setLoading(false);
+  useEffect(() => {
+    const token = user?.token;
+    if (!token || recoveryCheckedFor === storageKey) return;
+    setRecoveryCheckedFor(storageKey);
+    (async () => {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const saved = JSON.parse(raw) as { id?: number; requestId?: string; formData?: typeof formData };
+        if (saved.formData?.concept) {
+          setFormData(saved.formData);
+        }
+        const recovered = saved.id
+          ? await fetchMenuJob(token, saved.id)
+          : saved.requestId ? await findMenuJob(token, saved.requestId) : null;
+        if (recovered) {
+          setJob(recovered);
+          setStep(3);
+          if (recovered.status === "ready" && recovered.slug) {
+            localStorage.removeItem(storageKey);
+            router.push(`/menu/${recovered.slug}`);
+          }
+        } else {
+          setErrorMessage("Önceki menü isteğinin kaydı bulunamadı. Tekrar denemeden önce WordPress menülerini kontrol edin.");
+        }
+      } catch (error) {
+        setErrorMessage("Önceki menü sorgulanamadı: " + messageOf(error));
       }
+    })();
+  }, [user?.token, router, recoveryCheckedFor, storageKey]);
+
+  const continueMenuJob = async (initial: MenuJob) => {
+    if (!user?.token) return;
+    let current = initial;
+    setLoading(true);
+    setErrorMessage("");
+    try {
+      // At most one recipe per request. Each progress point persists server-side.
+      for (let attempt = 0; attempt < 100; attempt++) {
+        if (current.status === "ready") {
+          localStorage.removeItem(storageKey);
+          router.push(`/menu/${current.slug}`);
+          return;
+        }
+        if (current.status === "needs_attention") {
+          setJob(current);
+          setErrorMessage(current.message || "Bazı tarifler oluşturulamadı. Menü taslak olarak saklandı.");
+          return;
+        }
+        const previousCompleted = current.completed;
+        try {
+          current = await advanceMenuJob(user.token, current.id);
+        } catch (error) {
+          // A response can be lost while WordPress successfully saves a step.
+          // Inspect the durable cursor before any retry, never restart the menu.
+          const latest = await fetchMenuJob(user.token, current.id);
+          setJob(latest);
+          current = latest;
+          if (messageOf(error).includes("hâlâ")) {
+            await new Promise(resolve => setTimeout(resolve, 1800));
+            continue;
+          }
+          throw error;
+        }
+        setJob(current);
+        const stored = localStorage.getItem(storageKey);
+        let savedRequestId = "";
+        try { savedRequestId = stored ? (JSON.parse(stored) as { requestId?: string }).requestId || "" : ""; } catch {}
+        localStorage.setItem(storageKey, JSON.stringify({ id: current.id, requestId: savedRequestId, formData }));
+        if (current.status === "generating" && current.completed === previousCompleted) {
+          // The previous request may still be running; avoid rapid polling.
+          await new Promise(resolve => setTimeout(resolve, 1800));
+        }
+      }
+      throw new Error("İşlem planlanandan uzun sürdü. Menü kaydedildi; kaldığınız yerden devam edebilirsiniz.");
     } catch (error) {
-      alert("Hata oluştu.");
+      setErrorMessage(messageOf(error));
+    } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async () => {
+    if (!user?.token) {
+      setErrorMessage("Menü hazırlamak için giriş yapmalısınız.");
+      return;
+    }
+    if (loading) return;
+    setErrorMessage("");
+    if (job) {
+      if (job.status === "needs_attention") {
+        setLoading(true);
+        try {
+          // Only a deliberate button click can request additional paid
+          // attempts for previously failed recipes. Completed items persist.
+          const restarted = await retryMenuJob(user.token, job.id);
+          setJob(restarted);
+          await continueMenuJob(restarted);
+        } catch (error) {
+          setErrorMessage(messageOf(error));
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+      await continueMenuJob(job);
+      return;
+    }
+    setLoading(true);
+    const savedRaw = localStorage.getItem(storageKey);
+    let requestId = crypto.randomUUID();
+    if (savedRaw) {
+      try {
+        const stored = JSON.parse(savedRaw) as { requestId?: string };
+        if (stored.requestId) requestId = stored.requestId;
+      } catch { /* Invalid browser state. Start with fresh UUID. */ }
+    }
+    localStorage.setItem(storageKey, JSON.stringify({ requestId, formData }));
+    let started: MenuJob | null = null;
+    try {
+      started = await generateAIMenu(user.token, formData, requestId);
+    } catch (error) {
+      // If the initial HTTP response times out AFTER creating the draft,
+      // locate it by the same request ID rather than generating it again.
+      try { started = await findMenuJob(user.token, requestId); } catch { /* preserve original error */ }
+      if (!started) {
+        setErrorMessage(messageOf(error) + " Yeni bir menü oluşturmadan önce menü kayıtlarını kontrol edin.");
+      }
+    } finally {
+      setLoading(false);
+    }
+    if (!started) return;
+    setJob(started);
+    localStorage.setItem(storageKey, JSON.stringify({ id: started.id, requestId, formData }));
+    await continueMenuJob(started);
   };
 
   const next = () => setStep(s => s + 1);
@@ -56,8 +183,20 @@ export default function CreateMenuPage() {
               </div>
               <h2 className="text-3xl font-bold text-slate-900 mb-2 font-heading">Sihir Yapılıyor...</h2>
               <p className="text-gray-500 max-w-md">
-                  "{formData.concept}" konseptine uygun, {formData.guest_count} kişilik özel menünüz ve tarifleriniz hazırlanıyor.
+                  "{formData.concept}" konseptine uygun, {formData.guest_count} kişilik menünüz hazırlanıyor.
+                  Tarifler sırayla oluşturuluyor; bu ekranı kapatırsanız daha sonra kaldığınız yerden devam edebilirsiniz.
               </p>
+              {job && <div className="max-w-sm w-full mt-7" aria-live="polite">
+                <div className="flex justify-between text-sm font-semibold text-slate-700 mb-3">
+                  <span>Hazırlanan tarifler</span><span>{job.completed} / {job.total}</span>
+                </div>
+                <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#db4c3f] transition-all duration-500" style={{ width: `${job.total ? (100 * job.completed / job.total) : 0}%` }} />
+                </div>
+                <p className="text-xs text-slate-500 mt-3">{job.message || "Tarif hazırlanıyor..."}</p>
+              </div>}
+              <p className="sr-only">Görseller tarifler kaydedildikten sonra arka planda tamamlanabilir.</p>
+
           </div>
       )
   }
@@ -226,12 +365,23 @@ export default function CreateMenuPage() {
                      </div>
                  </div>
 
+                 {job && (
+                    <div className="mb-5 rounded-2xl border border-green-100 bg-green-50 p-4 text-left text-sm text-green-900">
+                      <strong>Kaydedilmiş menü bulundu.</strong>
+                      <p className="mt-1 mb-0">{job.completed}/{job.total} tarif hazır. Yeni menü başlatmadan kaldığınız yerden devam edebilirsiniz.</p>
+                    </div>
+                 )}
+                 {errorMessage && (
+                    <div role="alert" className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-950">
+                      {errorMessage}
+                    </div>
+                 )}
                  <div className="flex flex-col gap-4">
                     <button 
                         onClick={handleSubmit}
                         className="w-full bg-[#db4c3f] text-white py-4 rounded-full text-lg font-bold shadow-xl shadow-red-500/30 hover:bg-red-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                     >
-                        <FaWandMagicSparkles /> Menüyü Oluştur
+                        <FaWandMagicSparkles /> {job ? (job.status === "ready" ? "Menüyü Aç" : job.status === "needs_attention" ? "Başarısız Tarifleri Yeniden Dene (Ücretli Olabilir)" : "Kaldığım Yerden Devam Et") : "Menüyü Oluştur"}
                     </button>
                     <button onClick={back} className="text-gray-400 font-bold hover:text-slate-900 transition">
                         Düzenle
