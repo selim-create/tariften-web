@@ -38,7 +38,10 @@ export default function CreateMenuPage() {
       try {
         const raw = localStorage.getItem(MENU_STORAGE);
         if (!raw) return;
-        const saved = JSON.parse(raw) as { id?: number; requestId?: string };
+        const saved = JSON.parse(raw) as { id?: number; requestId?: string; formData?: typeof formData };
+        if (saved.formData?.concept) {
+          setFormData(saved.formData);
+        }
         const recovered = saved.id
           ? await fetchMenuJob(user.token, saved.id)
           : saved.requestId ? await findMenuJob(user.token, saved.requestId) : null;
@@ -65,7 +68,7 @@ export default function CreateMenuPage() {
     setErrorMessage("");
     try {
       // At most one recipe per request. Each progress point persists server-side.
-      for (let attempt = 0; attempt < 32; attempt++) {
+      for (let attempt = 0; attempt < 100; attempt++) {
         if (current.status === "ready") {
           localStorage.removeItem(MENU_STORAGE);
           router.push(`/menu/${current.slug}`);
@@ -77,6 +80,7 @@ export default function CreateMenuPage() {
           return;
         }
         try {
+          const previousCompleted = current.completed;
           current = await advanceMenuJob(user.token, current.id);
         } catch (error) {
           // A response can be lost while WordPress successfully saves a step.
@@ -91,7 +95,14 @@ export default function CreateMenuPage() {
           throw error;
         }
         setJob(current);
-        localStorage.setItem(MENU_STORAGE, JSON.stringify({ id: current.id }));
+        const stored = localStorage.getItem(MENU_STORAGE);
+        let savedRequestId = "";
+        try { savedRequestId = stored ? (JSON.parse(stored) as { requestId?: string }).requestId || "" : ""; } catch {}
+        localStorage.setItem(MENU_STORAGE, JSON.stringify({ id: current.id, requestId: savedRequestId, formData }));
+        if (current.status === "generating" && current.completed === previousCompleted) {
+          // The previous request may still be running; avoid rapid polling.
+          await new Promise(resolve => setTimeout(resolve, 1800));
+        }
       }
       throw new Error("İşlem planlanandan uzun sürdü. Menü kaydedildi; kaldığınız yerden devam edebilirsiniz.");
     } catch (error) {
@@ -121,7 +132,7 @@ export default function CreateMenuPage() {
         if (stored.requestId) requestId = stored.requestId;
       } catch { /* Invalid browser state. Start with fresh UUID. */ }
     }
-    localStorage.setItem(MENU_STORAGE, JSON.stringify({ requestId }));
+    localStorage.setItem(MENU_STORAGE, JSON.stringify({ requestId, formData }));
     let started: MenuJob | null = null;
     try {
       started = await generateAIMenu(user.token, formData, requestId);
@@ -137,7 +148,7 @@ export default function CreateMenuPage() {
     }
     if (!started) return;
     setJob(started);
-    localStorage.setItem(MENU_STORAGE, JSON.stringify({ id: started.id, requestId }));
+    localStorage.setItem(MENU_STORAGE, JSON.stringify({ id: started.id, requestId, formData }));
     await continueMenuJob(started);
   };
 
@@ -167,8 +178,7 @@ export default function CreateMenuPage() {
                 <p className="text-xs text-slate-500 mt-3">{job.message || "Tarif hazırlanıyor..."}</p>
               </div>}
               <p className="sr-only">Görseller tarifler kaydedildikten sonra arka planda tamamlanabilir.</p>
-              <p className="hidden">
-              </p>
+
           </div>
       )
   }
