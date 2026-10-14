@@ -195,12 +195,15 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   }, [recipe.id, user?.token]);
 
   // --- HELPER VALUES ---
-  const calories = typeof recipe.calories === 'string' ? parseInt(recipe.calories) : recipe.calories || 450;
-  const macros = {
-    protein: recipe.nutrition?.protein ? recipe.nutrition.protein + "g" : Math.round(calories * 0.25 / 4) + "g", 
-    carbs: recipe.nutrition?.carbs ? recipe.nutrition.carbs + "g" : Math.round(calories * 0.45 / 4) + "g",   
-    fat: recipe.nutrition?.fat ? recipe.nutrition.fat + "g" : Math.round(calories * 0.30 / 9) + "g"      
-  };
+  // Never fabricate macronutrients from calorie percentages: this was
+  // producing believable-looking but nutritionally unsupported figures.
+  const hasVerifiedNutrition = recipe.nutrition_status === 'verified'
+    && recipe.nutrition != null
+    && [recipe.nutrition.protein, recipe.nutrition.carbs, recipe.nutrition.fat]
+      .every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0);
+  const macros = hasVerifiedNutrition
+    ? { protein: recipe.nutrition.protein + "g", carbs: recipe.nutrition.carbs + "g", fat: recipe.nutrition.fat + "g" }
+    : null;
 
   // Steps Parsing (API string[] veya Step[] dönebiliyor, tipte string[] tanımladık ama kontrol edelim)
   const parsedSteps = parseSteps(recipe.steps);
@@ -446,29 +449,37 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             })}
           </div>
 
-          {/* Besin Değerleri */}
+          {/* Besin değerleri: doğrulanmadıysa varsayımsal rakam gösterilmez. */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm mt-8">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 font-heading">
-              1 Porsiyon İçin Besin Değerleri
-              <span className="text-sm font-normal text-gray-500 ml-2">
-                (yaklaşık {recipe.serving_weight || calculateEstimatedWeight(recipe)} gr)
-              </span>
+            <h3 className="text-lg font-bold text-slate-800 mb-3 font-heading">
+              Besin Değerleri
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm"><span className="text-gray-500">Protein</span><span className="font-bold text-slate-700">{macros.protein}</span></div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-500 w-[25%]"></div></div>
+            {macros ? (
+              <>
+                <p className="text-xs text-gray-500 mb-4">Doğrulanmış analiz · 1 porsiyon</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {([
+                    ["Protein", macros.protein],
+                    ["Karbonhidrat", macros.carbs],
+                    ["Yağ", macros.fat],
+                  ] as const).map(([label, amount]) => (
+                    <div className="rounded-xl bg-gray-50 px-4 py-3" key={label}>
+                      <div className="text-sm text-gray-500 mb-1">{label}</div>
+                      <strong className="text-lg text-slate-800">{amount}</strong>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="flex gap-3 items-start rounded-xl border border-amber-100 bg-amber-50/70 p-4 text-amber-950">
+                <FaLightbulb className="mt-1 flex-shrink-0" />
+                <p className="text-sm leading-relaxed m-0">
+                  Bu tarif için doğrulanmış protein, karbonhidrat ve yağ analizi henüz bulunmuyor.
+                  Besin değerleri doğrulanana kadar tahmini makro rakamları göstermiyoruz.
+                  Yukarıdaki kalori bilgisi varsa o da yaklaşık bir AI tahminidir.
+                </p>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm"><span className="text-gray-500">Karbonhidrat</span><span className="font-bold text-slate-700">{macros.carbs}</span></div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-orange-400 w-[45%]"></div></div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm"><span className="text-gray-500">Yağ</span><span className="font-bold text-slate-700">{macros.fat}</span></div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-red-400 w-[30%]"></div></div>
-              </div>
-            </div>
-            <p className="text-xs text-gray-400 mt-4 text-center">Değerler yaklaşık olarak hesaplanmıştır.</p>
+            )}
           </div>
 
           {/* Sosyal Kanıt & Pişirdim */}

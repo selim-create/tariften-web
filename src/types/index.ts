@@ -22,6 +22,8 @@ export interface Recipe {
   prep_time: string | number; // Backend: 'prep_time'
   cook_time: string | number; // Backend: 'cook_time'
   calories: string | number;
+  nutrition_status?: 'unverified' | 'verified' | string;
+  quality_status?: string;
   
   difficulty: string[]; // Backend 'get_term_names' array döner
   rating: number;

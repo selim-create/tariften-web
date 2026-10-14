@@ -174,7 +174,7 @@ export default async function RecipeDetailPage({
               <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
                 <FaLeaf className="mx-auto text-green-500 mb-1 text-lg group-hover:scale-110 transition" />
                 <div className="text-[10px] text-gray-400 font-medium uppercase">Kalori</div>
-                <div className="font-bold text-slate-700">{recipe.calories || "-"}</div>
+                <div className="font-bold text-slate-700" title={recipe.nutrition_status === 'verified' ? 'Doğrulanmış kalori' : 'AI tahmini; besin veritabanıyla doğrulanmadı'}>{recipe.calories && Number(recipe.calories) > 0 ? `${recipe.nutrition_status === 'verified' ? '' : '≈'}${recipe.calories}` : "-"}</div>
               </div>
               <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
                 <FaChartSimple className="mx-auto text-blue-500 mb-1 text-lg group-hover:scale-110 transition" />
