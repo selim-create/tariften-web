@@ -46,13 +46,16 @@ export default function RecipeJsonLd({ recipe }: RecipeJsonLdProps) {
     recipeCategory: recipe.meal_type?.[0] || 'Ana Yemek',
     recipeCuisine: recipe.cuisine?.[0] || 'Türk Mutfağı',
     keywords: generateKeywords(),
-    nutrition: {
-      '@type': 'NutritionInformation',
-      calories: `${recipe.calories} kcal`,
-      ...(recipe.nutrition?.protein && { proteinContent: `${recipe.nutrition.protein}g` }),
-      ...(recipe.nutrition?.carbs && { carbohydrateContent: `${recipe.nutrition.carbs}g` }),
-      ...(recipe.nutrition?.fat && { fatContent: `${recipe.nutrition.fat}g` }),
-    },
+    // NutritionInformation must not claim AI guesses as measured facts.
+    ...(recipe.nutrition_status === 'verified' && recipe.nutrition
+      ? { nutrition: {
+          '@type': 'NutritionInformation',
+          calories: `${recipe.nutrition.calories} kcal`,
+          proteinContent: `${recipe.nutrition.protein}g`,
+          carbohydrateContent: `${recipe.nutrition.carbs}g`,
+          fatContent: `${recipe.nutrition.fat}g`,
+        } }
+      : {}),
     recipeIngredient: parseIngredients(recipe.ingredients).map(
       (ing) => `${ing.amount} ${ing.unit} ${ing.name}`
     ),
