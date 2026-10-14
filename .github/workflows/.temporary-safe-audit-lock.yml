@@ -1,0 +1,24 @@
+name: Temporary safe audit lock refresh
+on:
+  push:
+    branches:
+      - security/next-react-patches-20261015
+permissions:
+  contents: read
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Update compatible vulnerable transitive dependencies
+        run: |
+          npm audit fix --package-lock-only --ignore-scripts --no-fund || true
+          node -e "const p=require('./package-lock.json'); console.log('SOURCE_MAP_VERSION='+p.packages['node_modules/source-map-js']?.version)"
+      - name: Emit resolved lockfile for repository update
+        run: |
+          echo 'LOCK_BEGIN'
+          base64 -w 2000 package-lock.json | sed 's/^/LOCK_CHUNK:/'
+          echo 'LOCK_END'
