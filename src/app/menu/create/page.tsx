@@ -34,7 +34,8 @@ export default function CreateMenuPage() {
   });
 
   useEffect(() => {
-    if (!user?.token || recoveryCheckedFor === storageKey) return;
+    const token = user?.token;
+    if (!token || recoveryCheckedFor === storageKey) return;
     setRecoveryCheckedFor(storageKey);
     (async () => {
       try {
@@ -45,8 +46,8 @@ export default function CreateMenuPage() {
           setFormData(saved.formData);
         }
         const recovered = saved.id
-          ? await fetchMenuJob(user.token, saved.id)
-          : saved.requestId ? await findMenuJob(user.token, saved.requestId) : null;
+          ? await fetchMenuJob(token, saved.id)
+          : saved.requestId ? await findMenuJob(token, saved.requestId) : null;
         if (recovered) {
           setJob(recovered);
           setStep(3);
