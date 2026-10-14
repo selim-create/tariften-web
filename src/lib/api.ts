@@ -230,7 +230,7 @@ async function parseMenuJobResponse(res: Response): Promise<MenuJob> {
       : "Menü işlemi tamamlanamadı.";
     throw new Error(message);
   }
-  return data as MenuJob;
+  return data as unknown as MenuJob;
 }
 
 export async function fetchMenuJob(token: string, id: number): Promise<MenuJob> {
@@ -271,7 +271,7 @@ export async function generateAIMenu(token: string, params: { concept: string, g
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
-      body: JSON.stringify({ ...params, async: true, request_id: requestId }),
+      body: JSON.stringify({ ...params, diet_preference: params.diet, async: true, request_id: requestId }),
     });
 
     return parseMenuJobResponse(res);
