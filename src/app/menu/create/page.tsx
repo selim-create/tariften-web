@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { generateAIMenu, advanceMenuJob, fetchMenuJob, findMenuJob, type MenuJob } from "@/lib/api";
+import { generateAIMenu, advanceMenuJob, retryMenuJob, fetchMenuJob, findMenuJob, type MenuJob } from "@/lib/api";
 import { FaWandMagicSparkles, FaArrowRight, FaArrowLeft, FaCheck, FaUtensils, FaUserGroup, FaChampagneGlasses } from "react-icons/fa6";
 
 const MENU_STORAGE = "tariften_active_menu_job_v2";
@@ -123,6 +123,21 @@ export default function CreateMenuPage() {
     if (loading) return;
     setErrorMessage("");
     if (job) {
+      if (job.status === "needs_attention") {
+        setLoading(true);
+        try {
+          // Only a deliberate button click can request additional paid
+          // attempts for previously failed recipes. Completed items persist.
+          const restarted = await retryMenuJob(user.token, job.id);
+          setJob(restarted);
+          await continueMenuJob(restarted);
+        } catch (error) {
+          setErrorMessage(messageOf(error));
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
       await continueMenuJob(job);
       return;
     }
@@ -366,7 +381,7 @@ export default function CreateMenuPage() {
                         onClick={handleSubmit}
                         className="w-full bg-[#db4c3f] text-white py-4 rounded-full text-lg font-bold shadow-xl shadow-red-500/30 hover:bg-red-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                     >
-                        <FaWandMagicSparkles /> {job ? (job.status === "ready" ? "Menüyü Aç" : "Kaldığım Yerden Devam Et") : "Menüyü Oluştur"}
+                        <FaWandMagicSparkles /> {job ? (job.status === "ready" ? "Menüyü Aç" : job.status === "needs_attention" ? "Başarısız Tarifleri Yeniden Dene (Ücretli Olabilir)" : "Kaldığım Yerden Devam Et") : "Menüyü Oluştur"}
                     </button>
                     <button onClick={back} className="text-gray-400 font-bold hover:text-slate-900 transition">
                         Düzenle
