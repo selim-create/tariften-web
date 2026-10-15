@@ -21,6 +21,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const title = menu.seo?.title || `${menu.title} - Tariften`;
   const description = menu.seo?.description || menu.description;
+  const socialImage = menu.image && !isPlaceholderImage(menu.image)
+    ? menu.image : "https://tariften.com/og-image.jpg";
 
   return {
     title: title,
@@ -29,14 +31,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     openGraph: {
       title: title,
       description: description,
-      images: [menu.image || "https://tariften.com/og-image.jpg"],
+      images: [socialImage],
       type: "article",
     },
     twitter: {
       card: "summary_large_image",
       title: title,
       description: description,
-      images: [menu.image || "https://tariften.com/og-image.jpg"],
+      images: [socialImage],
     },
   };
 }
@@ -72,11 +74,15 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
   return (
     <div className="min-h-screen bg-[#fffcf5] font-serif text-slate-900 pb-20">
       <div className="relative h-[50vh] min-h-[400px] w-full overflow-hidden bg-slate-900">
-        <img 
-            src={menu.image} 
-            alt={menu.title} 
-            className="absolute inset-0 w-full h-full object-cover opacity-80" 
-        />
+        {isPlaceholderImage(menu.image) ? (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#3d6752] via-[#274636] to-[#182f27]" aria-hidden="true" />
+        ) : (
+            <img
+                src={menu.image}
+                alt={menu.title}
+                className="absolute inset-0 w-full h-full object-cover opacity-80"
+            />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/30"></div>
         
         <div className="absolute top-8 left-0 w-full z-40 px-6 print:hidden">
@@ -120,7 +126,7 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
                     const style = getSectionStyle(section.type);
                     return (
                         <div key={idx} className="relative break-inside-avoid">
-                            <div className="flex items-center gap-4 mb-8 sticky top-20 bg-white/95 backdrop-blur py-2 z-10 print:static">
+                            <div className="flex items-center gap-4 mb-8 bg-white py-2">
                                 <div className="w-12 h-12 rounded-full bg-[#fff5f5] flex items-center justify-center text-[#db4c3f] text-xl shrink-0">
                                     {style.icon}
                                 </div>
