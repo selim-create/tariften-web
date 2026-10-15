@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { requestPasswordReset } from "@/lib/auth-client";
 import Link from "next/link";
 import Image from "next/image";
 import { FaEnvelope, FaArrowLeft, FaPaperPlane, FaCheck, FaSpinner } from "react-icons/fa6";
@@ -9,16 +10,21 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || !email.trim()) return;
     setLoading(true);
-
-    // Demo Simülasyon
-    setTimeout(() => {
-      setLoading(false);
+    setErrorMessage("");
+    try {
+      await requestPasswordReset(email);
       setIsSent(true);
-    }, 1500);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "İstek gönderilemedi. Lütfen tekrar deneyin.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -105,7 +111,12 @@ export default function ForgotPasswordPage() {
                   </div>
                 </div>
 
-                <button 
+                {errorMessage && (
+                  <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {errorMessage}
+                  </p>
+                )}
+                <button
                   type="submit" 
                   disabled={loading}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
@@ -127,9 +138,9 @@ export default function ForgotPasswordPage() {
               <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl animate-bounce-in">
                 <FaCheck />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">E-posta Gönderildi!</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Talebin Alındı</h3>
               <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                <strong>{email}</strong> adresine bir sıfırlama bağlantısı gönderdik. Lütfen gelen kutunu (ve spam klasörünü) kontrol et.
+                <strong>{email}</strong> kayıtlı bir adres ise şifre sıfırlama bağlantısı gönderilmeye çalışıldı. Lütfen gelen kutunu ve spam klasörünü kontrol et.
               </p>
               <Link href="/login" className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-500/20 block transition transform active:scale-95">
                 Giriş Sayfasına Dön

@@ -67,6 +67,25 @@ export async function loginWithGoogle(googleToken: string) {
   }
 }
 
+export async function requestPasswordReset(email: string): Promise<void> {
+  // WordPress deliberately responds identically for registered and unknown
+  // addresses, so never claim actual email delivery from the response.
+  const res = await fetch(`${API_URL}/tariften/v1/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.trim() }),
+    cache: "no-store",
+  });
+  const payload: unknown = await res.json().catch(() => null);
+  if (!res.ok || !payload || typeof payload !== "object" ||
+      !("success" in payload) || payload.success !== true) {
+    const message = payload && typeof payload === "object" &&
+      "message" in payload && typeof payload.message === "string"
+      ? payload.message : "Şifre sıfırlama isteği gönderilemedi. Lütfen yeniden deneyin.";
+    throw new Error(message);
+  }
+}
+
 // Register User (Client-side)
 export async function registerUser(userData: any) {
   try {
