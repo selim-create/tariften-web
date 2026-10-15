@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { generateAIMenu, advanceMenuJob, retryMenuJob, fetchMenuJob, findMenuJob, type MenuJob } from "@/lib/api";
+import { generateAIMenu, advanceMenuJob, retryMenuJob, fetchMenuJob, findMenuJob, type MenuJob } from "@/lib/menu-jobs-client";
 import { FaWandMagicSparkles, FaArrowRight, FaArrowLeft, FaCheck, FaUtensils, FaUserGroup, FaChampagneGlasses } from "react-icons/fa6";
 
 const MENU_STORAGE = "tariften_active_menu_job_v2";
