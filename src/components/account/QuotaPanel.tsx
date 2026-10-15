@@ -1,0 +1,45 @@
+"use client";
+
+import { type QuotaKind, type Quotas, quotaReset } from "@/lib/account-quotas-client";
+
+const labels: Record<QuotaKind, string> = {
+  menu_month: "Bu ay menü",
+  recipe_day: "Bugün tarif ekleme",
+  recipe_ai_day: "Bugün AI tarif denemesi",
+};
+
+export default function QuotaPanel({
+  data, error, loading, kinds = ["menu_month", "recipe_day", "recipe_ai_day"],
+}: {
+  data: Quotas | null;
+  error?: string;
+  loading?: boolean;
+  kinds?: QuotaKind[];
+}) {
+  if (loading && !data) return <div role="status" className="rounded-2xl border border-gray-100 bg-white p-4 text-sm text-slate-500">Kullanım hakların kontrol ediliyor…</div>;
+  if (!data) return error ? <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{error} Haklarını kaybetmezsin; son kontrol sunucuda yapılır.</div> : null;
+  return (
+    <section aria-label="Kullanım haklarım" className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="font-bold text-slate-900">Kullanım haklarım</h2>
+        <span className="rounded-full px-3 py-1 bg-[#eff7f0] text-[#296443] text-xs font-bold">
+          {data.tier === "administrator" ? "Yönetici · Sınırsız" : "Ücretsiz hesap"}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {kinds.map((kind) => {
+          const q = data.quotas[kind];
+          const unlimited = q.limit === null;
+          const percentage = unlimited ? 0 : q.limit ? Math.min(100, (q.used / q.limit) * 100) : 100;
+          return <div key={kind} className="rounded-xl bg-slate-50 p-4">
+            <p className="text-xs font-semibold text-slate-500">{labels[kind]}</p>
+            <p className="text-xl font-extrabold text-slate-900 mt-1">{unlimited ? "Sınırsız" : `${q.remaining} / ${q.limit} kaldı`}</p>
+            {!unlimited && <div aria-hidden="true" className="w-full rounded-full bg-slate-200 h-1.5 mt-3 overflow-hidden"><div className="h-full rounded-full bg-[#db4c3f]" style={{ width: `${percentage}%` }} /></div>}
+            {!unlimited && q.remaining === 0 && <p className="text-xs text-amber-800 mt-2">Yeni hak: {quotaReset(data, kind)}</p>}
+          </div>;
+        })}
+      </div>
+      <p className="text-xs text-slate-500 mt-3">Menünün içindeki tarifler günlük bağımsız tarif hakkını tüketmez. Kotalar sunucuda kontrol edilir.</p>
+    </section>
+  );
+}

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import QuotaPanel from "@/components/account/QuotaPanel";
+import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 import { generateAIMenu, advanceMenuJob, retryMenuJob, fetchMenuJob, findMenuJob, type MenuJob } from "@/lib/menu-jobs-client";
 import { FaWandMagicSparkles, FaArrowRight, FaArrowLeft, FaCheck, FaUtensils, FaUserGroup, FaChampagneGlasses } from "react-icons/fa6";
 
@@ -28,6 +30,7 @@ export default function CreateMenuPage() {
   const [step, setStep] = useState(1); // 1: Concept, 2: Details, 3: Review
   const [job, setJob] = useState<MenuJob | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const quotas = useAccountQuotas(user?.token);
   const [recoveryCheckedFor, setRecoveryCheckedFor] = useState("");
   // Never expose one signed-in account's saved job to a second account.
   const storageKey = `${MENU_STORAGE}:${user?.id ?? "guest"}`;
@@ -167,6 +170,15 @@ export default function CreateMenuPage() {
       }
       await continueMenuJob(job);
       return;
+    }
+    // The quota must never prevent continuing an already reserved menu.
+    // For a NEW menu, refresh on click so a stale tab cannot mislead users.
+    if (!localStorage.getItem(storageKey)) {
+      const fresh = await fetchAccountQuotas(user.token).catch(() => null);
+      if (quotaReached(fresh, "menu_month")) {
+        setErrorMessage("Aylık menü hakkın doldu. Yeni hak: " + quotaReset(fresh, "menu_month"));
+        return;
+      }
     }
     setLoading(true);
     const savedRaw = localStorage.getItem(storageKey);
@@ -392,6 +404,7 @@ export default function CreateMenuPage() {
                      </div>
                  </div>
 
+                 <div className="mb-5"><QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} kinds={["menu_month"]} /></div>
                  {job && (
                     <div className="mb-5 rounded-2xl border border-green-100 bg-green-50 p-4 text-left text-sm text-green-900">
                       <strong>Kaydedilmiş menü bulundu.</strong>
@@ -406,7 +419,8 @@ export default function CreateMenuPage() {
                  <div className="flex flex-col gap-4">
                     <button 
                         onClick={handleSubmit}
-                        className="w-full bg-[#db4c3f] text-white py-4 rounded-full text-lg font-bold shadow-xl shadow-red-500/30 hover:bg-red-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                        disabled={!job && recoveryCheckedFor === storageKey && quotaReached(quotas.data, "menu_month") && (typeof window === "undefined" || !localStorage.getItem(storageKey))}
+                        className="disabled:opacity-50 disabled:cursor-not-allowed w-full bg-[#db4c3f] text-white py-4 rounded-full text-lg font-bold shadow-xl shadow-red-500/30 hover:bg-red-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                     >
                         <FaWandMagicSparkles /> {job ? (job.status === "ready" ? "Menüyü Aç" : job.status === "needs_attention" ? "Başarısız Tarifleri Yeniden Dene (Ücretli Olabilir)" : "Kaldığım Yerden Devam Et") : "Menüyü Oluştur"}
                     </button>

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import QuotaPanel from "@/components/account/QuotaPanel";
+import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 import { createRecipe, getTerms, uploadMedia } from "@/lib/api"; // uploadMedia eklendi
 import { 
   FaArrowRight, FaArrowLeft, FaCheck, FaPlus, FaTrash, 
@@ -15,6 +17,7 @@ export default function CreateRecipePage() {
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const quotas = useAccountQuotas(user?.token);
   const [mediaUploading, setMediaUploading] = useState(false); // Medya yükleniyor mu?
   const [mediaType, setMediaType] = useState<'upload' | 'url' | 'video'>('upload');
   const [previewUrl, setPreviewUrl] = useState(""); // Görsel önizlemesi için
@@ -139,9 +142,15 @@ export default function CreateRecipePage() {
     
     setLoading(true);
     try {
+      const fresh = await fetchAccountQuotas(user.token).catch(() => null);
+      if (quotaReached(fresh, "recipe_day")) {
+        showError("Bugünkü tarif ekleme hakkın doldu. Yeni hak: " + quotaReset(fresh, "recipe_day"));
+        return;
+      }
       const result = await createRecipe(user.token, formData);
       
       if (result.success) {
+        void quotas.reload();
         showSuccess("Tarif başarıyla oluşturuldu! 🎉");
         
         // DÜZELTME: Slug ile yönlendirme
@@ -166,6 +175,7 @@ export default function CreateRecipePage() {
         
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-slate-900 font-heading">Yeni Tarif Oluştur</h1>
+          <div className="mt-5 text-left"><QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} kinds={["recipe_day"]} /></div>
           <p className="text-gray-500">Adım {step} / 3</p>
           <div className="w-full bg-gray-200 h-1.5 rounded-full mt-4 overflow-hidden">
             <div className="bg-brand h-full transition-all duration-500" style={{ width: step === 1 ? '33%' : step === 2 ? '66%' : '100%' }} />
@@ -316,7 +326,7 @@ export default function CreateRecipePage() {
           {step < 3 ? (
             <button onClick={() => setStep(s => s + 1)} className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold">Devam Et <FaArrowRight /></button>
           ) : (
-            <button onClick={handleSubmit} disabled={loading} className="px-8 py-3 bg-brand text-white rounded-xl font-bold flex items-center gap-2 hover:bg-brand-dark shadow-lg shadow-brand/20 disabled:opacity-70">
+            <button onClick={handleSubmit} disabled={loading || quotaReached(quotas.data, "recipe_day")} className="px-8 py-3 bg-brand text-white rounded-xl font-bold flex items-center gap-2 hover:bg-brand-dark shadow-lg shadow-brand/20 disabled:opacity-70">
               {loading ? <><FaSpinner className="animate-spin" /> Kaydediliyor</> : <><FaCheck /> Yayınla</>}
             </button>
           )}
