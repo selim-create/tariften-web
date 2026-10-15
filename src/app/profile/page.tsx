@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import QuotaPanel from "@/components/account/QuotaPanel";
+import { useAccountQuotas } from "@/lib/account-quotas-client";
 import { FaGear, FaFire, FaPen, FaHeart, FaBowlFood, FaClock, FaCheck } from "react-icons/fa6";
 import { getUserInteractions, getUserRecipes } from "@/lib/api";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
@@ -13,6 +15,7 @@ import { isPlaceholderImage } from "@/lib/utils";
 export default function ProfilePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const quotas = useAccountQuotas(user?.token);
   
   const [stats, setStats] = useState({
     cookedCount: 0,
@@ -117,6 +120,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 mt-8 space-y-8">
+        <QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} />
         
         {/* Tıklanabilir İstatistik Kartları */}
         <div className="grid grid-cols-3 gap-4">
