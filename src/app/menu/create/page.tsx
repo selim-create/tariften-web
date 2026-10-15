@@ -3,13 +3,21 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { generateAIMenu, advanceMenuJob, retryMenuJob, fetchMenuJob, findMenuJob, type MenuJob } from "@/lib/api";
+import { generateAIMenu, advanceMenuJob, retryMenuJob, fetchMenuJob, findMenuJob, type MenuJob } from "@/lib/menu-jobs-client";
 import { FaWandMagicSparkles, FaArrowRight, FaArrowLeft, FaCheck, FaUtensils, FaUserGroup, FaChampagneGlasses } from "react-icons/fa6";
 
 const MENU_STORAGE = "tariften_active_menu_job_v2";
 
 function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : "İşlem tamamlanamadı. Mevcut menü durumunu kontrol edin.";
+  if (!(error instanceof Error)) {
+    return "İşlem tamamlanamadı. Mevcut menü durumunu kontrol edin.";
+  }
+  // React #441 is an opaque production Server Components/RSC exception;
+  // raw framework internals are not a useful message for readers.
+  if (/minified react error|react\.dev\/errors\/441|server components render/i.test(error.message)) {
+    return "Geçici bir sunucu görüntüleme hatası oluştu. Kayıtlı menünüz korunuyor; kaldığınız yerden devam edebilirsiniz.";
+  }
+  return error.message;
 }
 
 export default function CreateMenuPage() {
@@ -88,14 +96,33 @@ export default function CreateMenuPage() {
         } catch (error) {
           // A response can be lost while WordPress successfully saves a step.
           // Inspect the durable cursor before any retry, never restart the menu.
-          const latest = await fetchMenuJob(user.token, current.id);
+          let latest: MenuJob;
+          try {
+            latest = await fetchMenuJob(user.token, current.id);
+          } catch {
+            // Even status lookup can fail during an infrastructure incident.
+            // The durable request remains in localStorage; never create a
+            // second menu and pay for the same planned dishes.
+            throw new Error("Sunucuyla bağlantı kesildi. Menü kayıtlı; biraz sonra Kaldığım Yerden Devam Et seçeneğini kullanın.");
+          }
           setJob(latest);
           current = latest;
+          if (latest.status === "ready" || latest.status === "needs_attention"
+              || latest.completed > previousCompleted) {
+            // Important: the response may have been lost AFTER the PHP step
+            // was committed. Continue from the persisted result, not the
+            // thrown transport error, to avoid fake failures.
+            continue;
+          }
           if (messageOf(error).includes("hâlâ")) {
             await new Promise(resolve => setTimeout(resolve, 1800));
             continue;
           }
-          throw error;
+          throw new Error(
+            "Bu tarif isteğinin yanıtı alınamadı. " +
+            latest.completed + "/" + latest.total +
+            " tarif kaydedildi; biraz sonra aynı menüden güvenle devam edebilirsiniz."
+          );
         }
         setJob(current);
         const stored = localStorage.getItem(storageKey);
