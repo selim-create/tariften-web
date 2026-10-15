@@ -7,6 +7,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { getRecipes, generateAIRecipe, createRecipe, getTerms } from "@/lib/api"; 
 import { Recipe } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import QuotaPanel from "@/components/account/QuotaPanel";
+import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 // İkonlar - Standart ve Yeni Paket Ayrımı (Hata Önleyici)
 import { FaSortAmountDown } from "react-icons/fa";
 import { 
@@ -54,6 +56,7 @@ function RecipesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const quotas = useAccountQuotas(user?.token);
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,28 +195,37 @@ function RecipesContent() {
     // Kullanılacak arama terimi
     const searchTerm = aiPromptInput.trim() || query.trim();
     
+    const fresh = await fetchAccountQuotas(user.token).catch(() => null);
+    if (quotaReached(fresh, "recipe_day") || quotaReached(fresh, "recipe_ai_day")) {
+      const key = quotaReached(fresh, "recipe_day") ? "recipe_day" : "recipe_ai_day";
+      showModalMessage("error", "Günlük tarif oluşturma hakkın doldu. Yeni hak: " + quotaReset(fresh, key));
+      return;
+    }
+
     setIsGenerating(true);
     setLoadingMsgIndex(0);
     
     try {
       const aiResponse = await generateAIRecipe(user.token, searchTerm);
+      void quotas.reload();
       if (aiResponse.success && aiResponse.recipe) {
         const saveResponse = await createRecipe(user.token, aiResponse.recipe);
+        void quotas.reload();
         if (saveResponse.success) {
           const redirectTarget = saveResponse.slug || saveResponse.id;
           router.push(`/recipe/${redirectTarget}`); 
         } else {
-          showModalMessage('error', "Kaydedilemedi.");
+          showModalMessage('error', saveResponse.message || "Tarif kaydedilemedi.");
         }
       } else {
         showModalMessage('error', "Yapay zeka yanıt veremedi.");
       }
     } catch (error: any) {
       const errorMsg = error.message?.toLowerCase() || "";
-      if (errorMsg.includes("quota") || errorMsg.includes("billing")) {
-        showModalMessage('error', "Şefimiz şu an aşırı yoğun 👨‍🍳 Lütfen sonra tekrar deneyin.");
+      if (errorMsg.includes("billing")) {
+        showModalMessage('error', "AI bütçe sınırına ulaşıldı. Lütfen sonra tekrar deneyin.");
       } else {
-        showModalMessage('error', "Bir sorun oluştu.");
+        showModalMessage('error', error?.message || "Tarif oluşturulamadı.");
       }
     } finally { 
       setIsGenerating(false);
@@ -272,10 +284,11 @@ function RecipesContent() {
         <p className="text-slate-400 text-sm mb-6 font-light">
            {isGenerating ? LOADING_MESSAGES[loadingMsgIndex] : `"${query || 'Özel'}" tarifini senin için sıfırdan yaratabilirim.`}
         </p>
-        <button 
+        {user?.token && <div className="w-full mb-4 text-left"><QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} kinds={["recipe_ai_day", "recipe_day"]} /></div>}
+        <button
           type="button"
           onClick={handleGenerateRecipe}
-          disabled={isGenerating}
+          disabled={isGenerating || quotaReached(quotas.data, "recipe_ai_day") || quotaReached(quotas.data, "recipe_day")}
           className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-[#db4c3f]/20 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
         >
            {isGenerating ? "Hazırlanıyor..." : <><FaWandMagicSparkles /> AI ile Oluştur</>}
