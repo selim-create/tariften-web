@@ -1,6 +1,7 @@
 import { getRecipe } from "@/lib/api";
 import { notFound } from "next/navigation";
-import PilotClient from "@/components/pilot/PilotClient"; 
+import PilotClient from "@/components/pilot/PilotClient";
+import { parseSteps } from "@/lib/recipeUtils"; 
 
 // Bu sayfa sunucuda çalışır (Server Component) ve veriyi çeker
 export default async function PilotPage({ 
@@ -17,21 +18,22 @@ export default async function PilotPage({
     notFound();
   }
 
-  // HTML içeriğini temizleyip adımlara bölme (Basit Parser)
-  // MVP kapsamında HTML taglerini temizleyip anlamlı metin parçalarına ayırıyoruz.
-  const steps = recipe.content
-    ? recipe.content
-        .replace(/<[^>]*>/g, '\n') // HTML taglerini sil
-        .split('\n') // Satırlara böl
-        .map((line: string) => line.trim()) // Boşlukları temizle
-        .filter((line: string) => line.length > 10) // Çok kısa satırları at
+  // The Core voice endpoint synthesizes stored recipe steps, never HTML prose.
+  const storedSteps = parseSteps(recipe.steps);
+  const fallbackSteps = recipe.content
+    ? recipe.content.replace(/<[^>]*>/g, "\n").split("\n")
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.length > 10)
     : [];
-
-  const finalSteps = steps.length > 0 ? steps : ["Tarif adımları yüklenemedi, lütfen detay sayfasına bakınız."];
+  const finalSteps = storedSteps.length > 0
+    ? storedSteps
+    : fallbackSteps.length > 0
+      ? fallbackSteps
+      : ["Tarif adımları yüklenemedi, lütfen detay sayfasına bakınız."];
 
   return (
     <main className="h-screen w-full bg-[#0f172a] text-white overflow-hidden">
-      <PilotClient recipe={recipe} steps={finalSteps} />
+      <PilotClient recipe={recipe} steps={finalSteps} hasStoredSteps={storedSteps.length > 0} />
     </main>
   );
 }

@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { PILOT_CHIRP_VOICES, usePilotNaturalVoice } from "@/hooks/usePilotNaturalVoice";
 
 // --- TİP TANIMLARI ---
 interface Recipe {
+  id: number;
   title: string;
   [key: string]: any;
 }
@@ -67,11 +69,15 @@ const FaBellSlash = (p: any) => <Icon {...p} viewBox="0 0 640 512" path="M38.8 5
 interface PilotClientProps {
   recipe: Recipe;
   steps: string[];
+  hasStoredSteps: boolean;
 }
 
-export default function PilotClient({ recipe, steps }: PilotClientProps) {
+export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClientProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
+  const naturalVoice = usePilotNaturalVoice(recipe.id, currentStep, hasStoredSteps);
+  const [useDeviceVoice, setUseDeviceVoice] = useState(false);
+  const [voiceFeedback, setVoiceFeedback] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [lastCommand, setLastCommand] = useState("");
   
@@ -119,6 +125,15 @@ export default function PilotClient({ recipe, steps }: PilotClientProps) {
   }, []);
 
   const speak = useCallback((text: string) => {
+    if (!useDeviceVoice) {
+      if (text === steps[currentStep]) {
+        void naturalVoice.play();
+      } else {
+        // Core authorizes recorded recipe steps only, never dynamic command text.
+        setVoiceFeedback(text);
+      }
+      return;
+    }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
@@ -132,7 +147,11 @@ export default function PilotClient({ recipe, steps }: PilotClientProps) {
       
       window.speechSynthesis.speak(utterance);
     }
-  }, [getBestVoice]);
+  }, [getBestVoice, useDeviceVoice, naturalVoice.play, steps, currentStep]);
+
+  useEffect(() => {
+    window.speechSynthesis?.cancel();
+  }, [currentStep, useDeviceVoice, naturalVoice.voice]);
 
   // --- ALARM SESİ (WEB AUDIO API - SOFT CHIME) ---
   const playAlarm = useCallback(() => {
@@ -382,7 +401,7 @@ export default function PilotClient({ recipe, steps }: PilotClientProps) {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]"></span>
-              <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">CANLI PİLOT</span>
+              <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">PİŞİRME REHBERİ</span>
             </div>
             <h1 className="text-lg md:text-xl font-bold text-white leading-none truncate max-w-[200px] md:max-w-md">
               {recipe.title}
@@ -425,10 +444,56 @@ export default function PilotClient({ recipe, steps }: PilotClientProps) {
           <span className="w-8 h-[1px] bg-[#db4c3f]/50"></span>
         </div>
 
+        {/* The microphone listens for fixed commands; Chirp reads stored recipe steps. */}
+        <div className="w-full max-w-xs mb-5 text-left">
+          <label htmlFor="pilot-voice" className="block mb-2 text-[11px] font-bold tracking-wide text-gray-400">TÜRKÇE SES PROFİLİ</label>
+          <select
+            id="pilot-voice"
+            value={useDeviceVoice ? "device" : naturalVoice.voice}
+            onChange={(event) => {
+              naturalVoice.stop();
+              window.speechSynthesis?.cancel();
+              if (event.target.value === "device") {
+                setUseDeviceVoice(true);
+              } else {
+                setUseDeviceVoice(false);
+                naturalVoice.setVoice(event.target.value);
+              }
+              setVoiceFeedback("");
+            }}
+            className="w-full rounded-xl border border-white/20 bg-[#1e293b] px-3 py-2 text-sm font-semibold text-white"
+          >
+            {PILOT_CHIRP_VOICES.map((item) => (
+              <option value={item.id} key={item.id}>{item.label} · Chirp 3 HD</option>
+            ))}
+            <option value="device">Cihaz sesi · Ücretsiz</option>
+          </select>
+          {!useDeviceVoice && (
+            <p className="mt-2 text-xs text-gray-400">
+              {!naturalVoice.token
+                ? "Doğal ses için üye girişi gerekiyor. Cihaz sesini de seçebilirsin."
+                : !hasStoredSteps
+                  ? "Kayıtlı tarif adımları bulunmadığı için doğal ses bu tarifte kullanılamıyor."
+                  : naturalVoice.checking
+                    ? "Doğal ses erişimi kontrol ediliyor..."
+                    : !naturalVoice.enabled
+                      ? "Doğal ses hesabın için kullanılamıyor. Cihaz sesiyle devam edebilirsin."
+                      : "Google Chirp 3 HD · Her yeni adım/ses kotaya yansıyabilir."}
+            </p>
+          )}
+        </div>
+
         {/* Adım Metni */}
         <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-12 leading-tight max-w-4xl drop-shadow-2xl transition-all duration-500">
           "{steps[currentStep]}"
         </h2>
+
+        {naturalVoice.error && !useDeviceVoice && (
+          <p role="alert" className="mb-3 max-w-xl rounded-lg bg-red-900/60 px-4 py-2 text-sm text-red-100">{naturalVoice.error}</p>
+        )}
+        {voiceFeedback && !useDeviceVoice && (
+          <p role="status" className="mb-3 max-w-xl text-sm text-gray-400">{voiceFeedback}</p>
+        )}
 
         {/* Aktif Zamanlayıcı */}
         {timerActive && (
@@ -452,9 +517,18 @@ export default function PilotClient({ recipe, steps }: PilotClientProps) {
                <FaPlay className="text-[10px]" /> 10dk Başlat
              </button>
            )}
-           <button onClick={() => speak(steps[currentStep])} className="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-gray-300 flex items-center gap-2 transition backdrop-blur-sm">
-               <FaVolumeHigh className="text-[10px]" /> Oku
+           <button onClick={() => speak(steps[currentStep])} disabled={!useDeviceVoice && (!naturalVoice.enabled || naturalVoice.playback === "loading")} className="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-gray-300 flex items-center gap-2 transition backdrop-blur-sm disabled:opacity-40 disabled:cursor-not-allowed">
+               <FaVolumeHigh className="text-[10px]" /> {naturalVoice.playback === "loading" && !useDeviceVoice ? "Hazırlanıyor…" : "Oku"}
            </button>
+           {!useDeviceVoice && naturalVoice.playback === "playing" && (
+             <button type="button" onClick={naturalVoice.pause} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-gray-300 flex items-center gap-2"><FaPause /> Duraklat</button>
+           )}
+           {!useDeviceVoice && naturalVoice.playback === "paused" && (
+             <button type="button" onClick={() => void naturalVoice.play()} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-gray-300 flex items-center gap-2"><FaPlay /> Devam Et</button>
+           )}
+           {!useDeviceVoice && naturalVoice.playback !== "idle" && (
+             <button type="button" onClick={naturalVoice.stop} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-gray-300 flex items-center gap-2"><FaStop /> Durdur</button>
+           )}
            <button onClick={() => setIsSOSOpen(true)} className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 px-4 py-2 rounded-full text-xs font-bold text-red-400 flex items-center gap-2 transition backdrop-blur-sm animate-pulse">
              <FaTriangleExclamation className="text-[10px]" /> Acil Durum / SOS
            </button>
