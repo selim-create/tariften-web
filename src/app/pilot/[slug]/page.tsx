@@ -21,7 +21,7 @@ export default async function PilotPage({
   // The Core voice endpoint synthesizes stored recipe steps, never HTML prose.
   const storedSteps = parseSteps(recipe.steps);
   const fallbackSteps = recipe.content
-    ? recipe.content.replace(/<[^>]*>/g, "\\n").split("\\n")
+    ? recipe.content.replace(/<[^>]*>/g, "\n").split("\n")
         .map((line: string) => line.trim())
         .filter((line: string) => line.length > 10)
     : [];
