@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { PILOT_CHIRP_VOICES, usePilotNaturalVoice } from "@/hooks/usePilotNaturalVoice";
+import { normalizePilotCommand, parsePilotCommand } from "@/lib/pilotVoiceCommands";
 
 // --- TİP TANIMLARI ---
 interface Recipe {
@@ -86,6 +87,8 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   const wantListeningRef = useRef(false);
   const retryMicRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastCommandAtRef = useRef(0);
+  const lastCommandTextRef = useRef("");
+  const recognitionRetryMsRef = useRef(350);
   const [lastCommand, setLastCommand] = useState("");
   
   // Zamanlayıcı State'i
@@ -236,93 +239,108 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   }, [timerActive, isTimerPaused, timeLeft]);
 
 
-  // --- KOMUT İŞLEME MERKEZİ ---
-  const handleCommand = useCallback((command: string) => {
-    const lowerCmd = command.toLocaleLowerCase("tr-TR").trim();
-    if (lowerCmd === "duraklat") { naturalVoice.pause(); return; }
-    if (lowerCmd === "devam et") { if (timerActive && isTimerPaused) setIsTimerPaused(false); else void naturalVoice.play(); return; }
-    if (lowerCmd === "sesi durdur") { naturalVoice.stop(); window.speechSynthesis?.cancel(); return; }
-    setLastCommand(lowerCmd);
-    
-    // 1. YARDIM & MODAL KONTROLLERİ
-    if (lowerCmd.includes("kapat") || lowerCmd.includes("gizle")) {
-        if (isHelpOpen) { setIsHelpOpen(false); speak("Yardım kapatıldı."); return; }
-        if (isSOSOpen) { setIsSOSOpen(false); speak("Acil durum kapatıldı."); return; }
-        if (isAlarmPlaying) { setIsAlarmPlaying(false); speak("Alarm susturuldu."); return; }
-    }
-
-    // 2. NAVİGASYON KOMUTLARI
-    if (lowerCmd.includes("ileri") || lowerCmd.includes("sonraki") || lowerCmd.includes("geç")) {
-      if (currentStep < steps.length - 1) {
-        setCurrentStep(prev => prev + 1);
-        setVoiceFeedback("Sonraki adım.");
-      } else {
-        speak("Tebrikler şefim! Tarif tamamlandı.");
-        setIsFinishedOpen(true); // Modal aç
-      }
-    } 
-    else if (lowerCmd.includes("geri") || lowerCmd.includes("önceki")) {
-      if (currentStep > 0) {
-        setCurrentStep(prev => prev - 1);
-        setVoiceFeedback("Önceki adıma dönüldü.");
-      }
-    } 
-    else if (lowerCmd.includes("oku") || lowerCmd.includes("tekrar")) {
-      speak(steps[currentStep]);
-    }
-
-    // 3. SÜRE / ZAMANLAYICI KOMUTLARI
-    else if (lowerCmd.includes("süre") || lowerCmd.includes("başlat") || lowerCmd.includes("alarm") || lowerCmd.includes("dakika")) {
-       if (lowerCmd.includes("iptal")) {
-           // TAMAMEN İPTAL ET
-           setTimerActive(false);
-           setIsTimerPaused(false);
-           setTimeLeft(0);
-           setIsAlarmPlaying(false);
-           speak("Süre iptal edildi.");
-       } else if (lowerCmd.includes("durdur")) {
-           // SADECE DURAKLAT (PAUSE)
-           if (timerActive && timeLeft > 0) {
-               setTimerActive(true); // Hala aktif ama pause modunda
-               setIsTimerPaused(true);
-               speak("Süre duraklatıldı.");
-           }
-       } else if (lowerCmd.includes("devam")) {
-           // DEVAM ET (RESUME)
-           if (timerActive && isTimerPaused) {
-               setIsTimerPaused(false);
-               speak("Süre devam ediyor.");
-           }
-       } else {
-           // YENİ SÜRE BAŞLAT
-           const minutes = textToNumber(lowerCmd);
-           if (minutes) {
-               startTimer(minutes);
-               speak(`${minutes} dakika süre başlatıldı.`);
-           } else if (lowerCmd.includes("başlat") && !timerActive) {
-               speak("Kaç dakika ayarlayayım?");
-           }
-       }
-    }
-    
-    // 4. ALARM SUSTURMA
-    else if (isAlarmPlaying && (lowerCmd.includes("dur") || lowerCmd.includes("tamam") || lowerCmd.includes("sus") || lowerCmd.includes("kapat"))) {
+  // Recognition and dispatch are separate: a displayed transcript must
+  // correspond to an executed command, not merely matching random words.
+  const handleCommand = useCallback((spoken: string) => {
+    const command = parsePilotCommand(spoken);
+    if (!command) return;
+    const normalized = normalizePilotCommand(spoken);
+    setLastCommand(normalized);
+    switch (command.type) {
+      case "next":
+        if (currentStep < steps.length - 1) {
+          naturalVoice.stop();
+          setCurrentStep((prev) => Math.min(steps.length - 1, prev + 1));
+          setVoiceFeedback("Sonraki adıma geçildi.");
+        } else {
+          setIsFinishedOpen(true);
+          setVoiceFeedback("Tarif tamamlandı.");
+        }
+        return;
+      case "previous":
+        if (currentStep > 0) {
+          naturalVoice.stop();
+          setCurrentStep((prev) => Math.max(0, prev - 1));
+          setVoiceFeedback("Önceki adıma geçildi.");
+        } else {
+          setVoiceFeedback("Zaten ilk adımdasın.");
+        }
+        return;
+      case "read":
+        speak(steps[currentStep]);
+        return;
+      case "pause_audio":
+        if (timerActive && normalized === "durdur") {
+          setIsTimerPaused(true);
+          setVoiceFeedback("Sayaç duraklatıldı.");
+        } else {
+          naturalVoice.pause();
+          if (useDeviceVoice) window.speechSynthesis?.pause();
+          setVoiceFeedback("Okuma duraklatıldı.");
+        }
+        return;
+      case "resume_audio":
+        if (timerActive && isTimerPaused && /^(devam|devam et)$/.test(normalized)) {
+          setIsTimerPaused(false);
+          setVoiceFeedback("Sayaç devam ediyor.");
+        } else {
+          if (useDeviceVoice) window.speechSynthesis?.resume();
+          else void naturalVoice.play();
+          setVoiceFeedback("Okumaya devam ediliyor.");
+        }
+        return;
+      case "stop_audio":
+        naturalVoice.stop();
+        window.speechSynthesis?.cancel();
+        setVoiceFeedback("Ses durduruldu.");
+        return;
+      case "pause_timer":
+        if (!timerActive) setVoiceFeedback("Şu anda çalışan sayaç bulunmuyor.");
+        else {
+          setIsTimerPaused(true);
+          setVoiceFeedback("Sayaç duraklatıldı.");
+        }
+        return;
+      case "resume_timer":
+        if (timerActive && isTimerPaused) {
+          setIsTimerPaused(false);
+          setVoiceFeedback("Sayaç devam ediyor.");
+        } else {
+          setVoiceFeedback(timerActive ? "Sayaç zaten çalışıyor." : "Devam ettirilecek sayaç bulunmuyor.");
+        }
+        return;
+      case "cancel_timer":
+        setTimerActive(false);
+        setTimeLeft(0);
+        setIsTimerPaused(false);
         setIsAlarmPlaying(false);
-        speak("Alarm kapatıldı.");
-    }
-
-    // 5. YARDIM / SOS
-    else if (lowerCmd.includes("yardım") || lowerCmd.includes("ne diyebilirim")) {
+        setVoiceFeedback("Sayaç iptal edildi.");
+        return;
+      case "start_timer":
+        startTimer(command.minutes);
+        setVoiceFeedback(command.minutes + " dakikalık sayaç başlatıldı.");
+        return;
+      case "stop_alarm":
+        if (isAlarmPlaying) {
+          setIsAlarmPlaying(false);
+          setVoiceFeedback("Alarm susturuldu.");
+        }
+        return;
+      case "help":
+        setIsVoiceModalOpen(false);
+        setIsSOSOpen(false);
         setIsHelpOpen(true);
-        speak("Yardım menüsü açıldı.");
+        setVoiceFeedback("Sesli komut yardımı açıldı.");
+        return;
+      case "close_modal":
+        setIsHelpOpen(false);
+        setIsSOSOpen(false);
+        setIsVoiceModalOpen(false);
+        setVoiceFeedback("Pencere kapatıldı.");
+        return;
     }
-    else if (lowerCmd.includes("acil") || lowerCmd.includes("sos") || lowerCmd.includes("sorun")) {
-      setIsSOSOpen(true);
-      speak("Acil durum menüsü açıldı.");
-    }
-
-  }, [currentStep, steps, speak, naturalVoice, timerActive, isTimerPaused, timeLeft, isAlarmPlaying, isHelpOpen, isSOSOpen, startTimer]);
-
+  }, [currentStep, steps, naturalVoice, speak, timerActive, isTimerPaused, isAlarmPlaying,
+      useDeviceVoice, startTimer]);
 
   // Browsers must still enforce their own microphone/recognition permission.
   // Start hands-free recognition on entering the pilot, with a visible recovery
@@ -352,24 +370,36 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
         setMicError("Mikrofon otomatik başlatılamadı. Mikrofon düğmesine dokunarak açabilirsin.");
       }
     };
-    recognizer.onstart = () => { active = true; setIsListening(true); setMicError(""); };
+    recognizer.onstart = () => {
+      active = true;
+      recognitionRetryMsRef.current = 350;
+      setIsListening(true);
+      setMicError("");
+    };
     recognizer.onresult = (event: any) => {
-      if (!wantListeningRef.current) return;
-      const last = event.results?.[event.results.length - 1];
-      const phrase = last?.[0]?.transcript;
-      if (typeof phrase !== "string") return;
-      const normalized = phrase.toLocaleLowerCase("tr-TR").trim().replace(/[.!?,]/g, "");
-      // Exact, short commands only: never react to arbitrary words read by Chirp.
-      if (!normalized || normalized.split(/\s+/).length > 6
-        || !/^(sonraki( adım)?|ileri|ileri geç|geç|önceki( adım)?|geri|geri dön|oku|tekrar( oku| et)?|adımı oku|duraklat|devam et|sesi durdur|seslendir|\d{1,2} dakika( süre)? başlat|\d{1,2} dakika(ya)? sayaç( kur)?|süreyi (durdur|iptal et)|sayacı (durdur|iptal et)|yardım)$/.test(normalized)) return;
-      const now = Date.now();
-      if (now - lastCommandAtRef.current < 950) return;
-      lastCommandAtRef.current = now;
-      handleCommandRef.current(normalized);
+      if (!wantListeningRef.current || !event.results) return;
+      const results = event.results;
+      const first = typeof event.resultIndex === "number"
+        ? Math.max(0, event.resultIndex) : Math.max(0, results.length - 1);
+      for (let index = first; index < results.length; index++) {
+        const entry = results[index];
+        if (entry?.isFinal === false) continue;
+        const raw = entry?.[0]?.transcript;
+        if (typeof raw !== "string" || !parsePilotCommand(raw)) continue;
+        const normalized = normalizePilotCommand(raw);
+        const now = Date.now();
+        // Deduplicate only the *same* final transcript; do not ignore distinct
+        // commands delivered close together.
+        if (normalized === lastCommandTextRef.current && now - lastCommandAtRef.current < 650) continue;
+        lastCommandTextRef.current = normalized;
+        lastCommandAtRef.current = now;
+        handleCommandRef.current(normalized);
+      }
     };
     recognizer.onerror = (event: any) => {
       const code = event.error || "unknown";
       if (code === "no-speech" || code === "aborted") return;
+      if (code === "network") recognitionRetryMsRef.current = 2400;
       const messages: Record<string, string> = {
         "not-allowed": "Mikrofon izni gerekli. Site izinlerinden mikrofonu aç, sonra tekrar dene.",
         "service-not-allowed": "Tarayıcının konuşma tanıma servisine izin vermesi gerekiyor.",
@@ -388,7 +418,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
       setIsListening(false);
       if (retryMicRef.current) clearTimeout(retryMicRef.current);
       if (wantListeningRef.current && document.visibilityState === "visible") {
-        retryMicRef.current = setTimeout(attempt, 800);
+        retryMicRef.current = setTimeout(attempt, recognitionRetryMsRef.current);
       }
     };
     const onVisibility = () => {
@@ -628,7 +658,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
       </footer>
 
       {isVoiceModalOpen && (
-        <div role="presentation" className="fixed inset-0 z-[180] flex items-center justify-center bg-[#060a12]/85 p-4 backdrop-blur-md"
+        <div role="presentation" className="fixed inset-0 z-[180] flex items-center justify-center bg-[#060a12]/95 p-4"
           onMouseDown={(event) => { if (event.target === event.currentTarget) setIsVoiceModalOpen(false); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="pilot-voice-heading"
             className="w-full max-w-md overflow-hidden rounded-[26px] border border-[#db4c3f]/30 bg-[#161d29] p-5 shadow-[0_40px_100px_rgba(0,0,0,.55)] sm:p-6">
@@ -637,7 +667,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
                 <p className="text-[10px] font-extrabold tracking-[0.2em] text-[#db4c3f]">TARİFTEN SES STÜDYOSU</p>
                 <h2 id="pilot-voice-heading" className="mt-1 text-xl font-bold text-white">Ses profilini değiştir</h2>
               </div>
-              <button type="button" autoFocus aria-label="Ses seçimini kapat" onClick={() => setIsVoiceModalOpen(false)}
+              <button type="button" aria-label="Ses seçimini kapat" onClick={() => setIsVoiceModalOpen(false)}
                 className="grid h-11 w-11 place-items-center rounded-xl bg-white/10 text-white"><FaXmark /></button>
             </div>
             <p className="mb-3 text-xs leading-5 text-[#b9c2ce]">Doğal Türkçe seslerden birini seç. Ses örneği oluşturulmadıkça ücretli istek gönderilmez.</p>
@@ -668,7 +698,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
       )}
       {/* 1. SOS MODAL */}
       {isSOSOpen && (
-        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4">
           <div className="bg-[#1e293b] border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all scale-100">
             <div className="bg-red-500/10 p-6 border-b border-red-500/20 flex justify-between items-center">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -709,7 +739,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
 
       {/* 2. YARDIM MODALI (Sesli Komutlar) */}
       {isHelpOpen && (
-        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4">
            <div className="bg-[#1e293b] border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
               <div className="bg-blue-500/10 p-6 border-b border-blue-500/20 flex justify-between items-center">
                   <h3 className="text-xl font-bold text-white flex items-center gap-2"><FaListUl className="text-blue-400" /> Sesli Komutlar</h3>
@@ -736,9 +766,9 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
 
       {/* 3. ALARM MODALI */}
       {isAlarmPlaying && (
-          <div className="fixed inset-0 z-[210] bg-black/90 flex items-center justify-center p-4 animate-pulse">
+          <div className="fixed inset-0 z-[210] bg-black/90 flex items-center justify-center p-4">
               <div className="text-center">
-                  <div className="w-32 h-32 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(239,68,68,0.6)] animate-bounce">
+                  <div className="w-32 h-32 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(239,68,68,0.6)]">
                       <FaVolumeHigh className="text-6xl text-white" />
                   </div>
                   <h2 className="text-4xl font-bold text-white mb-4">Süre Doldu!</h2>
@@ -756,7 +786,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
 
       {/* 4. FINISH MODAL */}
       {isFinishedOpen && (
-          <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4">
               <div className="bg-[#1e293b] border border-white/10 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl text-center p-8 relative">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
                   <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
