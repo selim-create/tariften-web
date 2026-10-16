@@ -451,45 +451,51 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   };
 
   return (
-    <div className="fixed inset-0 z-[100] isolate flex h-full flex-col overflow-hidden bg-[#090d16] font-sans text-[#f7f3ed]">
+    <div className="fixed inset-0 z-[100] isolate flex h-[100dvh] w-screen flex-col overflow-hidden bg-[#090d16] font-sans text-[#f7f3ed]">
       {/* Atmospheric background — entirely CSS, no remote image downloads. */}
-      <div className="pointer-events-none absolute -top-40 left-[8%] h-[450px] w-[450px] rounded-full bg-[#d5523d]/[0.09] blur-[125px]" />
-      <div className="pointer-events-none absolute bottom-[-230px] right-[-130px] h-[560px] w-[560px] rounded-full bg-[#bd875f]/[0.08] blur-[150px]" />
+      <div className="pointer-events-none absolute -top-40 left-[8%] h-[450px] w-[450px] rounded-full bg-[#db4c3f]/[0.09] blur-[125px]" />
+      <div className="pointer-events-none absolute bottom-[-230px] right-[-130px] h-[560px] w-[560px] rounded-full bg-[#db4c3f]/[0.08] blur-[150px]" />
       <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(rgba(255,255,255,.07)_0.5px,transparent_0.5px)] [background-size:22px_22px]" />
 
       {/* Minimal chrome / editorial header */}
-      <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] bg-[#0d121d]/90 px-4 py-4 backdrop-blur-2xl sm:px-8 lg:px-12">
+      <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] bg-[#0d121d]/90 px-3 py-2.5 backdrop-blur-2xl sm:px-6 sm:py-3 lg:px-8">
         <div className="flex min-w-0 items-center gap-3 sm:gap-5">
           <button type="button" aria-label="Tarife geri dön" onClick={() => router.back()}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-[#f6f1eb] transition hover:border-[#ee795d]/60 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ee795d]">
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-[#f6f1eb] transition hover:border-[#db4c3f]/60 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#db4c3f]">
             <FaArrowLeft />
           </button>
           <div className="min-w-0">
             <div className="mb-1 flex items-center gap-2.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#f07860]" />
-              <span className="text-[9px] font-extrabold tracking-[0.27em] text-[#dd9786] sm:text-[10px]">TARİFTEN / PİŞİRME REHBERİ</span>
+              <Image src="/logo.svg" alt="Tariften" width={104} height={22} unoptimized
+                className="h-5 w-auto max-w-[92px] brightness-0 invert sm:max-w-[108px]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#db4c3f]" />
+              <span className="text-[9px] font-extrabold tracking-[0.27em] text-[#db4c3f] sm:text-[10px]">TARİFTEN / PİŞİRME REHBERİ</span>
             </div>
             <h1 className="max-w-[180px] truncate text-base font-semibold tracking-[-0.025em] text-white sm:max-w-sm sm:text-lg xl:max-w-xl">{recipe.title}</h1>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
           <span className="hidden rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-medium text-[#c8c3ba] sm:inline-flex">Adım {currentStep + 1} / {steps.length}</span>
+          <button type="button" onClick={() => setIsVoiceModalOpen(true)} aria-label="Ses profilini değiştir"
+            className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-white sm:h-11 sm:w-11">
+            <FaVolumeHigh />
+          </button>
           <button type="button" aria-label="Komutlar ve yardım" onClick={() => setIsHelpOpen(true)}
-            className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-[#d8d0c9] transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#ee795d]"><FaQuestion /></button>
+            className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-[#d8d0c9] transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#db4c3f]"><FaQuestion /></button>
         </div>
       </header>
 
-      <main className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-8 sm:py-8 lg:px-12 lg:py-10">
-        <div className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-7">
+      <main className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-4">
+        <div className="mx-auto grid h-full w-full max-w-6xl gap-3 lg:grid-cols-[minmax(0,1fr)_258px] lg:gap-4">
           {/* Main reading stage */}
           <section aria-label="Geçerli tarif adımı"
-            className="relative flex min-h-[340px] flex-col justify-between overflow-hidden rounded-[26px] border border-white/[0.10] bg-gradient-to-br from-[#1c2330] via-[#141c29] to-[#111721] p-6 shadow-[0_28px_75px_rgba(0,0,0,.20)] sm:min-h-[450px] sm:rounded-[34px] sm:p-10 lg:min-h-[520px]">
+            className="relative flex min-h-[245px] flex-col justify-between overflow-hidden rounded-[22px] border border-white/[0.10] bg-gradient-to-br from-[#1c2330] via-[#141c29] to-[#111721] p-4 shadow-[0_28px_75px_rgba(0,0,0,.20)] sm:min-h-[300px] sm:rounded-[28px] sm:p-6 lg:min-h-[345px]">
             <div className="pointer-events-none absolute -right-2 -top-20 select-none text-[200px] font-extrabold leading-none tracking-tighter text-white/[0.025] sm:text-[280px]" aria-hidden="true">{String(currentStep + 1).padStart(2, "0")}</div>
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
               <div className="inline-flex items-center gap-3">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#ed795d]/15 text-sm font-extrabold text-[#ff9277]">{String(currentStep + 1).padStart(2, "0")}</span>
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#db4c3f]/15 text-sm font-extrabold text-[#db4c3f]">{String(currentStep + 1).padStart(2, "0")}</span>
                 <div>
-                  <div className="text-[10px] font-bold tracking-[0.28em] text-[#e9a38e]">ŞİMDİ SIRADA</div>
+                  <div className="text-[10px] font-bold tracking-[0.28em] text-[#db4c3f]">ŞİMDİ SIRADA</div>
                   <div className="mt-0.5 text-xs text-[#9fa8b8]">Toplam {steps.length} adım</div>
                 </div>
               </div>
@@ -498,12 +504,30 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
               </span>
             </div>
 
-            <div className="relative z-10 my-10 flex flex-1 flex-col justify-center">
-              <div className="mb-6 h-[2px] w-12 rounded-full bg-[#ec735a]" />
-              <h2 key={currentStep} aria-live="polite"
-                className="max-w-3xl text-pretty text-[clamp(1.5rem,3vw,3.15rem)] font-semibold leading-[1.35] tracking-[-0.035em] text-[#fffaf4]">
-                {steps[currentStep]}
-              </h2>
+            <div className="relative z-10 my-3 flex flex-1 flex-col justify-center sm:my-5">
+              <div className="mb-3 h-[2px] w-10 rounded-full bg-[#db4c3f]" />
+              {timerActive ? (
+                <div role="timer" aria-live="off" className="flex flex-col items-start gap-2 py-2">
+                  <div className="text-xs font-extrabold tracking-[0.25em] text-[#e8a8a0]">
+                    {isTimerPaused ? "SAYAÇ DURAKLATILDI" : "SAYAÇ ÇALIŞIYOR"}
+                  </div>
+                  <div className="font-mono text-[clamp(3.5rem,9vw,7rem)] font-bold tracking-[-0.06em] leading-none text-[#fff7f2]">{formatTime(timeLeft)}</div>
+                  <p className="max-w-xl text-sm leading-relaxed text-[#bec4ce]">{steps[currentStep]}</p>
+                  <div className="mt-3 flex gap-2">
+                    <button type="button" onClick={() => setIsTimerPaused(!isTimerPaused)}
+                      className="min-h-10 rounded-xl bg-white/[0.09] px-4 text-sm font-semibold text-white">
+                      {isTimerPaused ? "Sayacı sürdür" : "Sayacı duraklat"}
+                    </button>
+                    <button type="button" onClick={() => { setTimerActive(false); setIsTimerPaused(false); setTimeLeft(0); }}
+                      className="min-h-10 rounded-xl border border-white/15 px-4 text-sm text-white">İptal et</button>
+                  </div>
+                </div>
+              ) : (
+                <h2 key={currentStep} aria-live="polite"
+                  className="max-w-3xl text-pretty text-[clamp(1.15rem,2.15vw,2.15rem)] font-semibold leading-[1.37] tracking-[-0.022em] text-[#fffaf4]">
+                  {steps[currentStep]}
+                </h2>
+              )}
               {naturalVoice.error && !useDeviceVoice && (
                 <p role="alert" className="mt-6 max-w-lg rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{naturalVoice.error}</p>
               )}
@@ -512,10 +536,10 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
               )}
             </div>
 
-            <div className="relative z-10 flex flex-wrap items-center gap-2.5 border-t border-white/[0.08] pt-5">
+            <div className="relative z-10 flex flex-wrap items-center gap-2 border-t border-white/[0.08] pt-3">
               <button type="button" onClick={() => speak(steps[currentStep])}
                 disabled={!useDeviceVoice && (!naturalVoice.enabled || naturalVoice.playback === "loading")}
-                className="inline-flex min-h-11 items-center gap-2.5 rounded-2xl bg-[#ed7459] px-5 text-sm font-bold text-[#11141c] transition hover:bg-[#ffa188] disabled:cursor-not-allowed disabled:opacity-50">
+                className="inline-flex min-h-11 items-center gap-2.5 rounded-2xl bg-[#db4c3f] px-5 text-sm font-bold text-[#11141c] transition hover:bg-[#b83a30] disabled:cursor-not-allowed disabled:opacity-50">
                 <FaVolumeHigh /> {naturalVoice.playback === "loading" && !useDeviceVoice ? "Ses hazırlanıyor…" : "Adımı seslendir"}
               </button>
               {!useDeviceVoice && naturalVoice.playback === "playing" && (
@@ -530,101 +554,72 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
             </div>
           </section>
 
-          {/* Secondary tools: calm, intentionally de-emphasised */}
-          <aside className="grid content-start gap-4 sm:grid-cols-2 lg:grid-cols-1">
-            <section className="rounded-[26px] border border-white/[0.09] bg-[#151d29]/90 p-5 sm:p-6">
-              <div className="mb-4 text-[10px] font-bold tracking-[0.24em] text-[#f08a70]">SES STÜDYOSU</div>
-              <label htmlFor="pilot-voice" className="mb-2 block text-xs font-semibold text-[#c5cbd3]">Türkçe ses profili</label>
-              <select id="pilot-voice" value={useDeviceVoice ? "device" : naturalVoice.voice}
-                onChange={(event) => {
-                  naturalVoice.stop();
-                  window.speechSynthesis?.cancel();
-                  if (event.target.value === "device") setUseDeviceVoice(true);
-                  else { setUseDeviceVoice(false); naturalVoice.setVoice(event.target.value); }
-                  setVoiceFeedback("");
-                }}
-                className="w-full rounded-xl border border-white/15 bg-[#0d141e] px-3 py-3 text-sm font-semibold text-[#faf5f0] focus-visible:outline-2 focus-visible:outline-[#ee795d]">
-                {PILOT_CHIRP_VOICES.map((item) => (
-                  <option value={item.id} key={item.id}>{item.label} · Chirp 3 HD</option>
-                ))}
-                <option value="device">Cihaz sesi · Ücretsiz</option>
-              </select>
-              <div className="mt-3 text-xs leading-5 text-[#aeb7c4]">
-                {!useDeviceVoice && (!naturalVoice.token ? "Doğal ses için hesabına giriş yap." :
-                  !hasStoredSteps ? "Bu tarifte kayıtlı seslendirilebilir adım bulunmuyor." :
-                  naturalVoice.checking ? "Ses erişimin kontrol ediliyor…" :
-                  !naturalVoice.enabled ? "Doğal ses hesabında kullanılamıyor. Cihaz sesini seçebilirsin." :
-                  "Enceladus varsayılan. Yeni adım ve sesler kullanım kotasına dahil olabilir.")}
-                {useDeviceVoice && "Cihaz sesi internetsiz çalışır; Google karakter kotası kullanmaz."}
+          {/* Compact secondary controls; full-screen step and timer retain priority. */}
+          <aside className="grid content-start gap-2 sm:grid-cols-2 lg:grid-cols-1">
+            <button type="button" onClick={() => setIsVoiceModalOpen(true)}
+              className="flex min-h-[72px] items-center justify-between rounded-[18px] border border-white/[0.09] bg-[#151d29]/95 p-4 text-left transition hover:border-[#db4c3f]/70">
+              <div>
+                <div className="text-[10px] font-extrabold tracking-[0.2em] text-[#db4c3f]">SES PROFİLİ</div>
+                <div className="mt-1 text-sm font-semibold text-white">
+                  {useDeviceVoice ? "Cihaz sesi" : PILOT_CHIRP_VOICES.find(v => v.id === naturalVoice.voice)?.label.split(" · ")[0] || "Enceladus"}
+                </div>
               </div>
-            </section>
-
-            <section className="rounded-[26px] border border-white/[0.09] bg-[#151d29]/90 p-5 sm:p-6">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-[10px] font-bold tracking-[0.24em] text-[#f08a70]">ELLER SERBEST</span>
-                <span className={`h-2 w-2 rounded-full ${isListening ? "bg-[#94e0ae] shadow-[0_0_12px_#94e0ae]" : "bg-[#778294]"}`} />
-              </div>
-              <p className="text-sm font-semibold text-[#f4efe8]">{isListening ? "Mikrofon komutları dinliyor" : "Sesli komutlar"}</p>
-              <p className="mt-2 text-xs leading-5 text-[#aeb7c4]">Mikrofonu aç, sonra “sonraki”, “önceki” veya “tekrar oku” de.</p>
-              <button type="button" onClick={toggleListening} aria-pressed={isListening} disabled={!micSupported}
-                className={`mt-4 inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold transition focus-visible:outline-2 focus-visible:outline-[#ee795d] disabled:opacity-40 ${isListening ? "border-[#8ed6ad]/40 bg-[#83d3a0]/15 text-[#aef0be]" : "border-white/15 bg-white/[0.07] text-white hover:bg-white/[0.12]"}`}>
-                <FaMicrophone /> {isListening ? "Dinlemeyi kapat" : "Sesli komutları aç"}
-              </button>
-              {lastCommand && <p className="mt-3 break-words text-xs text-[#a0e2bc]">Algılandı: “{lastCommand}”</p>}
-              {micError && <p role="alert" className="mt-3 text-xs leading-5 text-[#ffb2a3]">{micError}</p>}
-            </section>
-
-            <section className="rounded-[26px] border border-white/[0.09] bg-[#151d29]/90 p-5 sm:p-6">
-              <span className="text-[10px] font-bold tracking-[0.24em] text-[#f08a70]">MUTFAK ARAÇLARI</span>
-              <div className="mt-4 flex items-center gap-3">
-                {timerActive ? (
-                  <button type="button" onClick={() => setIsTimerPaused(!isTimerPaused)}
-                    className="flex min-h-14 flex-1 items-center justify-between gap-4 rounded-2xl border border-[#d6a16d]/30 bg-[#d6a16d]/10 px-4 text-[#ffe4c9]">
-                    <span className="font-mono text-2xl font-bold tracking-wider">{formatTime(timeLeft)}</span>
-                    {isTimerPaused ? <FaPlay /> : <FaPause />}
-                  </button>
-                ) : (
-                  <button type="button" onClick={() => startTimer(10)}
-                    className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-3 text-sm font-semibold text-[#f5e6d4]">
-                    <FaPlay /> 10 dk sayaç
-                  </button>
-                )}
-                <button type="button" onClick={() => setIsSOSOpen(true)} aria-label="Mutfak ipuçları"
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/15 bg-white/[0.06] text-[#e9a18d]">
-                  <FaTriangleExclamation />
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-[#f7edea]"><FaVolumeHigh /></span>
+            </button>
+            <section className="rounded-[18px] border border-white/[0.09] bg-[#151d29]/95 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-extrabold tracking-[0.2em] text-[#db4c3f]">ELLER SERBEST</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{isListening ? "Mikrofon dinliyor" : "Sesli komutlar"}</div>
+                </div>
+                <button type="button" onClick={toggleListening} disabled={!micSupported} aria-pressed={isListening}
+                  className={`grid h-10 w-10 place-items-center rounded-xl ${isListening ? "bg-[#236342] text-white" : "bg-white/10 text-white"} disabled:opacity-40`}>
+                  <FaMicrophone />
                 </button>
               </div>
-              {timerActive && <p className="mt-2 text-xs text-[#bdb9af]">{isTimerPaused ? "Sayaç duraklatıldı" : "Sayaç çalışıyor"} · Dokunarak değiştir</p>}
+              <p className="mt-2 text-xs leading-5 text-[#abb5c2]">Varsayılan açık · “Sonraki”, “Önceki”, “Oku”</p>
+              {lastCommand && <p className="mt-1 break-words text-xs text-[#9fddbc]">Algılandı: {lastCommand}</p>}
+              {micError && <p role="alert" className="mt-1 text-xs leading-4 text-[#ffd0ca]">{micError}</p>}
+            </section>
+            <section className="flex items-center gap-2 rounded-[18px] border border-white/[0.09] bg-[#151d29]/95 p-3">
+              <button type="button" onClick={() => timerActive ? setIsTimerPaused(!isTimerPaused) : startTimer(10)}
+                className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-white/[0.06] px-3 text-sm font-semibold text-[#faf3f0]">
+                <FaPlay /> {timerActive ? formatTime(timeLeft) : "10 dk sayaç"}
+              </button>
+              <button type="button" aria-label="Mutfak ipuçları" onClick={() => setIsSOSOpen(true)}
+                className="grid h-12 w-12 place-items-center rounded-xl border border-white/10 bg-white/[0.07] text-[#db4c3f]">
+                <FaTriangleExclamation />
+              </button>
             </section>
           </aside>
         </div>
       </main>
 
       {/* Always visible navigational dock */}
-      <footer className="relative z-20 shrink-0 border-t border-white/[0.08] bg-[#0d121c]/95 px-4 pb-5 pt-4 backdrop-blur-xl sm:px-8 sm:pb-6 lg:px-12">
+      <footer className="relative z-20 shrink-0 border-t border-white/[0.08] bg-[#0d121c]/95 px-3 pb-3 pt-2.5 backdrop-blur-xl sm:px-8 sm:pb-4 lg:px-12">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-3 flex items-center justify-between text-[11px] font-semibold tracking-wider text-[#a3acb9]">
+          <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold tracking-wider text-[#a3acb9]">
             <span>PİŞİRME İLERLEMESİ</span><span>{currentStep + 1} / {steps.length}</span>
           </div>
           <div role="progressbar" aria-label="Tarif ilerlemesi" aria-valuenow={currentStep + 1} aria-valuemin={0} aria-valuemax={steps.length}
-            className="mb-4 h-[5px] overflow-hidden rounded-full bg-white/10">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#ee765b] to-[#f8a782] transition-[width] duration-300" style={{ width: `${progress}%` }} />
+            className="mb-2.5 h-[4px] overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-gradient-to-r from-[#db4c3f] to-[#db4c3f] transition-[width] duration-300" style={{ width: `${progress}%` }} />
           </div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-5">
             <button type="button" onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-              disabled={currentStep === 0} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-30">
+              disabled={currentStep === 0} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.07] px-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-30">
               <FaChevronLeft /><span>Önceki</span>
             </button>
             <button type="button" onClick={toggleListening} disabled={!micSupported}
               aria-label={isListening ? "Mikrofonu kapat" : "Sesli komutlar için mikrofonu aç"} aria-pressed={isListening}
-              className={`relative flex h-14 w-14 items-center justify-center rounded-[20px] border text-xl transition sm:h-16 sm:w-16 ${isListening ? "border-[#91e5b0]/60 bg-[#214534] text-[#bff6ce]" : "border-[#faab96]/50 bg-[#db604b] text-[#fff9f4]"} disabled:opacity-40`}>
+              className={`relative flex h-11 w-11 items-center justify-center rounded-xl border text-xl transition ${isListening ? "border-[#91e5b0]/60 bg-[#214534] text-[#bff6ce]" : "border-[#db4c3f] bg-[#db4c3f] text-white"} disabled:opacity-40`}>
               {isListening && <span className="pointer-events-none absolute inset-[-5px] animate-pulse rounded-[24px] border border-[#91e5b0]/25" />}
               <FaMicrophone />
             </button>
             <button type="button" onClick={() => {
               if (currentStep < steps.length - 1) setCurrentStep(currentStep + 1);
               else setIsFinishedOpen(true);
-            }} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#f3ebe1] px-3 text-sm font-extrabold text-[#121824] transition hover:bg-white">
+            }} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-3 text-sm font-extrabold text-white transition hover:bg-[#bd4035]">
               <span>{currentStep === steps.length - 1 ? "Bitir" : "Sonraki"}</span>
               {currentStep === steps.length - 1 ? <FaCheck /> : <FaChevronRight />}
             </button>
@@ -632,6 +627,45 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
         </div>
       </footer>
 
+      {isVoiceModalOpen && (
+        <div role="presentation" className="fixed inset-0 z-[180] flex items-center justify-center bg-[#060a12]/85 p-4 backdrop-blur-md"
+          onMouseDown={(event) => { if (event.target === event.currentTarget) setIsVoiceModalOpen(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="pilot-voice-heading"
+            className="w-full max-w-md overflow-hidden rounded-[26px] border border-[#db4c3f]/30 bg-[#161d29] p-5 shadow-[0_40px_100px_rgba(0,0,0,.55)] sm:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-extrabold tracking-[0.2em] text-[#db4c3f]">TARİFTEN SES STÜDYOSU</p>
+                <h2 id="pilot-voice-heading" className="mt-1 text-xl font-bold text-white">Ses profilini değiştir</h2>
+              </div>
+              <button type="button" autoFocus aria-label="Ses seçimini kapat" onClick={() => setIsVoiceModalOpen(false)}
+                className="grid h-11 w-11 place-items-center rounded-xl bg-white/10 text-white"><FaXmark /></button>
+            </div>
+            <p className="mb-3 text-xs leading-5 text-[#b9c2ce]">Doğal Türkçe seslerden birini seç. Ses örneği oluşturulmadıkça ücretli istek gönderilmez.</p>
+            <div className="max-h-[min(58dvh,430px)] space-y-2 overflow-y-auto pr-1">
+              {PILOT_CHIRP_VOICES.map((item) => (
+                <button key={item.id} type="button" onClick={() => {
+                  naturalVoice.stop();
+                  window.speechSynthesis?.cancel();
+                  setUseDeviceVoice(false);
+                  naturalVoice.setVoice(item.id);
+                  setVoiceFeedback("");
+                  setIsVoiceModalOpen(false);
+                }} className={`flex min-h-12 w-full items-center justify-between rounded-xl border px-4 text-left text-sm transition ${!useDeviceVoice && naturalVoice.voice === item.id ? "border-[#db4c3f] bg-[#db4c3f]/20 text-white" : "border-white/10 bg-white/[0.04] text-[#e2e5eb] hover:bg-white/[0.08]"}`}>
+                  <span>{item.label}</span><span className="text-[10px] text-[#bac2ce]">Chirp 3 HD</span>
+                </button>
+              ))}
+              <button type="button" onClick={() => {
+                naturalVoice.stop();
+                setUseDeviceVoice(true);
+                setVoiceFeedback("");
+                setIsVoiceModalOpen(false);
+              }} className={`flex min-h-12 w-full items-center justify-between rounded-xl border px-4 text-left text-sm ${useDeviceVoice ? "border-[#db4c3f] bg-[#db4c3f]/20 text-white" : "border-white/10 bg-white/[0.04] text-[#e2e5eb]"}`}>
+                <span>Cihaz sesi</span><span className="text-[10px] text-[#bac2ce]">Ücretsiz</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
       {/* 1. SOS MODAL */}
       {isSOSOpen && (
         <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
