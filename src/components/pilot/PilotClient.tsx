@@ -240,7 +240,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   const handleCommand = useCallback((command: string) => {
     const lowerCmd = command.toLocaleLowerCase("tr-TR").trim();
     if (lowerCmd === "duraklat") { naturalVoice.pause(); return; }
-    if (lowerCmd === "devam et") { void naturalVoice.play(); return; }
+    if (lowerCmd === "devam et") { if (timerActive && isTimerPaused) setIsTimerPaused(false); else void naturalVoice.play(); return; }
     if (lowerCmd === "sesi durdur") { naturalVoice.stop(); window.speechSynthesis?.cancel(); return; }
     setLastCommand(lowerCmd);
     
@@ -255,7 +255,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
     if (lowerCmd.includes("ileri") || lowerCmd.includes("sonraki") || lowerCmd.includes("geç")) {
       if (currentStep < steps.length - 1) {
         setCurrentStep(prev => prev + 1);
-        speak("Sonraki adım."); // "Sıradaki" yerine "Sonraki"
+        setVoiceFeedback("Sonraki adım.");
       } else {
         speak("Tebrikler şefim! Tarif tamamlandı.");
         setIsFinishedOpen(true); // Modal aç
@@ -264,7 +264,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
     else if (lowerCmd.includes("geri") || lowerCmd.includes("önceki")) {
       if (currentStep > 0) {
         setCurrentStep(prev => prev - 1);
-        speak("Önceki adıma dönüldü.");
+        setVoiceFeedback("Önceki adıma dönüldü.");
       }
     } 
     else if (lowerCmd.includes("oku") || lowerCmd.includes("tekrar")) {
