@@ -13,7 +13,6 @@ import { getRandomChefTip } from "@/lib/chefTips";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
 import { parseIngredients, parseSteps } from "@/lib/recipeUtils";
-import VoiceCookingGuide from "@/components/recipe/VoiceCookingGuide";
 
 // Helper: Tahmini porsiyon ağırlığı hesapla
 const WEIGHT_PER_PIECE = 50; // Malzeme adedi başına ortalama gram
@@ -434,7 +433,6 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             <h2 className="text-2xl font-bold text-slate-900 font-heading">Adım Adım Hazırlanış</h2>
             <div className="text-sm text-gray-500 font-medium">{steps.length} Adım</div>
           </div>
-          <VoiceCookingGuide recipeId={recipe.id} steps={steps} />
           <div className="space-y-6">
             {steps.map((step, idx) => {
               const isCompleted = completedSteps.includes(idx);
