@@ -79,6 +79,11 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   const [useDeviceVoice, setUseDeviceVoice] = useState(false);
   const [voiceFeedback, setVoiceFeedback] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [micError, setMicError] = useState("");
+  const [micSupported, setMicSupported] = useState(true);
+  const wantListeningRef = useRef(false);
+  const cloudSpeakingRef = useRef(false);
+  const retryMicRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lastCommand, setLastCommand] = useState("");
   
   // Zamanlayıcı State'i
@@ -95,7 +100,6 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
 
   // Ses API Referansları
   const recognitionRef = useRef<any>(null);
-  const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   
   // İlerleme yüzdesi
@@ -216,7 +220,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
 
   // --- KOMUT İŞLEME MERKEZİ ---
   const handleCommand = useCallback((command: string) => {
-    const lowerCmd = command.toLowerCase().trim();
+    const lowerCmd = command.toLocaleLowerCase("tr-TR").trim();
     setLastCommand(lowerCmd);
     
     // 1. YARDIM & MODAL KONTROLLERİ
@@ -227,7 +231,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
     }
 
     // 2. NAVİGASYON KOMUTLARI
-    if (lowerCmd.includes("ileri") || lowerCmd.includes("sonraki") || lowerCmd.includes("geç") || lowerCmd.includes("tamam")) {
+    if (lowerCmd.includes("ileri") || lowerCmd.includes("sonraki") || lowerCmd.includes("geç")) {
       if (currentStep < steps.length - 1) {
         setCurrentStep(prev => prev + 1);
         speak("Sonraki adım."); // "Sıradaki" yerine "Sonraki"
@@ -299,70 +303,118 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   }, [currentStep, steps, speak, timerActive, isTimerPaused, timeLeft, isAlarmPlaying, isHelpOpen, isSOSOpen, startTimer]);
 
 
-  // --- SES TANIMA ENGINE (Closure Fix) ---
-  // handleCommand'ın en güncel versiyonuna erişmek için ref kullanıyoruz
+  // Voice commands are browser-native recognition, separate from Google Chirp MP3.
+  // Initialize exactly once: the old effect recreated its recognizer whenever
+  // isListening changed, leaving inactive instances and silently missing commands.
   const handleCommandRef = useRef(handleCommand);
-  useEffect(() => {
-    handleCommandRef.current = handleCommand;
-  }, [handleCommand]);
+  useEffect(() => { handleCommandRef.current = handleCommand; }, [handleCommand]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      synthesisRef.current = window.speechSynthesis;
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.lang = 'tr-TR';
-        recognition.interimResults = false;
-
-        recognition.onresult = (event: any) => {
-          const last = event.results[event.results.length - 1];
-          const text = last[0].transcript;
-          console.log("Algılanan Ses:", text);
-          
-          // Ref üzerinden en güncel fonksiyonu çağırıyoruz!
-          handleCommandRef.current(text);
-        };
-
-        recognition.onend = () => {
-          if (isListening) {
-            try {
-               recognition.start();
-            } catch (e) {
-               // ignore
-            }
-          }
-        };
-
-        recognitionRef.current = recognition;
-      }
-    }
-  }, [isListening]); // Dependency sadece isListening
-
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) {
-      alert("Tarayıcınız sesli komutları desteklemiyor.");
+    if (typeof window === "undefined") return;
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setMicSupported(false);
+      setMicError("Bu tarayıcı Türkçe sesli komutları desteklemiyor. Güncel Chrome ile deneyebilir veya düğmeleri kullanabilirsin.");
       return;
     }
+    const recognizer = new Recognition();
+    recognizer.lang = "tr-TR";
+    recognizer.continuous = true;
+    recognizer.interimResults = false;
+    recognizer.maxAlternatives = 1;
+    recognitionRef.current = recognizer;
 
-    if (isListening) {
-      setIsListening(false);
-      recognitionRef.current.stop();
-      speak("Sesli asistan kapatıldı.");
-    } else {
+    recognizer.onstart = () => {
+      setMicError("");
       setIsListening(true);
+    };
+    recognizer.onresult = (event: any) => {
+      if (!wantListeningRef.current || cloudSpeakingRef.current) return;
+      const last = event.results?.[event.results.length - 1];
+      const phrase = last?.[0]?.transcript;
+      if (typeof phrase === "string" && phrase.trim()) {
+        handleCommandRef.current(phrase);
+      }
+    };
+    recognizer.onerror = (event: any) => {
+      const code = event.error || "unknown";
+      if (code === "no-speech" || code === "aborted") return;
+      const messages: Record<string, string> = {
+        "not-allowed": "Mikrofon izni reddedildi. Tarayıcının site izinlerinden mikrofonu aç.",
+        "service-not-allowed": "Tarayıcının ses tanıma servisi engellendi. Mikrofon ve tarayıcı izinlerini kontrol et.",
+        "audio-capture": "Mikrofona erişilemiyor. Başka bir uygulamanın mikrofonu kullanmadığını kontrol et.",
+        "network": "Ses tanıma servisine erişilemiyor. Bağlantını kontrol et.",
+        "language-not-supported": "Bu tarayıcıda Türkçe ses tanıma desteklenmiyor.",
+      };
+      setMicError(messages[code] || "Sesli komut algılanamadı. Lütfen yeniden dene.");
+      if (["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"].includes(code)) {
+        wantListeningRef.current = false;
+        setIsListening(false);
+      }
+    };
+    recognizer.onend = () => {
+      setIsListening(false);
+      if (retryMicRef.current) clearTimeout(retryMicRef.current);
+      if (wantListeningRef.current && !cloudSpeakingRef.current) {
+        retryMicRef.current = setTimeout(() => {
+          if (!wantListeningRef.current || cloudSpeakingRef.current) return;
+          try { recognizer.start(); } catch { /* not started; user can toggle again */ }
+        }, 400);
+      }
+    };
+    return () => {
+      wantListeningRef.current = false;
+      if (retryMicRef.current) clearTimeout(retryMicRef.current);
+      recognizer.onend = null;
+      recognizer.onresult = null;
+      recognizer.onerror = null;
+      try { recognizer.abort(); } catch { /* no running session */ }
+      recognitionRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const playing = naturalVoice.playback === "playing" || naturalVoice.playback === "loading";
+    cloudSpeakingRef.current = playing;
+    if (!wantListeningRef.current || !recognitionRef.current) return;
+    if (playing) {
+      if (retryMicRef.current) clearTimeout(retryMicRef.current);
+      try { recognitionRef.current.stop(); } catch { /* already stopped */ }
+    } else if (!isListening) {
+      if (retryMicRef.current) clearTimeout(retryMicRef.current);
+      retryMicRef.current = setTimeout(() => {
+        if (!wantListeningRef.current || cloudSpeakingRef.current) return;
+        try { recognitionRef.current?.start(); } catch { /* already started */ }
+      }, 500);
+    }
+  }, [naturalVoice.playback, isListening]);
+
+  const toggleListening = () => {
+    if (!micSupported || !recognitionRef.current) {
+      setMicError("Bu tarayıcıda sesli komutlar kullanılamıyor. Güncel Chrome ile deneyebilirsin.");
+      return;
+    }
+    if (wantListeningRef.current) {
+      wantListeningRef.current = false;
+      if (retryMicRef.current) clearTimeout(retryMicRef.current);
+      try { recognitionRef.current.stop(); } catch { /* already stopped */ }
+      setIsListening(false);
+      setMicError("");
+    } else {
+      wantListeningRef.current = true;
+      setMicError("");
+      if (cloudSpeakingRef.current) {
+        setMicError("Tarif okunurken mikrofon bekletiliyor. Okuma bitince dinleme başlayacak.");
+        return;
+      }
       try {
         recognitionRef.current.start();
-        speak("Sizi dinliyorum şefim.");
-      } catch (e) {
-        console.error("Mic start error", e);
+      } catch {
+        wantListeningRef.current = false;
+        setMicError("Mikrofon başlatılamadı. İzinleri kontrol edip yeniden dene.");
       }
     }
   };
-
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
