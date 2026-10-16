@@ -423,18 +423,14 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   };
 
   const handleSOSAction = (problem: string) => {
-    setSosMessage("Yapay Zeka Şef düşünüyor...");
-    setTimeout(() => {
-      const responses: {[key:string]: string} = {
-          "burnt": "Tencereyi hemen ocaktan al ve dibi tutmayan kısımları başka bir kaba aktar. İçine yarım dilim ekmek koyup kapağı kapat, yanık kokusunu alacaktır.",
-          "salty": "Yemeğe bir adet soyulmuş bütün patates at ve biraz daha pişir. Patates fazla tuzu emecektir.",
-          "watery": "Kapağı aç ve yüksek ateşte suyunu çektir. Veya ayrı bir yerde biraz nişastayı suyla açıp yemeğe ekle.",
-          "other": "Eksik malzeme için alternatifler: Krema yerine yoğurt+un, yumurta yerine muz veya keten tohumu jeli kullanabilirsiniz."
-      };
-      const msg = responses[problem] || "Çözüm bulunamadı.";
-      setSosMessage(msg);
-      speak(msg);
-    }, 1500);
+    // Static safety guidance, not a simulated AI service.
+    const responses: Record<string, string> = {
+      burnt: "Önce ocağı kapat. Yanmamış kısmı dibi kazımadan temiz bir kaba aktar; yanık kokusu veya tadı belirginse servis etme.",
+      salty: "Tarif uygunsa tuzsuz malzeme veya sıvıyla seyrelterek tadı tekrar kontrol et. Patates, tuzu seçici biçimde emmez.",
+      watery: "Yemeğe uygunsa kapağı açık ve kontrollü şekilde bir süre daha pişir; her yemek için yüksek ateş uygun değildir.",
+      other: "Eksik malzeme alternatiflerinde alerjenleri ve tarifin yapısını kontrol et. Her tarifte aynı değişim işe yaramaz.",
+    };
+    setSosMessage(responses[problem] || "Bu durum için hazır bir mutfak önerisi bulunmuyor.");
   };
 
   return (
@@ -625,7 +621,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
           <div className="bg-[#1e293b] border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all scale-100">
             <div className="bg-red-500/10 p-6 border-b border-red-500/20 flex justify-between items-center">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <FaTriangleExclamation className="text-red-500" /> Mutfak Acil Servis
+                <FaTriangleExclamation className="text-red-500" /> Mutfak İpuçları
               </h3>
               <button onClick={() => {setIsSOSOpen(false); setSosMessage(null);}} className="text-gray-400 hover:text-white transition"><FaXmark className="text-xl" /></button>
             </div>
