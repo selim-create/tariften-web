@@ -79,6 +79,11 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   const [useDeviceVoice, setUseDeviceVoice] = useState(false);
   const [voiceFeedback, setVoiceFeedback] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [micError, setMicError] = useState("");
+  const [micSupported, setMicSupported] = useState(true);
+  const wantListeningRef = useRef(false);
+  const cloudSpeakingRef = useRef(false);
+  const retryMicRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lastCommand, setLastCommand] = useState("");
   
   // Zamanlayıcı State'i
@@ -95,7 +100,6 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
 
   // Ses API Referansları
   const recognitionRef = useRef<any>(null);
-  const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   
   // İlerleme yüzdesi
@@ -216,7 +220,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
 
   // --- KOMUT İŞLEME MERKEZİ ---
   const handleCommand = useCallback((command: string) => {
-    const lowerCmd = command.toLowerCase().trim();
+    const lowerCmd = command.toLocaleLowerCase("tr-TR").trim();
     setLastCommand(lowerCmd);
     
     // 1. YARDIM & MODAL KONTROLLERİ
@@ -227,7 +231,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
     }
 
     // 2. NAVİGASYON KOMUTLARI
-    if (lowerCmd.includes("ileri") || lowerCmd.includes("sonraki") || lowerCmd.includes("geç") || lowerCmd.includes("tamam")) {
+    if (lowerCmd.includes("ileri") || lowerCmd.includes("sonraki") || lowerCmd.includes("geç")) {
       if (currentStep < steps.length - 1) {
         setCurrentStep(prev => prev + 1);
         speak("Sonraki adım."); // "Sıradaki" yerine "Sonraki"
@@ -299,70 +303,118 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   }, [currentStep, steps, speak, timerActive, isTimerPaused, timeLeft, isAlarmPlaying, isHelpOpen, isSOSOpen, startTimer]);
 
 
-  // --- SES TANIMA ENGINE (Closure Fix) ---
-  // handleCommand'ın en güncel versiyonuna erişmek için ref kullanıyoruz
+  // Voice commands are browser-native recognition, separate from Google Chirp MP3.
+  // Initialize exactly once: the old effect recreated its recognizer whenever
+  // isListening changed, leaving inactive instances and silently missing commands.
   const handleCommandRef = useRef(handleCommand);
-  useEffect(() => {
-    handleCommandRef.current = handleCommand;
-  }, [handleCommand]);
+  useEffect(() => { handleCommandRef.current = handleCommand; }, [handleCommand]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      synthesisRef.current = window.speechSynthesis;
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.lang = 'tr-TR';
-        recognition.interimResults = false;
-
-        recognition.onresult = (event: any) => {
-          const last = event.results[event.results.length - 1];
-          const text = last[0].transcript;
-          console.log("Algılanan Ses:", text);
-          
-          // Ref üzerinden en güncel fonksiyonu çağırıyoruz!
-          handleCommandRef.current(text);
-        };
-
-        recognition.onend = () => {
-          if (isListening) {
-            try {
-               recognition.start();
-            } catch (e) {
-               // ignore
-            }
-          }
-        };
-
-        recognitionRef.current = recognition;
-      }
-    }
-  }, [isListening]); // Dependency sadece isListening
-
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) {
-      alert("Tarayıcınız sesli komutları desteklemiyor.");
+    if (typeof window === "undefined") return;
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setMicSupported(false);
+      setMicError("Bu tarayıcı Türkçe sesli komutları desteklemiyor. Güncel Chrome ile deneyebilir veya düğmeleri kullanabilirsin.");
       return;
     }
+    const recognizer = new Recognition();
+    recognizer.lang = "tr-TR";
+    recognizer.continuous = true;
+    recognizer.interimResults = false;
+    recognizer.maxAlternatives = 1;
+    recognitionRef.current = recognizer;
 
-    if (isListening) {
-      setIsListening(false);
-      recognitionRef.current.stop();
-      speak("Sesli asistan kapatıldı.");
-    } else {
+    recognizer.onstart = () => {
+      setMicError("");
       setIsListening(true);
+    };
+    recognizer.onresult = (event: any) => {
+      if (!wantListeningRef.current || cloudSpeakingRef.current) return;
+      const last = event.results?.[event.results.length - 1];
+      const phrase = last?.[0]?.transcript;
+      if (typeof phrase === "string" && phrase.trim()) {
+        handleCommandRef.current(phrase);
+      }
+    };
+    recognizer.onerror = (event: any) => {
+      const code = event.error || "unknown";
+      if (code === "no-speech" || code === "aborted") return;
+      const messages: Record<string, string> = {
+        "not-allowed": "Mikrofon izni reddedildi. Tarayıcının site izinlerinden mikrofonu aç.",
+        "service-not-allowed": "Tarayıcının ses tanıma servisi engellendi. Mikrofon ve tarayıcı izinlerini kontrol et.",
+        "audio-capture": "Mikrofona erişilemiyor. Başka bir uygulamanın mikrofonu kullanmadığını kontrol et.",
+        "network": "Ses tanıma servisine erişilemiyor. Bağlantını kontrol et.",
+        "language-not-supported": "Bu tarayıcıda Türkçe ses tanıma desteklenmiyor.",
+      };
+      setMicError(messages[code] || "Sesli komut algılanamadı. Lütfen yeniden dene.");
+      if (["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"].includes(code)) {
+        wantListeningRef.current = false;
+        setIsListening(false);
+      }
+    };
+    recognizer.onend = () => {
+      setIsListening(false);
+      if (retryMicRef.current) clearTimeout(retryMicRef.current);
+      if (wantListeningRef.current && !cloudSpeakingRef.current) {
+        retryMicRef.current = setTimeout(() => {
+          if (!wantListeningRef.current || cloudSpeakingRef.current) return;
+          try { recognizer.start(); } catch { /* not started; user can toggle again */ }
+        }, 400);
+      }
+    };
+    return () => {
+      wantListeningRef.current = false;
+      if (retryMicRef.current) clearTimeout(retryMicRef.current);
+      recognizer.onend = null;
+      recognizer.onresult = null;
+      recognizer.onerror = null;
+      try { recognizer.abort(); } catch { /* no running session */ }
+      recognitionRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const playing = naturalVoice.playback === "playing" || naturalVoice.playback === "loading";
+    cloudSpeakingRef.current = playing;
+    if (!wantListeningRef.current || !recognitionRef.current) return;
+    if (playing) {
+      if (retryMicRef.current) clearTimeout(retryMicRef.current);
+      try { recognitionRef.current.stop(); } catch { /* already stopped */ }
+    } else if (!isListening) {
+      if (retryMicRef.current) clearTimeout(retryMicRef.current);
+      retryMicRef.current = setTimeout(() => {
+        if (!wantListeningRef.current || cloudSpeakingRef.current) return;
+        try { recognitionRef.current?.start(); } catch { /* already started */ }
+      }, 500);
+    }
+  }, [naturalVoice.playback, isListening]);
+
+  const toggleListening = () => {
+    if (!micSupported || !recognitionRef.current) {
+      setMicError("Bu tarayıcıda sesli komutlar kullanılamıyor. Güncel Chrome ile deneyebilirsin.");
+      return;
+    }
+    if (wantListeningRef.current) {
+      wantListeningRef.current = false;
+      if (retryMicRef.current) clearTimeout(retryMicRef.current);
+      try { recognitionRef.current.stop(); } catch { /* already stopped */ }
+      setIsListening(false);
+      setMicError("");
+    } else {
+      wantListeningRef.current = true;
+      setMicError("");
+      if (cloudSpeakingRef.current) {
+        setMicError("Tarif okunurken mikrofon bekletiliyor. Okuma bitince dinleme başlayacak.");
+        return;
+      }
       try {
         recognitionRef.current.start();
-        speak("Sizi dinliyorum şefim.");
-      } catch (e) {
-        console.error("Mic start error", e);
+      } catch {
+        wantListeningRef.current = false;
+        setMicError("Mikrofon başlatılamadı. İzinleri kontrol edip yeniden dene.");
       }
     }
   };
-
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -371,222 +423,195 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   };
 
   const handleSOSAction = (problem: string) => {
-    setSosMessage("Yapay Zeka Şef düşünüyor...");
-    setTimeout(() => {
-      const responses: {[key:string]: string} = {
-          "burnt": "Tencereyi hemen ocaktan al ve dibi tutmayan kısımları başka bir kaba aktar. İçine yarım dilim ekmek koyup kapağı kapat, yanık kokusunu alacaktır.",
-          "salty": "Yemeğe bir adet soyulmuş bütün patates at ve biraz daha pişir. Patates fazla tuzu emecektir.",
-          "watery": "Kapağı aç ve yüksek ateşte suyunu çektir. Veya ayrı bir yerde biraz nişastayı suyla açıp yemeğe ekle.",
-          "other": "Eksik malzeme için alternatifler: Krema yerine yoğurt+un, yumurta yerine muz veya keten tohumu jeli kullanabilirsiniz."
-      };
-      const msg = responses[problem] || "Çözüm bulunamadı.";
-      setSosMessage(msg);
-      speak(msg);
-    }, 1500);
+    // Static safety guidance, not a simulated AI service.
+    const responses: Record<string, string> = {
+      burnt: "Önce ocağı kapat. Yanmamış kısmı dibi kazımadan temiz bir kaba aktar; yanık kokusu veya tadı belirginse servis etme.",
+      salty: "Tarif uygunsa tuzsuz malzeme veya sıvıyla seyrelterek tadı tekrar kontrol et. Patates, tuzu seçici biçimde emmez.",
+      watery: "Yemeğe uygunsa kapağı açık ve kontrollü şekilde bir süre daha pişir; her yemek için yüksek ateş uygun değildir.",
+      other: "Eksik malzeme alternatiflerinde alerjenleri ve tarifin yapısını kontrol et. Her tarifte aynı değişim işe yaramaz.",
+    };
+    setSosMessage(responses[problem] || "Bu durum için hazır bir mutfak önerisi bulunmuyor.");
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#0f172a] text-white flex flex-col h-full overflow-hidden font-sans">
-      
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#db4c3f]/10 blur-[100px] rounded-full pointer-events-none" />
+    <div className="fixed inset-0 z-[100] isolate flex h-full flex-col overflow-hidden bg-[#090d16] font-sans text-[#f7f3ed]">
+      {/* Atmospheric background — entirely CSS, no remote image downloads. */}
+      <div className="pointer-events-none absolute -top-40 left-[8%] h-[450px] w-[450px] rounded-full bg-[#d5523d]/[0.09] blur-[125px]" />
+      <div className="pointer-events-none absolute bottom-[-230px] right-[-130px] h-[560px] w-[560px] rounded-full bg-[#bd875f]/[0.08] blur-[150px]" />
+      <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(rgba(255,255,255,.07)_0.5px,transparent_0.5px)] [background-size:22px_22px]" />
 
-      {/* HEADER */}
-      <header className="flex-shrink-0 flex justify-between items-center p-6 z-10 border-b border-white/5 bg-[#0f172a]/80 backdrop-blur-md">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition text-gray-300 hover:text-white">
+      {/* Minimal chrome / editorial header */}
+      <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] bg-[#0d121d]/90 px-4 py-4 backdrop-blur-2xl sm:px-8 lg:px-12">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-5">
+          <button type="button" aria-label="Tarife geri dön" onClick={() => router.back()}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-[#f6f1eb] transition hover:border-[#ee795d]/60 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ee795d]">
             <FaArrowLeft />
           </button>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]"></span>
-              <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">PİŞİRME REHBERİ</span>
+          <div className="min-w-0">
+            <div className="mb-1 flex items-center gap-2.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#f07860]" />
+              <span className="text-[9px] font-extrabold tracking-[0.27em] text-[#dd9786] sm:text-[10px]">TARİFTEN / PİŞİRME REHBERİ</span>
             </div>
-            <h1 className="text-lg md:text-xl font-bold text-white leading-none truncate max-w-[200px] md:max-w-md">
-              {recipe.title}
-            </h1>
+            <h1 className="max-w-[180px] truncate text-base font-semibold tracking-[-0.025em] text-white sm:max-w-sm sm:text-lg xl:max-w-xl">{recipe.title}</h1>
           </div>
         </div>
-
-        {/* Dinleme Göstergesi & Yardım */}
-        <div className="flex items-center gap-3">
-            <button onClick={() => setIsHelpOpen(true)} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition">
-                <FaQuestion />
-            </button>
-            {isListening ? (
-            <div className="flex items-center gap-1 h-8 px-4 bg-white/10 rounded-full border border-white/10 animate-pulse">
-                <span className="text-xs mr-2 text-[#db4c3f] font-bold">●</span>
-                <span className="text-xs text-white/90 font-medium">Dinliyor...</span>
-            </div>
-            ) : (
-            <button onClick={toggleListening} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 transition">
-                <FaVolumeHigh />
-            </button>
-            )}
+        <div className="flex shrink-0 items-center gap-2.5">
+          <span className="hidden rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-medium text-[#c8c3ba] sm:inline-flex">Adım {currentStep + 1} / {steps.length}</span>
+          <button type="button" aria-label="Komutlar ve yardım" onClick={() => setIsHelpOpen(true)}
+            className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-[#d8d0c9] transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#ee795d]"><FaQuestion /></button>
         </div>
       </header>
 
-      {/* MAIN CONTENT (ADIMLAR) */}
-      <main className="flex-grow flex flex-col justify-center items-center px-6 text-center z-10 relative">
-        
-        {/* Son Algılanan Komut (Debug/Feedback için) */}
-        {lastCommand && (
-            <div className="absolute top-4 bg-black/40 px-3 py-1 rounded-full text-xs text-gray-400 backdrop-blur-sm">
-                "{lastCommand}"
-            </div>
-        )}
-
-        {/* Adım Sayacı */}
-        <div className="mb-8 text-[#db4c3f] font-bold text-sm tracking-[0.2em] uppercase opacity-90 flex items-center gap-3">
-          <span className="w-8 h-[1px] bg-[#db4c3f]/50"></span>
-          <span>Adım {currentStep + 1} / {steps.length}</span>
-          <span className="w-8 h-[1px] bg-[#db4c3f]/50"></span>
-        </div>
-
-        {/* The microphone listens for fixed commands; Chirp reads stored recipe steps. */}
-        <div className="w-full max-w-xs mb-5 text-left">
-          <label htmlFor="pilot-voice" className="block mb-2 text-[11px] font-bold tracking-wide text-gray-400">TÜRKÇE SES PROFİLİ</label>
-          <select
-            id="pilot-voice"
-            value={useDeviceVoice ? "device" : naturalVoice.voice}
-            onChange={(event) => {
-              naturalVoice.stop();
-              window.speechSynthesis?.cancel();
-              if (event.target.value === "device") {
-                setUseDeviceVoice(true);
-              } else {
-                setUseDeviceVoice(false);
-                naturalVoice.setVoice(event.target.value);
-              }
-              setVoiceFeedback("");
-            }}
-            className="w-full rounded-xl border border-white/20 bg-[#1e293b] px-3 py-2 text-sm font-semibold text-white"
-          >
-            {PILOT_CHIRP_VOICES.map((item) => (
-              <option value={item.id} key={item.id}>{item.label} · Chirp 3 HD</option>
-            ))}
-            <option value="device">Cihaz sesi · Ücretsiz</option>
-          </select>
-          {!useDeviceVoice && (
-            <p className="mt-2 text-xs text-gray-400">
-              {!naturalVoice.token
-                ? "Doğal ses için üye girişi gerekiyor. Cihaz sesini de seçebilirsin."
-                : !hasStoredSteps
-                  ? "Kayıtlı tarif adımları bulunmadığı için doğal ses bu tarifte kullanılamıyor."
-                  : naturalVoice.checking
-                    ? "Doğal ses erişimi kontrol ediliyor..."
-                    : !naturalVoice.enabled
-                      ? "Doğal ses hesabın için kullanılamıyor. Cihaz sesiyle devam edebilirsin."
-                      : "Google Chirp 3 HD · Her yeni adım/ses kotaya yansıyabilir."}
-            </p>
-          )}
-        </div>
-
-        {/* Adım Metni */}
-        <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-12 leading-tight max-w-4xl drop-shadow-2xl transition-all duration-500">
-          "{steps[currentStep]}"
-        </h2>
-
-        {naturalVoice.error && !useDeviceVoice && (
-          <p role="alert" className="mb-3 max-w-xl rounded-lg bg-red-900/60 px-4 py-2 text-sm text-red-100">{naturalVoice.error}</p>
-        )}
-        {voiceFeedback && !useDeviceVoice && (
-          <p role="status" className="mb-3 max-w-xl text-sm text-gray-400">{voiceFeedback}</p>
-        )}
-
-        {/* Aktif Zamanlayıcı */}
-        {timerActive && (
-          <div className="mb-8 animate-bounce-in cursor-pointer" onClick={() => setIsTimerPaused(!isTimerPaused)}>
-            <div className={`border border-white/10 px-8 py-4 rounded-full flex items-center gap-4 shadow-xl transition ${isTimerPaused ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-slate-800 hover:bg-slate-700'}`}>
-              <div className="text-3xl font-mono font-bold text-white">{formatTime(timeLeft)}</div>
-              <div className="w-8 h-8 rounded-full bg-white/10 hover:bg-red-500/20 hover:text-red-500 flex items-center justify-center transition">
-                {isTimerPaused ? <FaPlay className="text-sm" /> : <FaPause className="text-sm" />}
+      <main className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-8 sm:py-8 lg:px-12 lg:py-10">
+        <div className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-7">
+          {/* Main reading stage */}
+          <section aria-label="Geçerli tarif adımı"
+            className="relative flex min-h-[340px] flex-col justify-between overflow-hidden rounded-[26px] border border-white/[0.10] bg-gradient-to-br from-[#1c2330] via-[#141c29] to-[#111721] p-6 shadow-[0_28px_75px_rgba(0,0,0,.20)] sm:min-h-[450px] sm:rounded-[34px] sm:p-10 lg:min-h-[520px]">
+            <div className="pointer-events-none absolute -right-2 -top-20 select-none text-[200px] font-extrabold leading-none tracking-tighter text-white/[0.025] sm:text-[280px]" aria-hidden="true">{String(currentStep + 1).padStart(2, "0")}</div>
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#ed795d]/15 text-sm font-extrabold text-[#ff9277]">{String(currentStep + 1).padStart(2, "0")}</span>
+                <div>
+                  <div className="text-[10px] font-bold tracking-[0.28em] text-[#e9a38e]">ŞİMDİ SIRADA</div>
+                  <div className="mt-0.5 text-xs text-[#9fa8b8]">Toplam {steps.length} adım</div>
+                </div>
               </div>
+              <span className="rounded-full border border-white/[0.10] bg-white/[0.04] px-3 py-1.5 text-[11px] text-[#b5bbca]">
+                {useDeviceVoice ? "Cihaz sesi" : "Google Chirp 3 HD"}
+              </span>
             </div>
-            <div className="text-xs text-gray-500 mt-2 text-center">
-                {isTimerPaused ? "Devam etmek için dokun veya konuş" : "Duraklatmak için dokun"}
-            </div>
-          </div>
-        )}
 
-        {/* Akıllı Öneriler */}
-        <div className="flex gap-3 flex-wrap justify-center mt-4">
-           {!timerActive && (
-             <button onClick={() => startTimer(10)} className="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-gray-300 flex items-center gap-2 transition backdrop-blur-sm">
-               <FaPlay className="text-[10px]" /> 10dk Başlat
-             </button>
-           )}
-           <button onClick={() => speak(steps[currentStep])} disabled={!useDeviceVoice && (!naturalVoice.enabled || naturalVoice.playback === "loading")} className="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-gray-300 flex items-center gap-2 transition backdrop-blur-sm disabled:opacity-40 disabled:cursor-not-allowed">
-               <FaVolumeHigh className="text-[10px]" /> {naturalVoice.playback === "loading" && !useDeviceVoice ? "Hazırlanıyor…" : "Oku"}
-           </button>
-           {!useDeviceVoice && naturalVoice.playback === "playing" && (
-             <button type="button" onClick={naturalVoice.pause} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-gray-300 flex items-center gap-2"><FaPause /> Duraklat</button>
-           )}
-           {!useDeviceVoice && naturalVoice.playback === "paused" && (
-             <button type="button" onClick={() => void naturalVoice.play()} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-gray-300 flex items-center gap-2"><FaPlay /> Devam Et</button>
-           )}
-           {!useDeviceVoice && naturalVoice.playback !== "idle" && (
-             <button type="button" onClick={naturalVoice.stop} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-bold text-gray-300 flex items-center gap-2"><FaStop /> Durdur</button>
-           )}
-           <button onClick={() => setIsSOSOpen(true)} className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 px-4 py-2 rounded-full text-xs font-bold text-red-400 flex items-center gap-2 transition backdrop-blur-sm animate-pulse">
-             <FaTriangleExclamation className="text-[10px]" /> Acil Durum / SOS
-           </button>
+            <div className="relative z-10 my-10 flex flex-1 flex-col justify-center">
+              <div className="mb-6 h-[2px] w-12 rounded-full bg-[#ec735a]" />
+              <h2 key={currentStep} aria-live="polite"
+                className="max-w-3xl text-pretty text-[clamp(1.5rem,3vw,3.15rem)] font-semibold leading-[1.35] tracking-[-0.035em] text-[#fffaf4]">
+                {steps[currentStep]}
+              </h2>
+              {naturalVoice.error && !useDeviceVoice && (
+                <p role="alert" className="mt-6 max-w-lg rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{naturalVoice.error}</p>
+              )}
+              {voiceFeedback && !useDeviceVoice && (
+                <p role="status" className="mt-5 text-sm text-[#b9c2cf]">{voiceFeedback}</p>
+              )}
+            </div>
+
+            <div className="relative z-10 flex flex-wrap items-center gap-2.5 border-t border-white/[0.08] pt-5">
+              <button type="button" onClick={() => speak(steps[currentStep])}
+                disabled={!useDeviceVoice && (!naturalVoice.enabled || naturalVoice.playback === "loading")}
+                className="inline-flex min-h-11 items-center gap-2.5 rounded-2xl bg-[#ed7459] px-5 text-sm font-bold text-[#11141c] transition hover:bg-[#ffa188] disabled:cursor-not-allowed disabled:opacity-50">
+                <FaVolumeHigh /> {naturalVoice.playback === "loading" && !useDeviceVoice ? "Ses hazırlanıyor…" : "Adımı seslendir"}
+              </button>
+              {!useDeviceVoice && naturalVoice.playback === "playing" && (
+                <button type="button" onClick={naturalVoice.pause} className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-4 text-sm font-semibold text-[#eee9e4]"><FaPause /> Duraklat</button>
+              )}
+              {!useDeviceVoice && naturalVoice.playback === "paused" && (
+                <button type="button" onClick={() => void naturalVoice.play()} className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-4 text-sm font-semibold text-[#eee9e4]"><FaPlay /> Devam et</button>
+              )}
+              {!useDeviceVoice && naturalVoice.playback !== "idle" && (
+                <button type="button" onClick={naturalVoice.stop} className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-4 text-sm font-semibold text-[#eee9e4]"><FaStop /> Durdur</button>
+              )}
+            </div>
+          </section>
+
+          {/* Secondary tools: calm, intentionally de-emphasised */}
+          <aside className="grid content-start gap-4 sm:grid-cols-2 lg:grid-cols-1">
+            <section className="rounded-[26px] border border-white/[0.09] bg-[#151d29]/90 p-5 sm:p-6">
+              <div className="mb-4 text-[10px] font-bold tracking-[0.24em] text-[#f08a70]">SES STÜDYOSU</div>
+              <label htmlFor="pilot-voice" className="mb-2 block text-xs font-semibold text-[#c5cbd3]">Türkçe ses profili</label>
+              <select id="pilot-voice" value={useDeviceVoice ? "device" : naturalVoice.voice}
+                onChange={(event) => {
+                  naturalVoice.stop();
+                  window.speechSynthesis?.cancel();
+                  if (event.target.value === "device") setUseDeviceVoice(true);
+                  else { setUseDeviceVoice(false); naturalVoice.setVoice(event.target.value); }
+                  setVoiceFeedback("");
+                }}
+                className="w-full rounded-xl border border-white/15 bg-[#0d141e] px-3 py-3 text-sm font-semibold text-[#faf5f0] focus-visible:outline-2 focus-visible:outline-[#ee795d]">
+                {PILOT_CHIRP_VOICES.map((item) => (
+                  <option value={item.id} key={item.id}>{item.label} · Chirp 3 HD</option>
+                ))}
+                <option value="device">Cihaz sesi · Ücretsiz</option>
+              </select>
+              <div className="mt-3 text-xs leading-5 text-[#aeb7c4]">
+                {!useDeviceVoice && (!naturalVoice.token ? "Doğal ses için hesabına giriş yap." :
+                  !hasStoredSteps ? "Bu tarifte kayıtlı seslendirilebilir adım bulunmuyor." :
+                  naturalVoice.checking ? "Ses erişimin kontrol ediliyor…" :
+                  !naturalVoice.enabled ? "Doğal ses hesabında kullanılamıyor. Cihaz sesini seçebilirsin." :
+                  "Enceladus varsayılan. Yeni adım ve sesler kullanım kotasına dahil olabilir.")}
+                {useDeviceVoice && "Cihaz sesi internetsiz çalışır; Google karakter kotası kullanmaz."}
+              </div>
+            </section>
+
+            <section className="rounded-[26px] border border-white/[0.09] bg-[#151d29]/90 p-5 sm:p-6">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-[10px] font-bold tracking-[0.24em] text-[#f08a70]">ELLER SERBEST</span>
+                <span className={`h-2 w-2 rounded-full ${isListening ? "bg-[#94e0ae] shadow-[0_0_12px_#94e0ae]" : "bg-[#778294]"}`} />
+              </div>
+              <p className="text-sm font-semibold text-[#f4efe8]">{isListening ? "Mikrofon komutları dinliyor" : "Sesli komutlar"}</p>
+              <p className="mt-2 text-xs leading-5 text-[#aeb7c4]">Mikrofonu aç, sonra “sonraki”, “önceki” veya “tekrar oku” de.</p>
+              <button type="button" onClick={toggleListening} aria-pressed={isListening} disabled={!micSupported}
+                className={`mt-4 inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold transition focus-visible:outline-2 focus-visible:outline-[#ee795d] disabled:opacity-40 ${isListening ? "border-[#8ed6ad]/40 bg-[#83d3a0]/15 text-[#aef0be]" : "border-white/15 bg-white/[0.07] text-white hover:bg-white/[0.12]"}`}>
+                <FaMicrophone /> {isListening ? "Dinlemeyi kapat" : "Sesli komutları aç"}
+              </button>
+              {lastCommand && <p className="mt-3 break-words text-xs text-[#a0e2bc]">Algılandı: “{lastCommand}”</p>}
+              {micError && <p role="alert" className="mt-3 text-xs leading-5 text-[#ffb2a3]">{micError}</p>}
+            </section>
+
+            <section className="rounded-[26px] border border-white/[0.09] bg-[#151d29]/90 p-5 sm:p-6">
+              <span className="text-[10px] font-bold tracking-[0.24em] text-[#f08a70]">MUTFAK ARAÇLARI</span>
+              <div className="mt-4 flex items-center gap-3">
+                {timerActive ? (
+                  <button type="button" onClick={() => setIsTimerPaused(!isTimerPaused)}
+                    className="flex min-h-14 flex-1 items-center justify-between gap-4 rounded-2xl border border-[#d6a16d]/30 bg-[#d6a16d]/10 px-4 text-[#ffe4c9]">
+                    <span className="font-mono text-2xl font-bold tracking-wider">{formatTime(timeLeft)}</span>
+                    {isTimerPaused ? <FaPlay /> : <FaPause />}
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => startTimer(10)}
+                    className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-3 text-sm font-semibold text-[#f5e6d4]">
+                    <FaPlay /> 10 dk sayaç
+                  </button>
+                )}
+                <button type="button" onClick={() => setIsSOSOpen(true)} aria-label="Mutfak ipuçları"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/15 bg-white/[0.06] text-[#e9a18d]">
+                  <FaTriangleExclamation />
+                </button>
+              </div>
+              {timerActive && <p className="mt-2 text-xs text-[#bdb9af]">{isTimerPaused ? "Sayaç duraklatıldı" : "Sayaç çalışıyor"} · Dokunarak değiştir</p>}
+            </section>
+          </aside>
         </div>
-
       </main>
 
-      {/* BRAND ICON (Bottom Left) */}
-      <div className="absolute bottom-10 left-10 z-30 hidden md:flex items-center justify-center opacity-30 hover:opacity-100 transition duration-500 group cursor-default">
-         <div className="w-12 h-12 bg-[#db4c3f] rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20 relative overflow-hidden">
-            <span className="text-white font-bold text-3xl font-heading pb-1 relative z-10">t</span>
-            <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-white/80 rounded-full group-hover:animate-ping" />
-         </div>
-      </div>
-
-      {/* FOOTER CONTROLS */}
-      <footer className="flex-shrink-0 bg-[#0f172a]/80 backdrop-blur-xl border-t border-white/5 p-6 pb-8 md:p-8 z-20">
-        <div className="w-full max-w-3xl mx-auto h-1 bg-white/10 rounded-full mb-8 overflow-hidden">
-          <div className="h-full bg-[#db4c3f] transition-all duration-500 shadow-[0_0_15px_rgba(219,76,63,0.8)]" style={{ width: `${progress}%` }} />
-        </div>
-
-        <div className="flex items-center justify-center gap-6 md:gap-12 max-w-4xl mx-auto">
-          <button 
-            onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-            disabled={currentStep === 0}
-            className="w-16 h-16 md:w-auto md:px-10 md:py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed border border-white/5"
-          >
-            <FaChevronLeft />
-            <span className="hidden md:inline">Önceki</span>
-          </button>
-
-          <button 
-            onClick={toggleListening}
-            className={`w-24 h-24 rounded-full text-white shadow-2xl flex flex-col items-center justify-center transform hover:scale-105 transition active:scale-95 border-4 border-[#0f172a] relative z-10 -mt-8
-              ${isListening ? 'bg-red-600 scale-110 shadow-red-500/50' : 'bg-gradient-to-br from-[#db4c3f] to-[#b03d32] shadow-[#db4c3f]/30'}`}
-          >
-            {isListening ? (
-              <div className="absolute inset-0 rounded-full border-2 border-white animate-ping" />
-            ) : (
-              <span className="absolute inset-0 rounded-full border border-white/20 animate-ping opacity-30" />
-            )}
-            <FaMicrophone className="text-3xl mb-1 drop-shadow-md" />
-            <span className="text-[10px] font-medium opacity-90">{isListening ? '...' : 'Dinliyor'}</span>
-          </button>
-
-          <button 
-            onClick={() => {
-              if (currentStep < steps.length - 1) {
-                setCurrentStep(currentStep + 1);
-              } else {
-                setIsFinishedOpen(true);
-              }
-            }}
-            className="w-16 h-16 md:w-auto md:px-10 md:py-4 bg-white text-slate-900 hover:bg-gray-200 rounded-2xl font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-white/5"
-          >
-            <span className="hidden md:inline">{currentStep === steps.length - 1 ? "Bitir" : "Sonraki"}</span>
-            {currentStep === steps.length - 1 ? <FaCheck /> : <FaChevronRight />}
-          </button>
+      {/* Always visible navigational dock */}
+      <footer className="relative z-20 shrink-0 border-t border-white/[0.08] bg-[#0d121c]/95 px-4 pb-5 pt-4 backdrop-blur-xl sm:px-8 sm:pb-6 lg:px-12">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-3 flex items-center justify-between text-[11px] font-semibold tracking-wider text-[#a3acb9]">
+            <span>PİŞİRME İLERLEMESİ</span><span>{currentStep + 1} / {steps.length}</span>
+          </div>
+          <div role="progressbar" aria-label="Tarif ilerlemesi" aria-valuenow={currentStep + 1} aria-valuemin={0} aria-valuemax={steps.length}
+            className="mb-4 h-[5px] overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-gradient-to-r from-[#ee765b] to-[#f8a782] transition-[width] duration-300" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-5">
+            <button type="button" onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+              disabled={currentStep === 0} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-30">
+              <FaChevronLeft /><span>Önceki</span>
+            </button>
+            <button type="button" onClick={toggleListening} disabled={!micSupported}
+              aria-label={isListening ? "Mikrofonu kapat" : "Sesli komutlar için mikrofonu aç"} aria-pressed={isListening}
+              className={`relative flex h-14 w-14 items-center justify-center rounded-[20px] border text-xl transition sm:h-16 sm:w-16 ${isListening ? "border-[#91e5b0]/60 bg-[#214534] text-[#bff6ce]" : "border-[#faab96]/50 bg-[#db604b] text-[#fff9f4]"} disabled:opacity-40`}>
+              {isListening && <span className="pointer-events-none absolute inset-[-5px] animate-pulse rounded-[24px] border border-[#91e5b0]/25" />}
+              <FaMicrophone />
+            </button>
+            <button type="button" onClick={() => {
+              if (currentStep < steps.length - 1) setCurrentStep(currentStep + 1);
+              else setIsFinishedOpen(true);
+            }} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#f3ebe1] px-3 text-sm font-extrabold text-[#121824] transition hover:bg-white">
+              <span>{currentStep === steps.length - 1 ? "Bitir" : "Sonraki"}</span>
+              {currentStep === steps.length - 1 ? <FaCheck /> : <FaChevronRight />}
+            </button>
+          </div>
         </div>
       </footer>
 
@@ -596,7 +621,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
           <div className="bg-[#1e293b] border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all scale-100">
             <div className="bg-red-500/10 p-6 border-b border-red-500/20 flex justify-between items-center">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <FaTriangleExclamation className="text-red-500" /> Mutfak Acil Servis
+                <FaTriangleExclamation className="text-red-500" /> Mutfak İpuçları
               </h3>
               <button onClick={() => {setIsSOSOpen(false); setSosMessage(null);}} className="text-gray-400 hover:text-white transition"><FaXmark className="text-xl" /></button>
             </div>
