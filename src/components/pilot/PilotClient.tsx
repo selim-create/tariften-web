@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { PILOT_CHIRP_VOICES, usePilotNaturalVoice } from "@/hooks/usePilotNaturalVoice";
 
 // --- TİP TANIMLARI ---
@@ -78,12 +79,13 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   const naturalVoice = usePilotNaturalVoice(recipe.id, currentStep, hasStoredSteps);
   const [useDeviceVoice, setUseDeviceVoice] = useState(false);
   const [voiceFeedback, setVoiceFeedback] = useState("");
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [micError, setMicError] = useState("");
   const [micSupported, setMicSupported] = useState(true);
   const wantListeningRef = useRef(false);
-  const cloudSpeakingRef = useRef(false);
   const retryMicRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCommandAtRef = useRef(0);
   const [lastCommand, setLastCommand] = useState("");
   
   // Zamanlayıcı State'i
@@ -197,6 +199,22 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
 
   // --- ZAMANLAYICI MANTIĞI ---
   const startTimer = useCallback((minutes: number) => {
+    // Two light metronome ticks; only a user action can unlock Web Audio.
+    try {
+      const ctx = audioContextRef.current || new window.AudioContext();
+      audioContextRef.current = ctx;
+      void ctx.resume();
+      for (const offset of [0, 0.16]) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine"; osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.065, ctx.currentTime + offset + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + offset + 0.09);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + offset); osc.stop(ctx.currentTime + offset + 0.095);
+      }
+    } catch { /* sound is optional; timer always starts */ }
     setTimeLeft(minutes * 60);
     setTimerActive(true);
     setIsTimerPaused(false);
@@ -221,6 +239,9 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
   // --- KOMUT İŞLEME MERKEZİ ---
   const handleCommand = useCallback((command: string) => {
     const lowerCmd = command.toLocaleLowerCase("tr-TR").trim();
+    if (lowerCmd === "duraklat") { naturalVoice.pause(); return; }
+    if (lowerCmd === "devam et") { void naturalVoice.play(); return; }
+    if (lowerCmd === "sesi durdur") { naturalVoice.stop(); window.speechSynthesis?.cancel(); return; }
     setLastCommand(lowerCmd);
     
     // 1. YARDIM & MODAL KONTROLLERİ
@@ -300,12 +321,12 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
       speak("Acil durum menüsü açıldı.");
     }
 
-  }, [currentStep, steps, speak, timerActive, isTimerPaused, timeLeft, isAlarmPlaying, isHelpOpen, isSOSOpen, startTimer]);
+  }, [currentStep, steps, speak, naturalVoice, timerActive, isTimerPaused, timeLeft, isAlarmPlaying, isHelpOpen, isSOSOpen, startTimer]);
 
 
-  // Voice commands are browser-native recognition, separate from Google Chirp MP3.
-  // Initialize exactly once: the old effect recreated its recognizer whenever
-  // isListening changed, leaving inactive instances and silently missing commands.
+  // Browsers must still enforce their own microphone/recognition permission.
+  // Start hands-free recognition on entering the pilot, with a visible recovery
+  // button if the browser requires a direct user gesture. No audio is saved.
   const handleCommandRef = useRef(handleCommand);
   useEffect(() => { handleCommandRef.current = handleCommand; }, [handleCommand]);
 
@@ -314,7 +335,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
       setMicSupported(false);
-      setMicError("Bu tarayıcı Türkçe sesli komutları desteklemiyor. Güncel Chrome ile deneyebilir veya düğmeleri kullanabilirsin.");
+      setMicError("Tarayıcın Türkçe sesli komutları desteklemiyor. Chrome kullanabilir veya düğmelerle devam edebilirsin.");
       return;
     }
     const recognizer = new Recognition();
@@ -323,46 +344,65 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
     recognizer.interimResults = false;
     recognizer.maxAlternatives = 1;
     recognitionRef.current = recognizer;
-
-    recognizer.onstart = () => {
-      setMicError("");
-      setIsListening(true);
+    wantListeningRef.current = true;
+    let active = false;
+    const attempt = () => {
+      if (!wantListeningRef.current || document.visibilityState !== "visible" || active) return;
+      try { recognizer.start(); } catch {
+        setMicError("Mikrofon otomatik başlatılamadı. Mikrofon düğmesine dokunarak açabilirsin.");
+      }
     };
+    recognizer.onstart = () => { active = true; setIsListening(true); setMicError(""); };
     recognizer.onresult = (event: any) => {
-      if (!wantListeningRef.current || cloudSpeakingRef.current) return;
+      if (!wantListeningRef.current) return;
       const last = event.results?.[event.results.length - 1];
       const phrase = last?.[0]?.transcript;
-      if (typeof phrase === "string" && phrase.trim()) {
-        handleCommandRef.current(phrase);
-      }
+      if (typeof phrase !== "string") return;
+      const normalized = phrase.toLocaleLowerCase("tr-TR").trim().replace(/[.!?,]/g, "");
+      // Exact, short commands only: never react to arbitrary words read by Chirp.
+      if (!normalized || normalized.split(/\s+/).length > 6
+        || !/^(sonraki( adım)?|ileri|ileri geç|geç|önceki( adım)?|geri|geri dön|oku|tekrar( oku| et)?|adımı oku|duraklat|devam et|sesi durdur|seslendir|\d{1,2} dakika( süre)? başlat|\d{1,2} dakika(ya)? sayaç( kur)?|süreyi (durdur|iptal et)|sayacı (durdur|iptal et)|yardım)$/.test(normalized)) return;
+      const now = Date.now();
+      if (now - lastCommandAtRef.current < 950) return;
+      lastCommandAtRef.current = now;
+      handleCommandRef.current(normalized);
     };
     recognizer.onerror = (event: any) => {
       const code = event.error || "unknown";
       if (code === "no-speech" || code === "aborted") return;
       const messages: Record<string, string> = {
-        "not-allowed": "Mikrofon izni reddedildi. Tarayıcının site izinlerinden mikrofonu aç.",
-        "service-not-allowed": "Tarayıcının ses tanıma servisi engellendi. Mikrofon ve tarayıcı izinlerini kontrol et.",
-        "audio-capture": "Mikrofona erişilemiyor. Başka bir uygulamanın mikrofonu kullanmadığını kontrol et.",
-        "network": "Ses tanıma servisine erişilemiyor. Bağlantını kontrol et.",
-        "language-not-supported": "Bu tarayıcıda Türkçe ses tanıma desteklenmiyor.",
+        "not-allowed": "Mikrofon izni gerekli. Site izinlerinden mikrofonu aç, sonra tekrar dene.",
+        "service-not-allowed": "Tarayıcının konuşma tanıma servisine izin vermesi gerekiyor.",
+        "audio-capture": "Mikrofon bulunamadı veya başka bir uygulamada kullanılıyor.",
+        "network": "Ses tanıma ağına erişilemiyor.",
+        "language-not-supported": "Bu tarayıcı Türkçe komut tanımayı desteklemiyor.",
       };
-      setMicError(messages[code] || "Sesli komut algılanamadı. Lütfen yeniden dene.");
-      if (["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"].includes(code)) {
+      setMicError(messages[code] || "Sesli komut servisi yanıt vermedi. Mikrofonu yeniden başlatabilirsin.");
+      if (["not-allowed","service-not-allowed","audio-capture","language-not-supported"].includes(code)) {
         wantListeningRef.current = false;
         setIsListening(false);
       }
     };
     recognizer.onend = () => {
+      active = false;
       setIsListening(false);
       if (retryMicRef.current) clearTimeout(retryMicRef.current);
-      if (wantListeningRef.current && !cloudSpeakingRef.current) {
-        retryMicRef.current = setTimeout(() => {
-          if (!wantListeningRef.current || cloudSpeakingRef.current) return;
-          try { recognizer.start(); } catch { /* not started; user can toggle again */ }
-        }, 400);
+      if (wantListeningRef.current && document.visibilityState === "visible") {
+        retryMicRef.current = setTimeout(attempt, 800);
       }
     };
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible") {
+        try { recognizer.stop(); } catch { /* already stopped */ }
+      } else if (wantListeningRef.current) {
+        retryMicRef.current = setTimeout(attempt, 350);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    const initial = setTimeout(attempt, 350);
     return () => {
+      clearTimeout(initial);
+      document.removeEventListener("visibilitychange", onVisibility);
       wantListeningRef.current = false;
       if (retryMicRef.current) clearTimeout(retryMicRef.current);
       recognizer.onend = null;
@@ -373,25 +413,9 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
     };
   }, []);
 
-  useEffect(() => {
-    const playing = naturalVoice.playback === "playing" || naturalVoice.playback === "loading";
-    cloudSpeakingRef.current = playing;
-    if (!wantListeningRef.current || !recognitionRef.current) return;
-    if (playing) {
-      if (retryMicRef.current) clearTimeout(retryMicRef.current);
-      try { recognitionRef.current.stop(); } catch { /* already stopped */ }
-    } else if (!isListening) {
-      if (retryMicRef.current) clearTimeout(retryMicRef.current);
-      retryMicRef.current = setTimeout(() => {
-        if (!wantListeningRef.current || cloudSpeakingRef.current) return;
-        try { recognitionRef.current?.start(); } catch { /* already started */ }
-      }, 500);
-    }
-  }, [naturalVoice.playback, isListening]);
-
   const toggleListening = () => {
     if (!micSupported || !recognitionRef.current) {
-      setMicError("Bu tarayıcıda sesli komutlar kullanılamıyor. Güncel Chrome ile deneyebilirsin.");
+      setMicError("Bu tarayıcıda sesli komut kullanılamıyor. Düğmelerle devam edebilirsin.");
       return;
     }
     if (wantListeningRef.current) {
@@ -403,15 +427,8 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
     } else {
       wantListeningRef.current = true;
       setMicError("");
-      if (cloudSpeakingRef.current) {
-        setMicError("Tarif okunurken mikrofon bekletiliyor. Okuma bitince dinleme başlayacak.");
-        return;
-      }
-      try {
-        recognitionRef.current.start();
-      } catch {
-        wantListeningRef.current = false;
-        setMicError("Mikrofon başlatılamadı. İzinleri kontrol edip yeniden dene.");
+      try { recognitionRef.current.start(); } catch {
+        setMicError("Mikrofon yeniden başlatılamadı. Tarayıcı izinlerini kontrol et.");
       }
     }
   };
