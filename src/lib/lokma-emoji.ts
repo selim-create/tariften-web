@@ -489,12 +489,12 @@ export const LOKMA_ICON_SAMPLES = [
     "figure": "plate"
   },
   {
-    "category": "Bakliyat ve tahıllar",
+    "category": "Tahıllar ve bakliyat",
     "name": "Yeşil mercimek",
     "figure": "greenlentil"
   },
   {
-    "category": "Bakliyat ve tahıllar",
+    "category": "Tahıllar ve bakliyat",
     "name": "Kırmızı mercimek",
     "figure": "redlentil"
   },
