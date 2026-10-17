@@ -13,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 import type { Quotas, QuotaKind } from "@/lib/account-quotas-client";
 import { createRecipe } from "@/lib/api";
+import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import {
   buildApprovedRecipe, editorFromPreview, importWarningLabel, parseImportPreview,
   publishValidation, validateRecipeSource,
@@ -46,10 +47,10 @@ function CompactQuota({ data, error, loading, kind }: {
   data: Quotas | null; error?: string; loading?: boolean; kind: QuotaKind;
 }) {
   const q = data?.quotas?.[kind];
-  const label = kind === "recipe_ai_day" ? "AI önizleme hakkı" : "Tarif yayımlama hakkı";
-  return <div role="status" className="flex min-h-9 items-center justify-between gap-2 rounded-xl border border-[#e6e8e7] bg-[#f7f8f7] px-3 py-2 text-[11px]">
-    <span className="flex items-center gap-1.5 font-semibold text-slate-600"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {label}</span>
-    <span className="shrink-0 font-extrabold text-[#273e39]">
+  const label = kind === "recipe_ai_day" ? "Bugünkü tarif düzenleme hakkın" : "Bugünkü paylaşım hakkın";
+  return <div role="status" className="flex min-h-9 items-center justify-between gap-2 rounded-full border border-[#f2e6d8] bg-[#fff6eb] px-3 py-2 text-[11px]">
+    <span className="flex items-center gap-1.5 font-semibold text-[#907761]"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {label}</span>
+    <span className="shrink-0 font-extrabold text-[#b14b3b]">
       {loading && !q ? "Kontrol ediliyor…" : error ? "Kontrol edilemedi" : !q ? "—" : q.remaining === null ? "Sınırsız" : `${q.remaining} / ${q.limit} kaldı`}
     </span>
   </div>;
@@ -199,91 +200,91 @@ export default function RecipeTextImportPage() {
     ? Array.from(new Set([...preview.warnings, ...preview.needs_confirmation])).map(importWarningLabel)
     : [];
 
-  return <main className="bg-[#f6f6f4] text-slate-800 lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
+  return <main className="bg-[#fbf7f2] text-[#29352f] lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
     <div className="mx-auto flex h-full max-w-[1620px] flex-col px-3 pb-3 pt-3 sm:px-5 lg:min-h-0 lg:px-6">
-      <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#13222a] px-4 py-3 text-white sm:px-5">
+      <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-[22px] border border-[#f0d9ce] bg-[#fffaf5] px-4 py-3 text-[#253b31] shadow-[0_5px_24px_rgba(134,76,52,0.04)] sm:px-5">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <Link href="/recipe/create" aria-label="Tarif oluşturmaya dön"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white">
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#faeae3] text-[#b34d41] transition hover:bg-[#f8d8cb]">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-[17px] font-black tracking-tight sm:text-xl">Akıllı Tarif Aktarımı</h1>
-              <span className="rounded-md border border-[#fb9185]/40 bg-[#db4c3f]/20 px-1.5 py-0.5 text-[9px] font-black tracking-wide text-[#ffa296]">BETA</span>
+              <h1 className="font-heading text-[20px] font-extrabold tracking-tight sm:text-[23px]">Tarif defterin, yeniden.</h1>
+              <span className="rounded-full border border-[#f0d6ca] bg-[#fdf0e9] px-2 py-0.5 text-[9px] font-black tracking-wide text-[#ba6251]">BETA</span>
             </div>
-            <p className="mt-0.5 hidden text-[11px] text-white/65 sm:block">Metnini yapıştır, kaynakla karşılaştır, kontrol ederek yayımla.</p>
+            <p className="mt-0.5 hidden text-[11px] text-white/65 sm:block">Sevdiğin tarifi yaz; her lokması senin hikâyen olsun.</p>
           </div>
         </div>
-        <nav aria-label="Tarif aktarım adımları" className="hidden items-center gap-2 text-[11px] font-bold text-white/70 md:flex">
-          <span className="rounded-lg bg-white/10 px-2.5 py-1.5 text-white">01 · Metin</span>
+        <nav aria-label="Tarif aktarım adımları" className="hidden items-center gap-2 text-[11px] font-semibold text-[#9a8170] md:flex">
+          <span className="rounded-full bg-[#fce9df] px-3 py-1.5 font-bold text-[#b24e40]">01 · Metin</span>
           <ArrowRight className="h-3 w-3 opacity-50" />
-          <span className={`rounded-lg px-2.5 py-1.5 ${preview ? "bg-white/10 text-white" : ""}`}>02 · Kontrol</span>
+          <span className={`rounded-lg px-2.5 py-1.5 ${preview ? "bg-[#fce9df] text-[#b24e40]" : ""}`}>02 · Kontrol</span>
           <ArrowRight className="h-3 w-3 opacity-50" />
           <span>03 · Onay</span>
         </nav>
-        <span className="hidden items-center gap-1.5 text-[11px] text-[#a6d4bd] xl:inline-flex">
+        <span className="hidden items-center gap-1.5 text-[11px] text-[#619577] xl:inline-flex">
           <ShieldCheck className="h-4 w-4" /> Onayın olmadan yayımlanmaz
         </span>
       </header>
       {/* Only the two content panels can scroll on desktop. */}
-      <div className="min-h-0 flex-1 rounded-[20px] border border-[#e3e6e4] bg-white shadow-[0_12px_40px_rgba(19,34,42,0.07)] lg:overflow-hidden">
-        <div className="grid min-h-0 lg:h-full lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:divide-x lg:divide-slate-200">
-        <section className="flex min-h-[510px] min-w-0 flex-col p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto">
+      <div className="min-h-0 flex-1 rounded-[24px] border border-[#f0e5db] bg-[#fffefd] shadow-[0_16px_50px_rgba(98,70,47,0.075)] lg:overflow-hidden">
+        <div className="grid min-h-0 lg:h-full lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:divide-x lg:divide-[#efe2d4]">
+        <section className="flex min-h-[510px] min-w-0 flex-col bg-[#fffcf7] p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#fcebe7] text-[#db4c3f]"><FileText className="h-5 w-5" /></div>
-              <div><h2 className="text-base font-black">Orijinal tarifin</h2><p className="text-xs text-slate-500">Yalnızca yazı · URL, video ve fotoğraf henüz yok</p></div>
+              <div className="grid h-10 w-10 place-items-center rounded-[14px] bg-[#ffede3] text-[#be5c49]"><span aria-hidden="true" className="text-2xl">📖</span></div>
+              <div><h2 className="font-heading text-lg font-extrabold">Senin mutfak notların</h2><p className="text-xs text-[#93887a]">Anneanneden kalma, elinin alıştığı, sana özel…</p></div>
             </div>
           </div>
 
-          <FormLabel htmlFor="source-recipe">Tarif metnini buraya yapıştır</FormLabel>
+          <FormLabel htmlFor="source-recipe">Hadi, tarifini anlat 🍅</FormLabel>
           <textarea id="source-recipe" value={source} onChange={e => updateSource(e.target.value)}
             disabled={busy !== null} maxLength={20000} spellCheck
             placeholder={"Örn. 2 yumurta, 1 bardak süt, biraz un. Önce yumurtaları çırp, sütü ekle…"}
-            className="min-h-[180px] w-full flex-1 resize-none rounded-xl border border-slate-200 bg-[#fafaf9] p-3.5 text-[13px] leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10 disabled:opacity-60 max-lg:h-[265px] max-lg:flex-none" />
+            className="min-h-[180px] w-full flex-1 resize-none rounded-[18px] border border-[#eadecc] bg-[#fffdf9] p-4 font-medium text-[13px] leading-7 text-[#44483c] outline-none transition placeholder:text-[#b9a89a] focus:border-[#d49b81] focus:ring-2 focus:ring-[#e9baa0]/20 disabled:opacity-60 max-lg:h-[265px] max-lg:flex-none" />
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500">
-            <span>Eksik bilgiler tahmin edilmez; düzenleyerek tamamlayabilirsin.</span>
+            <span>Tarifin sana ait; eksik kalan yerleri beraber kontrol ederiz.</span>
             <span className="font-mono">{new TextEncoder().encode(source).length.toLocaleString("tr-TR")} / 20.000 bayt</span>
           </div>
 
           {!preview && <button type="button" disabled={busy !== null} onClick={() => updateSource(EXAMPLE)}
             className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[#b44c41] hover:underline disabled:opacity-50">
-            <ClipboardList className="h-4 w-4" /> Örnek bir tarif metni getir
+            <span aria-hidden="true">🥘</span> Bir örnek tarif dene
           </button>}
 
           <div className="mt-3 shrink-0 border-t border-slate-100 pt-3">
             <CompactQuota data={quotas.data} error={quotas.error} loading={quotas.loading} kind="recipe_ai_day" />
             <p className="mb-3 mt-2 text-[10px] leading-4 text-slate-500">
-              Her önizleme isteği günlük bir AI hakkı kullanır. Aynı metni tekrar göndermek yeni bir kullanım sayılır. Metnin otomatik kaydedilmez.
+              Her deneme günlük hakkından bir kullanım alır. Tarifin sen paylaşana kadar yayımlanmaz.
             </p>
             <button type="button" onClick={() => void requestPreview()}
               disabled={busy !== null || quotas.loading || !!quotas.error || !quotas.data || quotaReached(quotas.data, "recipe_ai_day") || !!validateRecipeSource(source)}
               className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
-              {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> Tarifin yapılandırılıyor…</> : <><WandSparkles className="h-5 w-5" /> {preview ? "Önizlemeyi yeniden oluştur" : "Tarifi yapılandır ve önizle"} <ArrowRight className="h-4 w-4" /></>}
+              {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> Tarifin düzenleniyor…</> : <><WandSparkles className="h-5 w-5" /> {preview ? "Önizlemeyi yeniden oluştur" : "Tarifimi güzelleştir"} <ArrowRight className="h-4 w-4" /></>}
             </button>
             {quotaReached(quotas.data, "recipe_ai_day") && <p className="mt-3 text-xs text-amber-700">Bugünkü AI aktarım hakkın doldu. Sonraki hak: {quotaReset(quotas.data, "recipe_ai_day")}</p>}
-            <p className="mt-2 text-center text-[10px] text-slate-400">Bu işlem yalnızca senin tıklamanla başlar. AI görseli üretilmez.</p>
+            <p className="mt-2 text-center text-[10px] text-slate-400">Yalnızca istersen başlar. Görsel üretimi yapılmaz.</p>
           </div>
         </section>
 
-        <section className="min-w-0 border-t border-slate-200 p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-t-0" aria-live="polite">
+        <section className="min-w-0 border-t border-[#f0e5da] bg-[#fffefd] p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-t-0" aria-live="polite">
           {!!error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium leading-5 text-red-800"><TriangleAlert className="mr-2 inline-block h-4 w-4" />{error}</div>}
           {!preview || !editor ? (
             <div className="flex min-h-[260px] flex-col items-center justify-center px-3 text-center lg:h-full">
-              <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#f8ede9] text-[#db4c3f]">
-                {busy === "preview" ? <LoaderCircle className="h-7 w-7 animate-spin" /> : <BookOpen className="h-7 w-7" strokeWidth={1.6} />}
+              <div className="mb-3 grid h-16 w-16 place-items-center rounded-[22px] bg-[#fff2e8] text-[#db4c3f]">
+                {busy === "preview" ? <LoaderCircle className="h-7 w-7 animate-spin" /> : <span aria-hidden="true" className="text-4xl">🍲</span>}
               </div>
-              <span className="mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-[#db4c3f]">Kaynak doğrulamalı önizleme</span>
+              <span className="mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-[#db4c3f]">Bir tutam Tariften sihri</span>
               <h2 className="max-w-sm text-lg font-black leading-tight text-slate-900 md:text-xl">
-                {busy === "preview" ? "Tarifin ayrıştırılıyor" : "Tarifinin düzenli hâli burada belirecek"}
+                {busy === "preview" ? "Tarifin deftere işleniyor…" : "Tarifin birazdan burada canlanacak"}
               </h2>
               <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
                 {busy === "preview" ? "Malzemeler, adımlar ve kanıt parçaları karşılaştırılıyor. Bu işlem biraz sürebilir." :
-                  "Sol taraftan metnini ekle. Eksik veya doğrulanamayan bölümleri belirteceğiz; hiçbir malzemeyi kendiliğimizden eklemeyeceğiz."}
+                  "Notlarını soldan yaz. Malzemeleri rengârenk ayırıp adımları düzenleyelim. Eksik bir şey varsa sen tamamla."}
               </p>
               <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-                {["Malzemeler", "Hazırlanış", "SEO önerileri"].map(x =>
+                {["🍅 Malzemeler", "🥕 Adımlar", "🌿 Tarif notları"].map(x =>
                   <span key={x} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-semibold text-slate-500">{x}</span>)}
               </div>
               {betaUnavailable && <div className="mt-5 max-w-sm"><Notice warning>
@@ -297,7 +298,7 @@ export default function RecipeTextImportPage() {
               <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><CheckCheck className="h-5 w-5" /></div>
-                  <div><h2 className="text-xl font-black">Tarifini kontrol et</h2><p className="text-xs text-slate-500">Kaynak metin solda · Düzenlenebilir sonuç sağda</p></div>
+                  <div><h2 className="font-heading text-xl font-extrabold">Tarifinin yeni sayfası ✨</h2><p className="text-xs text-[#93887a]">Tüm dokunuşlar senin elinde</p></div>
                 </div>
                 <button type="button" onClick={() => updateSource(source)} disabled={!!busy}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 hover:border-[#db4c3f] hover:text-[#db4c3f]">
@@ -316,13 +317,13 @@ export default function RecipeTextImportPage() {
 
               <div className="space-y-5">
                 <div>
-                  <FormLabel>Tarif başlığı · Editoryal öneri</FormLabel>
+                  <FormLabel>Tarifinin adı</FormLabel>
                   <input aria-label="Tarif başlığı" value={editor.title}
                     onChange={e => updateEditor(old => ({ ...old, title: e.target.value }))}
                     className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-lg font-black outline-none focus:border-[#db4c3f]" />
                 </div>
                 <div>
-                  <FormLabel>Spot · Editoryal öneri</FormLabel>
+                  <FormLabel>Tarifine küçük bir giriş</FormLabel>
                   <textarea aria-label="Tarif spotu" rows={2} value={editor.excerpt}
                     onChange={e => updateEditor(old => ({ ...old, excerpt: e.target.value }))}
                     className="w-full resize-y rounded-xl border border-slate-200 p-3.5 text-sm leading-6 outline-none focus:border-[#db4c3f]" />
@@ -386,8 +387,8 @@ export default function RecipeTextImportPage() {
                 </div>
 
                 <div className="border-t border-slate-100 pt-6">
-                  <div className="mb-4 flex items-center gap-2"><Sparkles className="h-5 w-5 text-[#db4c3f]" /><h3 className="text-lg font-black">Arama motoru önerileri</h3></div>
-                  <p className="mb-4 text-xs leading-6 text-slate-500">Bu alanlar kaynaktaki gerçekler değil, editoryal önerilerdir. İstersen değiştirebilirsin.</p>
+                  <div className="mb-4 flex items-center gap-2"><Sparkles className="h-5 w-5 text-[#db4c3f]" /><h3 className="text-lg font-black">Tarifini daha kolay bulsunlar</h3></div>
+                  <p className="mb-4 text-xs leading-6 text-slate-500">Başlık ve açıklama önerilerine son dokunuşu sen yapabilirsin; bunlar tarif metninden ayrı önerilerdir.</p>
                   <div className="space-y-3">
                     <Input label="SEO başlığı" value={editor.seoTitle} onChange={v => updateEditor(old => ({ ...old, seoTitle: v }))} />
                     <label className="block"><span className="mb-2 block text-[11px] font-semibold text-slate-500">Meta açıklaması</span>
