@@ -38,8 +38,8 @@ export default function LokmaIconGallery() {
       <header className="mt-5 rounded-[28px] border border-[#f0e3d9] bg-white px-5 py-7 shadow-[0_12px_40px_rgba(99,60,43,0.04)] sm:px-9 sm:py-9">
         <span className="inline-flex items-center gap-2 rounded-full bg-[#fff1eb] px-3 py-1.5 text-xs font-bold text-[#bd5245]"><Shapes className="h-4 w-4" /> Lokma İkon Kataloğu</span>
         <h1 className="mt-4 font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">Tariften’in küçük mutfak illüstrasyonları</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#72685f]">Kullanımdaki 68 özel SVG çizimin tamamı burada. Beğenmediğin görsellerin altındaki kodu kopyalayıp bana iletebilirsin; isim veya kod üzerinden arama yapabilirsin.</p>
-        <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-bold text-[#8b786e]"><span className="rounded-full bg-[#fffbf7] px-3 py-2">68 çizim</span><span className="rounded-full bg-[#fffbf7] px-3 py-2">6 kategori</span><span className="rounded-full bg-[#fffbf7] px-3 py-2">Özgün, vektörel ve küçük boyutlu</span></div>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#72685f]">Kullanımdaki {LOKMA_ICON_SAMPLES.length} özel SVG çizimin tamamı burada. Beğenmediğin görsellerin altındaki kodu kopyalayıp bana iletebilirsin; isim veya kod üzerinden arama yapabilirsin.</p>
+        <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-bold text-[#8b786e]"><span className="rounded-full bg-[#fffbf7] px-3 py-2">{LOKMA_ICON_SAMPLES.length} çizim</span><span className="rounded-full bg-[#fffbf7] px-3 py-2">6 kategori</span><span className="rounded-full bg-[#fffbf7] px-3 py-2">Özgün, vektörel ve küçük boyutlu</span></div>
       </header>
       <section className="mt-6 rounded-[24px] border border-[#f0e3d9] bg-white p-4 sm:p-6" aria-label="İkon kataloğu">
         <label className="relative block">
