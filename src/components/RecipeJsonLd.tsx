@@ -42,7 +42,9 @@ export default function RecipeJsonLd({ recipe }: RecipeJsonLdProps) {
     prepTime: `PT${recipe.prep_time}M`,
     cookTime: `PT${recipe.cook_time}M`,
     totalTime: `PT${totalTime}M`,
-    recipeYield: `${recipe.servings} porsiyon`,
+    // No recipeYield without a user-confirmed source servings value.
+    ...(Number.isInteger(Number(recipe.servings)) && Number(recipe.servings) > 0 && Number(recipe.servings) <= 36
+      ? { recipeYield: `${Number(recipe.servings)} porsiyon` } : {}),
     recipeCategory: recipe.meal_type?.[0] || 'Ana Yemek',
     recipeCuisine: recipe.cuisine?.[0] || 'Türk Mutfağı',
     keywords: generateKeywords(),
