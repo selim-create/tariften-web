@@ -123,3 +123,347 @@ export function lokmaIngredient(name: string): FoodSymbol {
 export function lokmaIngredientClasses(tint: string): string {
   return BACKGROUND[tint] || BACKGROUND.sand;
 }
+
+/** Public, static reference samples for the editor's illustration catalog. */
+export const LOKMA_ICON_SAMPLES = [
+  {
+    "category": "Sebzeler",
+    "name": "Domates",
+    "figure": "tomato"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Havuç",
+    "figure": "carrot"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Soğan",
+    "figure": "onion"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Sarımsak",
+    "figure": "garlic"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Patates",
+    "figure": "potato"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Acı biber",
+    "figure": "pepper"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Patlıcan",
+    "figure": "eggplant"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Salatalık",
+    "figure": "cucumber"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Marul",
+    "figure": "greens"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Brokoli",
+    "figure": "broccoli"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Mantar",
+    "figure": "mushroom"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Mısır",
+    "figure": "corn"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Pırasa",
+    "figure": "leek"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Kereviz",
+    "figure": "celery"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Karnabahar",
+    "figure": "cauliflower"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Enginar",
+    "figure": "artichoke"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Turp",
+    "figure": "radish"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Pancar",
+    "figure": "beet"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Bal kabağı",
+    "figure": "pumpkin"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Kuşkonmaz",
+    "figure": "asparagus"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Bamya",
+    "figure": "okra"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Kabak",
+    "figure": "zucchini"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Bezelye",
+    "figure": "pea"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Taze fasulye",
+    "figure": "greenbean"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Limon",
+    "figure": "lemon"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Portakal",
+    "figure": "orange"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Çilek",
+    "figure": "strawberry"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Elma",
+    "figure": "apple"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Muz",
+    "figure": "banana"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Kiraz",
+    "figure": "cherry"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Yaban mersini",
+    "figure": "berry"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Armut",
+    "figure": "pear"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Üzüm",
+    "figure": "grape"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Karpuz",
+    "figure": "watermelon"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Şeftali",
+    "figure": "peach"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Kivi",
+    "figure": "kiwi"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Ananas",
+    "figure": "pineapple"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Avokado",
+    "figure": "avocado"
+  },
+  {
+    "category": "Protein ve süt ürünleri",
+    "name": "Yumurta",
+    "figure": "egg"
+  },
+  {
+    "category": "Protein ve süt ürünleri",
+    "name": "Süt",
+    "figure": "milk"
+  },
+  {
+    "category": "Protein ve süt ürünleri",
+    "name": "Peynir",
+    "figure": "cheese"
+  },
+  {
+    "category": "Protein ve süt ürünleri",
+    "name": "Yoğurt",
+    "figure": "yogurt"
+  },
+  {
+    "category": "Protein ve süt ürünleri",
+    "name": "Tereyağı",
+    "figure": "butter"
+  },
+  {
+    "category": "Protein ve süt ürünleri",
+    "name": "Tavuk",
+    "figure": "chicken"
+  },
+  {
+    "category": "Protein ve süt ürünleri",
+    "name": "Dana eti",
+    "figure": "meat"
+  },
+  {
+    "category": "Protein ve süt ürünleri",
+    "name": "Somon balığı",
+    "figure": "fish"
+  },
+  {
+    "category": "Protein ve süt ürünleri",
+    "name": "Karides",
+    "figure": "shrimp"
+  },
+  {
+    "category": "Tahıllar ve bakliyat",
+    "name": "Pirinç",
+    "figure": "rice"
+  },
+  {
+    "category": "Tahıllar ve bakliyat",
+    "name": "Makarna",
+    "figure": "pasta"
+  },
+  {
+    "category": "Tahıllar ve bakliyat",
+    "name": "Ekmek",
+    "figure": "bread"
+  },
+  {
+    "category": "Tahıllar ve bakliyat",
+    "name": "Kuru fasulye",
+    "figure": "bean"
+  },
+  {
+    "category": "Tahıllar ve bakliyat",
+    "name": "Un",
+    "figure": "flour"
+  },
+  {
+    "category": "Tahıllar ve bakliyat",
+    "name": "Kabartma tozu",
+    "figure": "baking"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Maydanoz",
+    "figure": "herb"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Karabiber",
+    "figure": "spice"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Zeytin",
+    "figure": "olive"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Ayçiçek yağı",
+    "figure": "oil"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Susam",
+    "figure": "sesame"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Tahin",
+    "figure": "sauce"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Domates salçası",
+    "figure": "paste"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Bal",
+    "figure": "honey"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Fındık",
+    "figure": "nut"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Çikolata",
+    "figure": "chocolate"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Şeker",
+    "figure": "sugar"
+  },
+  {
+    "category": "İçecekler ve diğer",
+    "name": "Kahve",
+    "figure": "coffee"
+  },
+  {
+    "category": "İçecekler ve diğer",
+    "name": "Çay",
+    "figure": "tea"
+  },
+  {
+    "category": "İçecekler ve diğer",
+    "name": "Su",
+    "figure": "liquid"
+  },
+  {
+    "category": "İçecekler ve diğer",
+    "name": "Bilinmeyen malzeme",
+    "figure": "plate"
+  }
+] as const;
