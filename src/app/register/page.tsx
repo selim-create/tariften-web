@@ -103,7 +103,7 @@ export default function RegisterPage() {
         <div className="relative z-10 max-w-md mb-20">
           <h2 className="text-4xl font-bold font-heading mb-4 leading-tight">Kendi Tarif Defterini Oluştur.</h2>
           <p className="text-slate-400 text-lg font-light leading-relaxed">
-            Sevdiğin tarifleri kaydet, dolabını yönet ve sana özel haftalık planlar oluştur. Üstelik tamamen ücretsiz.
+            Sevdiğin tarifleri kaydet, dolabını yönet ve sana özel haftalık planlar oluştur. Standart Üyelik ile mutfağını Tariften'de keşfet.
           </p>
         </div>
 
@@ -128,6 +128,15 @@ export default function RegisterPage() {
               <FaTriangleExclamation /> {error}
             </div>
           )}
+
+          <div className="rounded-2xl border border-[#eee1da] bg-white p-3">
+            <p className="mb-2 text-[11px] font-bold text-slate-500">Üyelik seçenekleri</p>
+            <div className="grid grid-cols-3 gap-2" aria-label="Üyelik seçenekleri">
+              <span className="flex min-h-10 items-center justify-center rounded-xl border border-[#f0bdb2] bg-[#fff1ec] px-2 text-center text-[11px] font-extrabold text-[#bb5144]">Standart Üye</span>
+              <button type="button" disabled title="Henüz yayında değil" className="min-h-10 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-1 text-[11px] font-semibold text-slate-400 opacity-65">Premium · Yakında</button>
+              <button type="button" disabled title="Henüz yayında değil" className="min-h-10 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-1 text-[11px] font-semibold text-slate-400 opacity-65">Premium + · Yakında</button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <button onClick={() => googleLogin()} className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition text-slate-700 font-medium text-xs shadow-sm">

@@ -16,7 +16,7 @@ import { createRecipe } from "@/lib/api";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import { capitalizeIngredientTr } from "@/lib/ingredient-display";
 import {
-  buildApprovedRecipe, editorFromPreview, importWarningLabel, parseImportPreview,
+  buildApprovedRecipe, editorFromPreview, importReviewNotes, parseImportPreview,
   publishValidation, validateRecipeSource,
 } from "@/lib/recipe-text-import";
 import type {
@@ -131,6 +131,9 @@ export default function RecipeTextImportPage() {
           setBetaUnavailable(true);
           setRouteMissing(code === "recipe_import_route_missing");
         }
+        if (response.status === 504 || code === "recipe_import_timeout" || /cURL error 28|operation timed out/i.test(msg)) {
+          throw new Error("Tarifini düzenlemek bu kez beklediğimizden uzun sürdü. Notların burada duruyor; birazdan yeniden deneyebilirsin. Deneme hakkından kullanım düşmüş olabilir.");
+        }
         throw new Error(msg);
       }
       const checked = parseImportPreview(payload);
@@ -139,10 +142,11 @@ export default function RecipeTextImportPage() {
       setActiveIngredient(null);
       setActiveStep(null);
       setAccepted(true);
-      void quotas.reload();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Önizleme hazırlanamadı. Yeniden deneyebilirsin.");
     } finally {
+      // A failed paid AI attempt may still consume the daily quota.
+      void quotas.reload();
       setBusy(null);
     }
   };
@@ -194,18 +198,16 @@ export default function RecipeTextImportPage() {
       <section className="w-full rounded-[32px] border border-slate-100 bg-white p-10 text-center shadow-xl shadow-slate-900/5">
         <LockKeyhole className="mx-auto mb-5 h-12 w-12 text-[#db4c3f]" aria-hidden />
         <h1 className="text-3xl font-black text-slate-900">Tarifini Tariften’e Aktar</h1>
-        <p className="mx-auto my-5 max-w-lg text-slate-600">Kendi tariflerini akıllı biçimde düzenlemek için Tariften hesabına giriş yap veya ücretsiz kayıt ol.</p>
+        <p className="mx-auto my-5 max-w-lg text-slate-600">Kendi tariflerini akıllı biçimde düzenlemek için Tariften hesabına giriş yap veya Standart Üye olarak kayıt ol.</p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link href="/login" className="rounded-xl bg-[#db4c3f] px-7 py-3.5 font-bold text-white">Giriş Yap</Link>
-          <Link href="/register" className="rounded-xl border border-slate-200 px-7 py-3.5 font-bold text-slate-800">Ücretsiz Kayıt Ol</Link>
+          <Link href="/register" className="rounded-xl border border-slate-200 px-7 py-3.5 font-bold text-slate-800">Standart Üye Ol</Link>
         </div>
       </section>
     </main>
   );
 
-  const warnings = preview
-    ? Array.from(new Set([...preview.warnings, ...preview.needs_confirmation])).map(importWarningLabel)
-    : [];
+  const warnings = preview ? importReviewNotes(preview.warnings, preview.needs_confirmation) : [];
 
   return <main className="min-h-[calc(100dvh-4rem)] bg-[#fffbf7] text-slate-800">
     <div className="mx-auto max-w-[1460px] px-3 pb-12 pt-5 sm:px-6 lg:px-8">
@@ -314,7 +316,7 @@ export default function RecipeTextImportPage() {
 
               {warnings.length > 0 && (
                 <div className="mb-5 rounded-2xl border border-amber-200 bg-[#fff9ee] p-4">
-                  <div className="mb-2 flex items-center gap-2 text-sm font-extrabold text-amber-900"><TriangleAlert className="h-4 w-4" /> Kontrol edilmesi gereken {warnings.length} konu</div>
+                  <div className="mb-2 flex items-center gap-2 text-sm font-extrabold text-amber-900"><TriangleAlert className="h-4 w-4" /> Tarifine son kez birlikte bakalım</div>
                   <ul className="space-y-1.5 pl-5 text-xs leading-6 text-amber-900">
                     {Array.from(new Set(warnings)).map(w => <li key={w} className="list-disc">{w}</li>)}
                   </ul>
@@ -338,6 +340,7 @@ export default function RecipeTextImportPage() {
                 <div className="border-t border-slate-100 pt-6">
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="flex items-center gap-2 font-heading text-lg font-black"><LokmaIngredientIcon name="domates" size="sm" /> Malzemeler <span className="text-sm font-normal text-slate-400">{editor.ingredients.length}</span></h3>
+                    <Link href="/lokma/ikonlar" target="_blank" rel="noopener noreferrer" className="ml-auto mr-3 text-[11px] font-semibold text-[#a75b4b] underline decoration-[#dfc5b8] underline-offset-4 hover:text-[#db4c3f]">Tüm ikonları gör</Link>
                     <button type="button" aria-label="Malzeme ekle" disabled={editor.ingredients.length >= 40}
                       onClick={() => { setActiveIngredient(editor.ingredients.length); updateEditor(old => ({ ...old, ingredients: [...old.ingredients, { name: "", amount: "", unit: "", original_span: "", source_verified: false, userEdited: true }] })); }}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#db4c3f] disabled:opacity-50"><Plus className="h-4 w-4" /> Ekle</button>

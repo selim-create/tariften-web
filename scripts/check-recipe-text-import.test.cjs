@@ -120,11 +120,28 @@ test('editable fields require explicit user completion but never require invente
   assert.match(lib.publishValidation(editor), /adım/);
 });
 
+test('review notes sound like Tariften, group duplicate evidence and preserve urgent salt warnings', () => {
+  const codes = [
+    'ingredient_name_corrected', 'step_editorial_rewrite',
+    'ingredient_2_source_check', 'ingredient_3_source_check',
+    'step_2_source_check', 'step_4_source_check',
+  ];
+  assert.deepEqual(lib.importReviewNotes(codes, []), [
+    'Yazım hataları düzeltilmiş olabilir. Malzeme adlarını kendi tarifinle karşılaştır.',
+    'Adımlar daha akıcı bir Türkçe ile tekrar yazıldı. Anlamın değişmediğini kontrol et.',
+    'Bir malzemeyi doğrulamalısın.',
+    'Bir yapılış adımını doğrulamalısın.',
+  ]);
+  assert.ok(lib.importReviewNotes(['high_salt_quantity_review'], [])
+    .some(x => x.includes('Tuz miktarı')));
+  assert.deepEqual(lib.importReviewNotes([], []), []);
+});
+
 test('warnings and unknown source confirmation codes never render untranslated internals', () => {
   assert.match(lib.importWarningLabel('high_salt_quantity_review'), /Tuz miktarı/);
   assert.match(lib.importWarningLabel('ingredient_4_amount_missing'), /malzeme/);
   assert.match(lib.importWarningLabel('step_2_source_check'), /adım/);
-  assert.match(lib.importWarningLabel('unknown_request'), /kaynak metinle/);
+  assert.match(lib.importWarningLabel('unknown_request'), /göz at/);
 });
 
 test('route is strictly authorized, no-store, bounded, preview-only and uses the existing Core endpoint', () => {
@@ -137,6 +154,34 @@ test('route is strictly authorized, no-store, bounded, preview-only and uses the
   assert.match(route, /no-store/);
   assert.doesNotMatch(route, /console\.(log|error)\(/);
   assert.doesNotMatch(route, /\/recipes\/create/);
+});
+
+test('Standard Member messaging and disabled Premium tiers never activate a payment workflow', () => {
+  const root = path.join(__dirname, '..');
+  const quota = fs.readFileSync(path.join(root, 'src/components/account/QuotaPanel.tsx'), 'utf8');
+  const register = fs.readFileSync(path.join(root, 'src/app/register/page.tsx'), 'utf8');
+  const footer = fs.readFileSync(path.join(root, 'src/components/layout/Footer.tsx'), 'utf8');
+  const gate = fs.readFileSync(path.join(root, 'src/components/pilot/PilotAccessGate.tsx'), 'utf8');
+  const entry = fs.readFileSync(path.join(root, 'src/components/pilot/PilotEntryButton.tsx'), 'utf8');
+  for (const text of [quota,register,footer,gate,entry]) {
+    assert.doesNotMatch(text, /Ücretsiz hesap|Ücretsiz Kayıt Ol|ücretsiz kayıt ol/);
+  }
+  assert.match(quota, /Standart Üye/);
+  assert.match(quota, /Yönetici · Sınırsız/);
+  assert.match(quota, /Premium \+ · Yakında/);
+  assert.match(quota, /<button type="button" disabled/);
+  assert.match(register, /Standart Üye/);
+  assert.match(register, /Premium · Yakında/);
+  assert.match(register, /<button type="button" disabled/);
+});
+
+test('AI timeout shows a human message and quota is reloaded after failed attempts', () => {
+  const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/recipe/import/page.tsx'), 'utf8');
+  assert.match(page, /response\.status === 504/);
+  assert.match(page, /code === "recipe_import_timeout"/);
+  assert.match(page, /Deneme hakkından kullanım düşmüş olabilir/);
+  assert.match(page, /A failed paid AI attempt may still consume the daily quota/);
+  assert.match(page, /void quotas\.reload\(\)/);
 });
 
 test('screen requires login, approval and independent quota checks before public publish', () => {

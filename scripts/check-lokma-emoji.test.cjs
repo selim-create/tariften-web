@@ -35,6 +35,23 @@ test('key Turkish ingredients receive recognizable food icons rather than false 
  assert.equal(lokmaIngredient('bilinmeyen gurme malzeme').art,undefined);
 });
 
+test('visual gallery showcases all 68 exact SVG figures with stable names and category filters', () => {
+  const items = shim.exports.LOKMA_ICON_SAMPLES;
+  assert.equal(items.length, 68);
+  assert.equal(new Set(items.map(item => item.figure)).size, 68);
+  const icon = fs.readFileSync(path.join(__dirname, '..', 'src/components/lokma/LokmaIngredientIcon.tsx'), 'utf8');
+  const gallery = fs.readFileSync(path.join(__dirname, '..', 'src/app/lokma/ikonlar/page.tsx'), 'utf8');
+  items.forEach(item => {
+    assert.ok(icon.includes(`figure === "${item.figure}"`), `Unknown SVG illustration ${item.figure}`);
+    assert.ok(item.name && item.category, 'Catalog entry must have an accessible name and category');
+  });
+  assert.match(icon, /previewFigure \|\|/);
+  assert.match(gallery, /LOKMA_ICON_SAMPLES\.filter/);
+  assert.match(gallery, /previewFigure=\{item\.figure\}/);
+  assert.match(gallery, /aria-pressed=\{category === item\}/);
+  assert.match(gallery, /navigator\.clipboard\.writeText/);
+});
+
 test('rating emojis preserve numeric 1-5 API contracts', () => {
  assert.deepEqual(LOKMA_RATINGS.map(x=>x.rating),[1,2,3,4,5]);
  assert.equal(new Set(LOKMA_RATINGS.map(x=>x.emoji)).size,5);
