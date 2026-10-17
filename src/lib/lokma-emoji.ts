@@ -29,6 +29,27 @@ type FoodRule = FoodSymbol & { patterns: readonly string[] };
 const RULES: readonly FoodRule[] = [
   // Ingredient-specific miniature art stays independent of platform-native emojis.
   // More specific names precede broad categories, without modifying the user's text.
+  { emoji: "🧂", art: "paprikaspice", label: "Toz kırmızı biber", tint: "rose", patterns: ["kırmızı biber baharat","kırmızı biber tozu","kırmızı toz biber","toz kırmızı biber","tatlı toz biber","acı toz biber","pul biber","isot","paprika"] },
+  { emoji: "🫘", art: "greenlentil", label: "Yeşil mercimek", tint: "sage", patterns: ["yeşil mercimek","yesil mercimek"] },
+  { emoji: "🫘", art: "redlentil", label: "Kırmızı mercimek", tint: "orange", patterns: ["kırmızı mercimek","kirmizi mercimek"] },
+  { emoji: "🌶️", art: "bellpepper", label: "Dolmalık biber", tint: "sage", patterns: ["dolmalık biber","dolma biber","dolmalik biber"] },
+  { emoji: "🌶️", art: "kapiapepper", label: "Kapya biber", tint: "rose", patterns: ["kapya","kapya biber"] },
+  { emoji: "🌶️", art: "redpepper", label: "Kırmızı biber", tint: "rose", patterns: ["kırmızı biber","kirmizi biber"] },
+  { emoji: "🌶️", art: "carliston", label: "Çarliston biber", tint: "sage", patterns: ["çarliston","carliston"] },
+  { emoji: "🌶️", art: "sivri", label: "Sivri biber", tint: "sage", patterns: ["sivri biber","sivri"] },
+  { emoji: "🌶️", art: "sweetpepper", label: "Biber", tint: "sage", patterns: ["yeşil biber","yesil biber"] },
+  { emoji: "🧂", art: "salt", label: "Tuz", tint: "sand", patterns: ["tuz","kaya tuzu","deniz tuzu","iri tuz"] },
+  { emoji: "🧂", art: "cumin", label: "Kimyon", tint: "sand", patterns: ["kimyon","cumin"] },
+  { emoji: "🧂", art: "cinnamon", label: "Çubuk tarçın", tint: "sand", patterns: ["çubuk tarçın","tarçın çubuğu","cinnamon stick"] },
+  { emoji: "🌿", art: "vanilla", label: "Vanilya çubuğu", tint: "sand", patterns: ["vanilya çubuğu","vanilya çubukları","vanilla pod"] },
+  { emoji: "🌿", art: "dill", label: "Dereotu", tint: "sage", patterns: ["dereotu","dere otu"] },
+  { emoji: "🌿", art: "arugula", label: "Roka", tint: "sage", patterns: ["roka","arugula"] },
+  { emoji: "🌰", art: "walnut", label: "Ceviz", tint: "sand", patterns: ["ceviz","walnut"] },
+  { emoji: "🌰", art: "almond", label: "Badem", tint: "sand", patterns: ["badem","almond"] },
+  { emoji: "🥬", art: "cabbage", label: "Lahana", tint: "sage", patterns: ["lahana","beyaz lahana","kırmızı lahana","mor lahana"] },
+  { emoji: "🍉", art: "melon", label: "Kavun", tint: "yellow", patterns: ["kavun","melon"] },
+  { emoji: "🫒", art: "oliveoil", label: "Zeytinyağı", tint: "yellow", patterns: ["zeytinyağı","zeytin yağı","zeytin yagı","sızma zeytinyağı","sızma zeytin yağı","olive oil"] },
+  { emoji: "🍎", art: "greenapple", label: "Yeşil elma", tint: "sage", patterns: ["yeşil elma","yesil elma","granny smith"] },
   { emoji: "🥬", art: "leek", label: "Pırasa", tint: "sage", patterns: ["pırasa", "pirasa", "leek"] },
   { emoji: "🥬", art: "celery", label: "Kereviz", tint: "sage", patterns: ["kereviz", "kereviz sapı", "celery"] },
   { emoji: "🥦", art: "cauliflower", label: "Karnabahar", tint: "sand", patterns: ["karnabahar", "cauliflower"] },
@@ -76,7 +97,8 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🫒", label: "Zeytin", tint: "sage", patterns: ["zeytinyağı", "zeytin yağı", "zeytin yagı", "zeytin", "olive"] },
   { emoji: "🌿", label: "Taze otlar", tint: "sage", patterns: ["fesleğen", "maydanoz", "dereotu", "nane", "kekik", "biberiye", "kişniş", "roka", "taze ot", "defne", "taze soğan", "yeşil soğan", "semizotu", "tere", "reyhan", "tarhun", "frenk soğanı"] },
   { emoji: "🧂", label: "Baharat", tint: "sand", patterns: ["karabiber", "tuz", "deniz tuzu", "kaya tuzu", "kimyon", "zerdeçal", "tarçın", "köri", "sumak", "pul biber", "yenibahar", "muskat", "safran", "isot", "karanfil", "kakule", "zencefil", "toz zencefil", "kırmızı toz biber"] },
-  { emoji: "🌶️", label: "Biber", tint: "rose", patterns: ["biber", "biber salçası", "chili", "jalapeño", "paprika"] },
+  { emoji: "🌶️", art: "pepper", label: "Acı biber", tint: "rose", patterns: ["acı biber", "aci biber", "chili", "jalapeño"] },
+  { emoji: "🌶️", art: "sweetpepper", label: "Biber", tint: "sage", patterns: ["biber"] },
   { emoji: "🍆", label: "Patlıcan", tint: "lavender", patterns: ["patlıcan", "aubergine"] },
   { emoji: "🥒", label: "Salatalık", tint: "sage", patterns: ["salatalık", "kornişon", "kabak", "zucchini"] },
   { emoji: "🥬", label: "Yeşillik", tint: "sage", patterns: ["marul", "ıspanak", "lahana", "pazı", "kale"] },
@@ -465,5 +487,110 @@ export const LOKMA_ICON_SAMPLES = [
     "category": "İçecekler ve diğer",
     "name": "Bilinmeyen malzeme",
     "figure": "plate"
+  },
+  {
+    "category": "Tahıllar ve bakliyat",
+    "name": "Yeşil mercimek",
+    "figure": "greenlentil"
+  },
+  {
+    "category": "Tahıllar ve bakliyat",
+    "name": "Kırmızı mercimek",
+    "figure": "redlentil"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Dolmalık biber",
+    "figure": "bellpepper"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Kapya biber",
+    "figure": "kapiapepper"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Kırmızı biber",
+    "figure": "redpepper"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Çarliston biber",
+    "figure": "carliston"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Sivri biber",
+    "figure": "sivri"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Yeşil biber",
+    "figure": "sweetpepper"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Tuz",
+    "figure": "salt"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Toz kırmızı biber",
+    "figure": "paprikaspice"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Kimyon",
+    "figure": "cumin"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Çubuk tarçın",
+    "figure": "cinnamon"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Vanilya çubuğu",
+    "figure": "vanilla"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Dereotu",
+    "figure": "dill"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Roka",
+    "figure": "arugula"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Ceviz",
+    "figure": "walnut"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Badem",
+    "figure": "almond"
+  },
+  {
+    "category": "Sebzeler",
+    "name": "Lahana",
+    "figure": "cabbage"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Kavun",
+    "figure": "melon"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Zeytinyağı",
+    "figure": "oliveoil"
+  },
+  {
+    "category": "Meyveler",
+    "name": "Yeşil elma",
+    "figure": "greenapple"
   }
 ] as const;
