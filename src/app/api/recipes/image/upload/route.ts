@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
     if (data.success !== true || !Number.isSafeInteger(data.id) || Number(data.id) < 1) {
       return failure("Görsel yükleme yanıtı tamamlanamadı. Yeniden dene.", 502);
     }
-    return NextResponse.json({ success: true, id: Number(data.id) }, { status: 201, headers: NO_STORE });
+    const publicUrl = typeof data.url === "string" && /^https:\/\//i.test(data.url) ? data.url : "";
+    return NextResponse.json({ success: true, id: Number(data.id), url: publicUrl }, { status: 201, headers: NO_STORE });
   } catch {
     return failure("Görsel sunucusuna ulaşılamadı. Birazdan tekrar dene.", 503);
   }
