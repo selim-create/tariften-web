@@ -383,25 +383,37 @@ export default function RecipeTextImportPage() {
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="flex items-center gap-2 font-heading text-lg font-black"><ChefHat className="h-4 w-4 text-[#db4c3f]" /> Yapılışı <span className="text-sm font-normal text-slate-400">{editor.steps.length}</span></h3>
                     <button type="button" aria-label="Adım ekle" disabled={editor.steps.length >= 40}
-                      onClick={() => updateEditor(old => ({ ...old, steps: [...old.steps, { content: "", original_span: "", source_verified: false, userEdited: true }] }))}
+                      onClick={() => { setActiveStep(editor.steps.length); updateEditor(old => ({ ...old, steps: [...old.steps, { content: "", original_span: "", source_verified: false, userEdited: true }] })); }}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#db4c3f] disabled:opacity-50"><Plus className="h-4 w-4" /> Ekle</button>
                   </div>
-                  <div className="space-y-3">
+
+                  <div className="space-y-2">
                     {editor.steps.map((step, i) =>
-                      <div key={i} className="flex gap-3 rounded-2xl border border-slate-200 bg-[#fcfcfb] p-4">
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#fcebe7] text-xs font-black text-[#db4c3f]">{i + 1}</span>
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-2 flex items-center justify-between">
-                            <span className={`text-[11px] font-semibold ${step.userEdited ? "text-amber-700" : "text-emerald-700"}`}>
-                              {step.userEdited ? "Sen düzenledin" : step.editorial_rewrite ? "Editoryal öneri · Kontrol et" : "Orijinal adım"}
+                      <div key={i} className="overflow-hidden rounded-2xl border border-[#efe7de] bg-white transition hover:border-[#e5c8b9]">
+                        <div className="flex items-start gap-3 p-3">
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#fcebe7] text-xs font-black text-[#db4c3f]">{i + 1}</span>
+                          <button type="button" aria-expanded={activeStep === i}
+                            onClick={() => setActiveStep(current => current === i ? null : i)}
+                            className="min-w-0 flex-1 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-[#db4c3f]">
+                            <span className={step.userEdited ? "text-[10px] font-semibold text-amber-700" : step.editorial_rewrite ? "text-[10px] font-semibold text-[#b95c45]" : "text-[10px] font-semibold text-emerald-700"}>
+                              {step.userEdited ? "Sen düzenledin" : step.editorial_rewrite ? "Editoryal öneri · kontrol et" : "Orijinal adım"}
                             </span>
-                            <button type="button" aria-label={`${i + 1}. adımı sil`} onClick={() => updateEditor(old => ({ ...old, steps: old.steps.filter((_, index) => index !== i) }))}
-                              className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
-                          </div>
-                          <textarea aria-label={`${i + 1}. hazırlanış adımı`} rows={3} value={step.content} onChange={e => updateStep(i, e.target.value)}
-                            className="w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-sm leading-6 outline-none focus:border-[#db4c3f]" />
-                          {step.original_span && (step.userEdited || step.editorial_rewrite) && <p className="mt-2 text-[11px] leading-5 text-slate-500">Orijinal: “{step.original_span}”</p>}
+                            <p className="mt-1 whitespace-pre-wrap text-[13px] leading-6 text-slate-700">{step.content || "Yeni hazırlanış adımı"}</p>
+                          </button>
+                          <button type="button" aria-label={(i + 1) + ". adımı düzenle"}
+                            onClick={() => setActiveStep(current => current === i ? null : i)}
+                            aria-expanded={activeStep === i} className="rounded-lg p-2 text-[#938579] hover:bg-[#ffede8] hover:text-[#db4c3f]">
+                            <ChevronDown className={activeStep === i ? "h-4 w-4 rotate-180" : "h-4 w-4"} />
+                          </button>
+                          <button type="button" aria-label={(i + 1) + ". adımı sil"}
+                            onClick={() => { updateEditor(old => ({ ...old, steps: old.steps.filter((_, index) => index !== i) })); setActiveStep(null); }}
+                            className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                         </div>
+                        {activeStep === i && <div className="border-t border-[#f2ebe5] bg-[#fffcf9] px-3 pb-3 pt-3">
+                          <textarea aria-label={(i + 1) + ". hazırlanış adımı"} rows={3} value={step.content} onChange={e => updateStep(i, e.target.value)}
+                            className="w-full resize-y rounded-xl border border-[#e8ded4] bg-white p-3 text-sm leading-6 outline-none focus:border-[#db4c3f]" />
+                          {step.original_span && (step.userEdited || step.editorial_rewrite) && <p className="mt-2 text-[11px] leading-5 text-slate-500">Orijinal: “{step.original_span}”</p>}
+                        </div>}
                       </div>)}
                     {editor.steps.length === 0 && <Notice warning>Kaynakta doğrulanmış bir adım bulunamadı. Tarifin nasıl yapıldığını kendin eklemelisin.</Notice>}
                   </div>
