@@ -38,8 +38,39 @@ test('food visual identity is integrated without removing the recipe ingredient 
  assert.match(detail,/LOKMA_REACTIONS\.map/);
  assert.match(detail,/setCommentText\(current =>/);
  assert.match(importPage,/LokmaIngredientIcon name=\{ingredient\.name\}/);
- assert.match(importPage,/Tarif defterin, yeniden/);
+ assert.match(importPage,/Tarifini birlikte düzenleyelim/);
  assert.match(importPage,/Tarifimi güzelleştir/);
  assert.match(importPage,/createRecipe\(token, buildApprovedRecipe\(editor\)\)/);
  assert.match(importPage,/!accepted/);
+});
+
+test('ingredient illustrations are compact vector art and never render native food emojis', () => {
+  const icon = fs.readFileSync(path.join(__dirname, '..', 'src/components/lokma/LokmaIngredientIcon.tsx'), 'utf8');
+  const recipe = fs.readFileSync(path.join(__dirname, '..', 'src/components/recipe/RecipeDetailClient.tsx'), 'utf8');
+  assert.match(icon, /<svg viewBox="0 0 40 40"/);
+  assert.match(icon, /FIGURES\[lokmaIngredient\(name\)\.emoji\]/);
+  assert.match(icon, /figure === "tomato"/);
+  assert.match(icon, /figure === "carrot"/);
+  assert.match(icon, /figure === "plate"/);
+  assert.match(icon, /h-5 w-5/);
+  assert.doesNotMatch(icon, /\{ingredient\.emoji\}/);
+  assert.match(recipe, /size="sm"/);
+});
+
+test('ingredient display uses Turkish casing and never displays NaN for unspecified amounts', () => {
+  const file = fs.readFileSync(path.join(__dirname, '..', 'src/lib/ingredient-display.ts'), 'utf8');
+  const compiled = ts.transpileModule(file, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  const mod = {exports:{}};
+  Function('module','exports',compiled)(mod,mod.exports);
+  const {capitalizeIngredientTr,formatIngredientAmount} = mod.exports;
+  assert.equal(capitalizeIngredientTr('domates'), 'Domates');
+  assert.equal(capitalizeIngredientTr('ıspanak'), 'Ispanak');
+  assert.equal(capitalizeIngredientTr('iç bakla'), 'İç bakla');
+  assert.equal(formatIngredientAmount(null, '', 2, 4), '');
+  assert.equal(formatIngredientAmount(undefined, 'gr', 2, 4), 'gr');
+  assert.equal(formatIngredientAmount('NaN', '', 2, 4), '');
+  assert.equal(formatIngredientAmount('100', 'gr', 2, 4), '200 gr');
+  assert.equal(formatIngredientAmount('1/2', 'su bardağı', 2, 4), '1/2 su bardağı');
+  assert.equal(formatIngredientAmount('2', 'diş', 0, 4), '2 diş');
+  assert.equal(formatIngredientAmount('2', 'diş', 2, 4), '4 diş');
 });
