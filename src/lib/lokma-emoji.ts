@@ -29,6 +29,7 @@ type FoodRule = FoodSymbol & { patterns: readonly string[] };
 const RULES: readonly FoodRule[] = [
   // Ingredient-specific miniature art stays independent of platform-native emojis.
   // More specific names precede broad categories, without modifying the user's text.
+  { emoji: "🧂", art: "paprikaspice", label: "Toz kırmızı biber", tint: "rose", patterns: ["kırmızı biber baharat","kırmızı biber tozu","kırmızı toz biber","toz kırmızı biber","tatlı toz biber","acı toz biber","pul biber","isot","paprika"] },
   { emoji: "🫘", art: "greenlentil", label: "Yeşil mercimek", tint: "sage", patterns: ["yeşil mercimek","yesil mercimek"] },
   { emoji: "🫘", art: "redlentil", label: "Kırmızı mercimek", tint: "orange", patterns: ["kırmızı mercimek","kirmizi mercimek"] },
   { emoji: "🌶️", art: "bellpepper", label: "Dolmalık biber", tint: "sage", patterns: ["dolmalık biber","dolma biber","dolmalik biber"] },
@@ -38,7 +39,6 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🌶️", art: "sivri", label: "Sivri biber", tint: "sage", patterns: ["sivri biber","sivri"] },
   { emoji: "🌶️", art: "sweetpepper", label: "Biber", tint: "sage", patterns: ["yeşil biber","yesil biber"] },
   { emoji: "🧂", art: "salt", label: "Tuz", tint: "sand", patterns: ["tuz","kaya tuzu","deniz tuzu","iri tuz"] },
-  { emoji: "🧂", art: "paprikaspice", label: "Toz kırmızı biber", tint: "rose", patterns: ["kırmızı biber baharat","kırmızı biber tozu","kırmızı toz biber","toz kırmızı biber","tatlı toz biber","acı toz biber","pul biber","isot","paprika"] },
   { emoji: "🧂", art: "cumin", label: "Kimyon", tint: "sand", patterns: ["kimyon","cumin"] },
   { emoji: "🧂", art: "cinnamon", label: "Çubuk tarçın", tint: "sand", patterns: ["çubuk tarçın","tarçın çubuğu","cinnamon stick"] },
   { emoji: "🌿", art: "vanilla", label: "Vanilya çubuğu", tint: "sand", patterns: ["vanilya çubuğu","vanilya çubukları","vanilla pod"] },
