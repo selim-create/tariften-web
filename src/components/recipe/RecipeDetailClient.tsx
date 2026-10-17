@@ -13,6 +13,8 @@ import { getRandomChefTip } from "@/lib/chefTips";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
 import { parseIngredients, parseSteps } from "@/lib/recipeUtils";
+import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
+import { LOKMA_REACTIONS, LOKMA_RATINGS } from "@/lib/lokma-emoji";
 
 // Helper: Tahmini porsiyon ağırlığı hesapla
 const WEIGHT_PER_PIECE = 50; // Malzeme adedi başına ortalama gram
@@ -413,6 +415,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isChecked ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 bg-white'}`}>
                       {isChecked && <FaCheck className="text-[10px]" />}
                     </div>
+                    <LokmaIngredientIcon name={item.name} size="md" />
                     <span className={`flex-1 text-sm font-medium ${isChecked ? 'line-through text-gray-400' : 'text-slate-700'}`}>
                       <strong className="text-brand">{displayAmount} {item.unit}</strong> {item.name}
                     </span>
@@ -581,6 +584,18 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
               </div>
             </div>
             
+            {/* Lokma rating emotions reinforce the existing 1–5 numeric rating. */}
+            <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Lezzet değerlendirmesi">
+              {LOKMA_RATINGS.map(({ rating, emoji, label }) => (
+                <button type="button" key={rating} onClick={() => handleRating(rating)}
+                  disabled={!user} aria-label={`${rating} yıldız · ${label}`}
+                  title={label}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-bold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 ${userRating === rating ? "border-[#db4c3f] bg-[#fff0eb] text-[#a84337]" : "border-[#eadfd7] bg-white/70 text-slate-600 hover:border-[#db4c3f]/50"}`}>
+                  <span aria-hidden="true" className="text-base leading-none">{emoji}</span> {label}
+                </button>
+              ))}
+            </div>
+
             {hasRated && (
               <p className="text-xs text-green-600 mt-2">
                 ✓ Bu tarife {userRating} yıldız verdiniz
@@ -626,6 +641,17 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                     className="w-full p-4 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-orange-100 focus:border-orange-300 transition-all min-h-[100px]"
                     rows={3}
                   />
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-label="Yorumuna emoji ekle">
+                    <span className="mr-1 text-[11px] font-semibold text-slate-400">Bir tepki ekle</span>
+                    {LOKMA_REACTIONS.map(({ id, emoji, label }) => (
+                      <button type="button" key={id} title={label}
+                        aria-label={`Yoruma ${label} emojisi ekle`}
+                        onClick={() => setCommentText(current => current.length < 490 ? current + (current && !current.endsWith(" ") ? " " : "") + emoji : current)}
+                        className="grid h-9 w-9 place-items-center rounded-xl bg-[#fbf5ef] text-lg transition hover:-translate-y-0.5 hover:bg-[#ffebe1]">
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
                   <div className="flex items-center justify-between mt-3">
                     <p className="text-xs text-gray-400">
                       Yorum yaparken topluluk kurallarına uyun.
