@@ -23,12 +23,12 @@ export default function QuotaPanel({
       <div className="flex items-center justify-between gap-3 mb-4">
         <h2 className="font-bold text-slate-900">Kullanım haklarım</h2>
         <span className="rounded-full px-3 py-1 bg-[#eff7f0] text-[#296443] text-xs font-bold">
-          {data.tier === "administrator" ? "Yönetici · Sınırsız" : "Standart Üye"}
+          {data.tier === "administrator" ? "Yönetici · Sınırsız" : data.tier === "internal" ? "Dahili Hesap · Sınırsız" : "Standart Üye"}
         </span>
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-2" aria-label="Üyelik seçenekleri">
-        {data.tier === "administrator"
-          ? <span className="rounded-full border border-[#cce6da] bg-[#eef8f0] px-3 py-1.5 text-xs font-bold text-[#317b57]">Yönetici · Sınırsız</span>
+        {data.tier === "administrator" || data.tier === "internal"
+          ? <span className="rounded-full border border-[#cce6da] bg-[#eef8f0] px-3 py-1.5 text-xs font-bold text-[#317b57]">{data.tier === "administrator" ? "Yönetici · Sınırsız" : "Dahili Hesap · Sınırsız"}</span>
           : <span className="rounded-full border border-[#e6d3c7] bg-[#fff5ee] px-3 py-1.5 text-xs font-bold text-[#a95642]">Standart Üye</span>}
         <button type="button" disabled title="Henüz yayında değil" className="cursor-not-allowed rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400 opacity-65">Premium · Yakında</button>
         <button type="button" disabled title="Henüz yayında değil" className="cursor-not-allowed rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400 opacity-65">Premium + · Yakında</button>
@@ -46,7 +46,8 @@ export default function QuotaPanel({
           </div>;
         })}
       </div>
-      <p className="text-xs text-slate-500 mt-3">Menünün içindeki tarifler günlük bağımsız tarif hakkını tüketmez. Kotalar sunucuda kontrol edilir.</p>
+      {data.account?.login && <p className="text-xs text-slate-500 mt-3">Bu kullanım hakları <strong>{data.account.login}</strong> (WordPress kullanıcı #{data.account.id}) hesabına aittir.</p>}
+      <p className="text-xs text-slate-500 mt-3">Menünün içindeki tarifler günlük bağımsız tarif hakkını tüketmez. Kotalar sunucuda kontrol edilir. Sınırsız içerik hakkı, küresel AI bütçesini kaldırmaz.</p>
     </section>
   );
 }

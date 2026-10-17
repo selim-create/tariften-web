@@ -10,7 +10,7 @@ export type Quota = {
   reset_at: string;
   available: boolean;
 };
-export type Quotas = { success: true; tier: string; quotas: Record<QuotaKind, Quota> };
+export type Quotas = { success: true; tier: string; account?: { id: number; login: string }; quotas: Record<QuotaKind, Quota> };
 
 export function quotaReached(data: Quotas | null, kind: QuotaKind): boolean {
   const q = data?.quotas?.[kind];

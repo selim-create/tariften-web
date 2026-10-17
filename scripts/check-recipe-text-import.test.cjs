@@ -56,9 +56,13 @@ test('verified preview parsed and editable recipe faithfully copies user data', 
   assert.equal(editor.ingredients.length, 2);
   assert.deepEqual(editor.steps.map(s => s.content), preview.recipe.steps.map(s => s.original_span));
   assert.equal(editor.seoKeywords, 'yumurta, süt');
+  assert.equal(editor.servings, '', 'AI did not guess portion count');
+  assert.match(lib.publishValidation(editor), /kaç kişilik/, 'publication requires user-confirmed servings');
+  editor.servings = '4';
   assert.equal(lib.publishValidation(editor), null);
   const payload = lib.buildApprovedRecipe(editor);
   assert.equal(payload.title, 'Sütlü Yumurta');
+  assert.equal(payload.servings, 4, 'user-approved servings are saved in Core create payload');
   assert.deepEqual(payload.ingredients[0], { name: 'yumurta', amount: '2', unit: '' });
   assert.equal(payload.steps[0], '2 yumurta ve 1 bardak sütü karıştır.');
   assert.equal(payload.seo.focus_keywords, 'yumurta, süt');
@@ -108,6 +112,8 @@ test('Turkish typo correction keeps immutable literal source and flags editorial
 
 test('editable fields require explicit user completion but never require invented amounts', () => {
   const editor = lib.editorFromPreview(fakePreview());
+  assert.match(lib.publishValidation(editor), /kaç kişilik/);
+  editor.servings = '4';
   editor.ingredients[1].amount = '';
   assert.equal(lib.publishValidation(editor), null, 'source can omit a quantity');
   editor.title = '';
@@ -118,6 +124,39 @@ test('editable fields require explicit user completion but never require invente
   editor.ingredients = [{ name: 'yumurta', amount: '', unit: '', original_span: '', source_verified: false }];
   editor.steps[0].content = '';
   assert.match(lib.publishValidation(editor), /adım/);
+});
+
+test('missing servings are never silently invented and quantity cannot be used to guess', () => {
+  const preview = fakePreview();
+  preview.source_text = '1 kilo fasulye. Soğanı rendele, domates ekle ve karıştır.';
+  preview.recipe.ingredients = [{ name:'fasulye', amount:'1', unit:'kilo',
+    original_span:'1 kilo fasulye', source_verified:true }];
+  preview.recipe.steps = [{ content:'Soğanı rendele, domates ekle ve karıştır.',
+    original_span:'Soğanı rendele, domates ekle ve karıştır.', source_verified:true }];
+  const editor = lib.editorFromPreview(preview);
+  assert.equal(editor.servings, '', '1 kilo beans does not establish exact 2 or 4 servings');
+  editor.servings = '2.5';
+  assert.match(lib.publishValidation(editor), /kaç kişilik/, 'no fractions');
+  editor.servings = '0';
+  assert.match(lib.publishValidation(editor), /kaç kişilik/, 'no zero');
+  editor.servings = '37';
+  assert.match(lib.publishValidation(editor), /kaç kişilik/, 'bounded');
+  editor.servings = '4';
+  assert.equal(lib.publishValidation(editor), null);
+  assert.equal(lib.buildApprovedRecipe(editor).servings, 4);
+});
+
+test('schema and recipe detail omit unfounded two-person defaults', () => {
+  const root = path.join(__dirname, '..');
+  const detail = fs.readFileSync(path.join(root, 'src/components/recipe/RecipeDetailClient.tsx'), 'utf8');
+  const jsonld = fs.readFileSync(path.join(root, 'src/components/RecipeJsonLd.tsx'), 'utf8');
+  const page = fs.readFileSync(path.join(root, 'src/app/recipe/import/page.tsx'), 'utf8');
+  assert.match(page, /id="recipe-import-servings"/);
+  assert.match(detail, /Porsiyon bilgisi belirtilmemiş/);
+  assert.match(detail, /disabled=\{!baseServings\}/);
+  assert.doesNotMatch(detail, /recipe.servings \|\| 2/);
+  assert.match(jsonld, /No recipeYield without a user-confirmed/);
+  assert.doesNotMatch(jsonld, /recipeYield: `\$\{recipe.servings\} porsiyon`/);
 });
 
 test('review notes sound like Tariften, group duplicate evidence and preserve urgent salt warnings', () => {
