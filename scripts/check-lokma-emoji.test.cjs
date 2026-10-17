@@ -16,6 +16,8 @@ test('key Turkish ingredients receive recognizable food icons rather than false 
   ['500 gr gnocchi','🍝'],['1 tutam karabiber','🧂'],
   ['taze fesleğen','🌿'],['soğan','🧅'],['kuru fasulye','🫘'],
   ['çilek','🍓'],['yumurta','🥚'],['kabak','🥒'],
+  ['domatas','🍅'],['domatez','🍅'],['domatesi','🍅'],['brokoli','🥦'],
+  ['zeytin yagı','🫒'],['tereyagi','🧈'],['sogan','🧅'],['sarımsak','🧄'],
  ];
  cases.forEach(([ingredient,emoji])=>assert.equal(lokmaIngredient(ingredient).emoji,emoji,ingredient));
  assert.equal(lokmaIngredient('bilinmeyen gurme malzeme').emoji,'🍽️');
@@ -51,6 +53,9 @@ test('ingredient illustrations are compact vector art and never render native fo
   assert.match(icon, /FIGURES\[lokmaIngredient\(name\)\.emoji\]/);
   assert.match(icon, /figure === "tomato"/);
   assert.match(icon, /figure === "carrot"/);
+  for (const art of ['broccoli','eggplant','mushroom','cucumber','greens','chicken','meat','shrimp','butter','rice','strawberry','orange','apple','banana','nut','honey','chocolate','sugar']) {
+    assert.ok(icon.includes(`figure === "${art}"`), `Missing illustration: ${art}`);
+  }
   assert.match(icon, /figure === "plate"/);
   assert.match(icon, /h-5 w-5/);
   assert.doesNotMatch(icon, /\{ingredient\.emoji\}/);
