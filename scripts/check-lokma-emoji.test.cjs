@@ -68,7 +68,7 @@ test('ingredient display uses Turkish casing and never displays NaN for unspecif
   assert.equal(capitalizeIngredientTr('iç bakla'), 'İç bakla');
   assert.equal(formatIngredientAmount(null, '', 2, 4), '');
   assert.equal(formatIngredientAmount(undefined, 'gr', 2, 4), 'gr');
-  assert.equal(formatIngredientAmount('NaN', '', 2, 4), 'NaN');
+  assert.equal(formatIngredientAmount('NaN', '', 2, 4), '');
   assert.equal(formatIngredientAmount('100', 'gr', 2, 4), '200 gr');
   assert.equal(formatIngredientAmount('1/2', 'su bardağı', 2, 4), '1/2 su bardağı');
   assert.equal(formatIngredientAmount('2', 'diş', 0, 4), '2 diş');
