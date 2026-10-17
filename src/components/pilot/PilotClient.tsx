@@ -285,13 +285,30 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
         }
         return;
       case "resume_audio":
-        if (timerActive && isTimerPaused && /^(devam|devam et)$/.test(normalized)) {
-          setIsTimerPaused(false);
-          setVoiceFeedback("Sayaç devam ediyor.");
-        } else {
+        // Explicit "Okumayı sürdür" should never change a kitchen timer.
+        if (useDeviceVoice) window.speechSynthesis?.resume();
+        else void naturalVoice.play();
+        setVoiceFeedback("Sesli okumaya devam ediliyor.");
+        return;
+      case "resume_context":
+        // Bare "Sürdür / Devam / Kaldığın yerden devam et" belongs
+        // to the currently active timer before any audio/navigation.
+        if (timerActive) {
+          if (isTimerPaused) {
+            setIsTimerPaused(false);
+            setVoiceFeedback("Sayaç kaldığı yerden devam ediyor.");
+          } else setVoiceFeedback("Sayaç zaten çalışıyor.");
+        } else if ((useDeviceVoice && window.speechSynthesis?.paused)
+                    || (!useDeviceVoice && naturalVoice.playback === "paused")) {
           if (useDeviceVoice) window.speechSynthesis?.resume();
           else void naturalVoice.play();
-          setVoiceFeedback("Okumaya devam ediliyor.");
+          setVoiceFeedback("Sesli okumaya devam ediliyor.");
+        } else if (currentStep < steps.length - 1) {
+          naturalVoice.stop();
+          setCurrentStep((prev) => Math.min(steps.length - 1, prev + 1));
+          setVoiceFeedback("Sonraki adıma geçildi.");
+        } else {
+          setIsFinishedOpen(true);
         }
         return;
       case "stop_audio":
@@ -301,10 +318,10 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
         return;
       case "pause_timer":
         if (!timerActive) setVoiceFeedback("Şu anda çalışan sayaç bulunmuyor.");
-        else {
+        else if (!isTimerPaused) {
           setIsTimerPaused(true);
           setVoiceFeedback("Sayaç duraklatıldı.");
-        }
+        } else setVoiceFeedback("Sayaç zaten duraklatıldı.");
         return;
       case "resume_timer":
         if (timerActive && isTimerPaused) {
@@ -778,6 +795,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Araçlar</div>
                       <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Kaçıncı Adımdayım?"</span> <span className="text-white font-bold">Adım Durumu</span></div>
+                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Sürdür / Devam Et"</span> <span className="text-white font-bold">Sayacı veya Okumayı Sürdür</span></div>
                       <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"5 Dakika Başlat"</span> <span className="text-white font-bold">Sayaç Kur</span></div>
                       <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Sayacı Durdur / Duraklat"</span> <span className="text-white font-bold">Sayacı Duraklat</span></div>
                       <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"İptal Et / Sayacı Sıfırla"</span> <span className="text-white font-bold">Sayacı Sıfırla</span></div>
