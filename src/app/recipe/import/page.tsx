@@ -14,6 +14,7 @@ import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "
 import type { Quotas, QuotaKind } from "@/lib/account-quotas-client";
 import { createRecipe } from "@/lib/api";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
+import { capitalizeIngredientTr } from "@/lib/ingredient-display";
 import {
   buildApprovedRecipe, editorFromPreview, importWarningLabel, parseImportPreview,
   publishValidation, validateRecipeSource,
@@ -48,9 +49,9 @@ function CompactQuota({ data, error, loading, kind }: {
 }) {
   const q = data?.quotas?.[kind];
   const label = kind === "recipe_ai_day" ? "Bugünkü tarif düzenleme hakkın" : "Bugünkü paylaşım hakkın";
-  return <div role="status" className="flex min-h-9 items-center justify-between gap-2 rounded-full border border-[#f2e6d8] bg-[#fff6eb] px-3 py-2 text-[11px]">
-    <span className="flex items-center gap-1.5 font-semibold text-[#907761]"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {label}</span>
-    <span className="shrink-0 font-extrabold text-[#b14b3b]">
+  return <div role="status" className="flex min-h-9 items-center justify-between gap-2 rounded-lg border border-[#e8e8e8] bg-white px-3 py-2 text-[11px]">
+    <span className="flex items-center gap-1.5 font-semibold text-slate-600"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {label}</span>
+    <span className="shrink-0 font-extrabold text-[#db4c3f]">
       {loading && !q ? "Kontrol ediliyor…" : error ? "Kontrol edilemedi" : !q ? "—" : q.remaining === null ? "Sınırsız" : `${q.remaining} / ${q.limit} kaldı`}
     </span>
   </div>;
@@ -200,20 +201,20 @@ export default function RecipeTextImportPage() {
     ? Array.from(new Set([...preview.warnings, ...preview.needs_confirmation])).map(importWarningLabel)
     : [];
 
-  return <main className="bg-[#fbf7f2] text-[#29352f] lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
+  return <main className="bg-[#ffffff] text-slate-800 lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
     <div className="mx-auto flex h-full max-w-[1620px] flex-col px-3 pb-3 pt-3 sm:px-5 lg:min-h-0 lg:px-6">
-      <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-[22px] border border-[#f0d9ce] bg-[#fffaf5] px-4 py-3 text-[#253b31] shadow-[0_5px_24px_rgba(134,76,52,0.04)] sm:px-5">
+      <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#eeeeee] bg-white px-4 py-3 text-slate-900 shadow-sm sm:px-5">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <Link href="/recipe/create" aria-label="Tarif oluşturmaya dön"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#faeae3] text-[#b34d41] transition hover:bg-[#f8d8cb]">
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fff0ed] text-[#db4c3f] transition hover:bg-[#f8d8cb]">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-heading text-[20px] font-extrabold tracking-tight sm:text-[23px]">Tarif defterin, yeniden.</h1>
+              <h1 className="font-heading text-[20px] font-extrabold tracking-tight sm:text-[23px]">Tarifini birlikte düzenleyelim.</h1>
               <span className="rounded-full border border-[#f0d6ca] bg-[#fdf0e9] px-2 py-0.5 text-[9px] font-black tracking-wide text-[#ba6251]">BETA</span>
             </div>
-            <p className="mt-0.5 hidden text-[11px] text-white/65 sm:block">Sevdiğin tarifi yaz; her lokması senin hikâyen olsun.</p>
+            <p className="mt-0.5 hidden text-[11px] text-white/65 sm:block">Mutfak notların, profesyonel bir tarif. Son söz her zaman senin.</p>
           </div>
         </div>
         <nav aria-label="Tarif aktarım adımları" className="hidden items-center gap-2 text-[11px] font-semibold text-[#9a8170] md:flex">
@@ -228,9 +229,9 @@ export default function RecipeTextImportPage() {
         </span>
       </header>
       {/* Only the two content panels can scroll on desktop. */}
-      <div className="min-h-0 flex-1 rounded-[24px] border border-[#f0e5db] bg-[#fffefd] shadow-[0_16px_50px_rgba(98,70,47,0.075)] lg:overflow-hidden">
-        <div className="grid min-h-0 lg:h-full lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:divide-x lg:divide-[#efe2d4]">
-        <section className="flex min-h-[510px] min-w-0 flex-col bg-[#fffcf7] p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto">
+      <div className="min-h-0 flex-1 rounded-[20px] border border-[#e8e8e8] bg-white shadow-[0_12px_30px_rgba(22,34,29,0.045)] lg:overflow-hidden">
+        <div className="grid min-h-0 lg:h-full lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:divide-x lg:divide-[#eeeeee]">
+        <section className="flex min-h-[510px] min-w-0 flex-col bg-[#fbfbfb] p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-[14px] bg-[#ffede3] text-[#be5c49]"><span aria-hidden="true" className="text-2xl">📖</span></div>
@@ -242,7 +243,7 @@ export default function RecipeTextImportPage() {
           <textarea id="source-recipe" value={source} onChange={e => updateSource(e.target.value)}
             disabled={busy !== null} maxLength={20000} spellCheck
             placeholder={"Örn. 2 yumurta, 1 bardak süt, biraz un. Önce yumurtaları çırp, sütü ekle…"}
-            className="min-h-[180px] w-full flex-1 resize-none rounded-[18px] border border-[#eadecc] bg-[#fffdf9] p-4 font-medium text-[13px] leading-7 text-[#44483c] outline-none transition placeholder:text-[#b9a89a] focus:border-[#d49b81] focus:ring-2 focus:ring-[#e9baa0]/20 disabled:opacity-60 max-lg:h-[265px] max-lg:flex-none" />
+            className="min-h-[180px] w-full flex-1 resize-none rounded-xl border border-[#e7e7e7] bg-white p-4 text-[13px] leading-7 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10 disabled:opacity-60 max-lg:h-[265px] max-lg:flex-none" />
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500">
             <span>Tarifin sana ait; eksik kalan yerleri beraber kontrol ederiz.</span>
             <span className="font-mono">{new TextEncoder().encode(source).length.toLocaleString("tr-TR")} / 20.000 bayt</span>
@@ -268,23 +269,23 @@ export default function RecipeTextImportPage() {
           </div>
         </section>
 
-        <section className="min-w-0 border-t border-[#f0e5da] bg-[#fffefd] p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-t-0" aria-live="polite">
+        <section className="min-w-0 border-t border-[#eeeeee] bg-white p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-t-0" aria-live="polite">
           {!!error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium leading-5 text-red-800"><TriangleAlert className="mr-2 inline-block h-4 w-4" />{error}</div>}
           {!preview || !editor ? (
             <div className="flex min-h-[260px] flex-col items-center justify-center px-3 text-center lg:h-full">
               <div className="mb-3 grid h-16 w-16 place-items-center rounded-[22px] bg-[#fff2e8] text-[#db4c3f]">
                 {busy === "preview" ? <LoaderCircle className="h-7 w-7 animate-spin" /> : <span aria-hidden="true" className="text-4xl">🍲</span>}
               </div>
-              <span className="mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-[#db4c3f]">Bir tutam Tariften sihri</span>
+              <span className="mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-[#db4c3f]">Tariften editör masası</span>
               <h2 className="max-w-sm text-lg font-black leading-tight text-slate-900 md:text-xl">
-                {busy === "preview" ? "Tarifin deftere işleniyor…" : "Tarifin birazdan burada canlanacak"}
+                {busy === "preview" ? "Tarifin deftere işleniyor…" : "Tarifinin düzenlenmiş hâli burada görünecek"}
               </h2>
               <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
                 {busy === "preview" ? "Malzemeler, adımlar ve kanıt parçaları karşılaştırılıyor. Bu işlem biraz sürebilir." :
-                  "Notlarını soldan yaz. Malzemeleri rengârenk ayırıp adımları düzenleyelim. Eksik bir şey varsa sen tamamla."}
+                  "Tarif notlarını soldan ekle. Yazım düzeltmelerini, editoryal spotu ve profesyonel yapılış önerilerini senin onayına sunacağız."}
               </p>
               <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-                {["🍅 Malzemeler", "🥕 Adımlar", "🌿 Tarif notları"].map(x =>
+                {["Malzemeler", "Hazırlanış", "Editoryal spot"].map(x =>
                   <span key={x} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-semibold text-slate-500">{x}</span>)}
               </div>
               {betaUnavailable && <div className="mt-5 max-w-sm"><Notice warning>
@@ -298,7 +299,7 @@ export default function RecipeTextImportPage() {
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><CheckCheck className="h-5 w-5" /></div>
-                  <div><h2 className="font-heading text-xl font-extrabold">Tarifinin yeni sayfası ✨</h2><p className="text-xs text-[#93887a]">Tüm dokunuşlar senin elinde</p></div>
+                  <div><h2 className="font-heading text-xl font-extrabold">Düzenlenmiş tarifin</h2><p className="text-xs text-[#93887a]">Orijinal metin solda, düzeltme önerileri sağda</p></div>
                 </div>
                 <button type="button" onClick={() => updateSource(source)} disabled={!!busy}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 hover:border-[#db4c3f] hover:text-[#db4c3f]">
@@ -323,7 +324,7 @@ export default function RecipeTextImportPage() {
                     className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-lg font-black outline-none focus:border-[#db4c3f]" />
                 </div>
                 <div>
-                  <FormLabel>Tarifine küçük bir giriş</FormLabel>
+                  <FormLabel>Editoryal spot · Kaynaktaki bilgilere dayalı öneri</FormLabel>
                   <textarea aria-label="Tarif spotu" rows={2} value={editor.excerpt}
                     onChange={e => updateEditor(old => ({ ...old, excerpt: e.target.value }))}
                     className="w-full resize-y rounded-xl border border-slate-200 p-3.5 text-sm leading-6 outline-none focus:border-[#db4c3f]" />
@@ -331,22 +332,22 @@ export default function RecipeTextImportPage() {
 
                 <div className="border-t border-slate-100 pt-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="flex items-center gap-2 font-heading text-lg font-black"><span aria-hidden="true">🍅</span> Malzemeler <span className="text-sm font-normal text-slate-400">{editor.ingredients.length}</span></h3>
+                    <h3 className="flex items-center gap-2 font-heading text-lg font-black"><LokmaIngredientIcon name="domates" size="sm" /> Malzemeler <span className="text-sm font-normal text-slate-400">{editor.ingredients.length}</span></h3>
                     <button type="button" aria-label="Malzeme ekle" disabled={editor.ingredients.length >= 40}
                       onClick={() => updateEditor(old => ({ ...old, ingredients: [...old.ingredients, { name: "", amount: "", unit: "", original_span: "", source_verified: false, userEdited: true }] }))}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#db4c3f] disabled:opacity-50"><Plus className="h-4 w-4" /> Ekle</button>
                   </div>
                   <div className="space-y-3">
                     {editor.ingredients.map((ingredient, i) =>
-                      <div key={i} className="rounded-2xl border border-[#eee3d8] bg-[#fffaf5] p-3.5">
-                        <div className="mb-3 flex items-center justify-between gap-2">
-                          <div className="flex min-w-0 items-center gap-2.5">
+                      <div key={i} className="rounded-xl border border-[#ebebeb] bg-white p-3">
+                        <div className="mb-2.5 flex items-center justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
                             <LokmaIngredientIcon name={ingredient.name} size="sm" />
                             <div className="min-w-0">
-                              <span className="block truncate text-[13px] font-extrabold text-[#384037]">{ingredient.name || "Yeni malzeme"}</span>
+                              <span className="block truncate text-[13px] font-bold text-slate-800">{capitalizeIngredientTr(ingredient.name) || "Yeni malzeme"}</span>
                               <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${ingredient.userEdited ? "text-amber-700" : "text-emerald-700"}`}>
                             {ingredient.userEdited ? <PenLine className="h-3 w-3" /> : <Check className="h-3 w-3" />}
-                              {ingredient.userEdited ? "Senin dokunuşun" : "Notlarından alındı"}
+                              {ingredient.userEdited ? "Sen düzenledin" : ingredient.name_corrected ? "Yazımı düzenlendi · Kontrol et" : "Kaynaktan alındı"}
                               </span>
                             </div>
                           </div>
@@ -358,7 +359,7 @@ export default function RecipeTextImportPage() {
                           <Input label="Miktar" value={ingredient.amount} onChange={v => updateIngredient(i, "amount", v)} placeholder="Belirtilmemiş" />
                           <Input label="Birim" value={ingredient.unit} onChange={v => updateIngredient(i, "unit", v)} placeholder="Belirtilmemiş" />
                         </div>
-                        {ingredient.original_span && <p className="mt-3 rounded-lg bg-white px-3 py-2 text-[11px] leading-5 text-slate-500">Tarif notundan: “{ingredient.original_span}”</p>}
+                        {ingredient.original_span && <p className="mt-2 rounded-md bg-[#fafafa] px-3 py-2 text-[11px] leading-5 text-slate-500">Kaynak: “{ingredient.original_span}”{ingredient.name_corrected && <span className="ml-2 font-semibold text-[#c84c3f]">Yazım düzeltmesi önerildi.</span>}</p>}
                       </div>)}
                     {editor.ingredients.length === 0 && <Notice warning>Kaynakta doğrulanmış malzeme bulunamadı. Tarifi yayınlamak için malzemeleri kendin eklemelisin.</Notice>}
                   </div>
@@ -366,7 +367,7 @@ export default function RecipeTextImportPage() {
 
                 <div className="border-t border-slate-100 pt-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="flex items-center gap-2 font-heading text-lg font-black"><span aria-hidden="true">🥄</span> Yapılışı <span className="text-sm font-normal text-slate-400">{editor.steps.length}</span></h3>
+                    <h3 className="flex items-center gap-2 font-heading text-lg font-black"><ChefHat className="h-4 w-4 text-[#db4c3f]" /> Yapılışı <span className="text-sm font-normal text-slate-400">{editor.steps.length}</span></h3>
                     <button type="button" aria-label="Adım ekle" disabled={editor.steps.length >= 40}
                       onClick={() => updateEditor(old => ({ ...old, steps: [...old.steps, { content: "", original_span: "", source_verified: false, userEdited: true }] }))}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#db4c3f] disabled:opacity-50"><Plus className="h-4 w-4" /> Ekle</button>
@@ -378,14 +379,14 @@ export default function RecipeTextImportPage() {
                         <div className="min-w-0 flex-1">
                           <div className="mb-2 flex items-center justify-between">
                             <span className={`text-[11px] font-semibold ${step.userEdited ? "text-amber-700" : "text-emerald-700"}`}>
-                              {step.userEdited ? "Sen düzenledin" : "Kaynağın orijinal adımı"}
+                              {step.userEdited ? "Sen düzenledin" : step.editorial_rewrite ? "Editoryal öneri · Kontrol et" : "Orijinal adım"}
                             </span>
                             <button type="button" aria-label={`${i + 1}. adımı sil`} onClick={() => updateEditor(old => ({ ...old, steps: old.steps.filter((_, index) => index !== i) }))}
                               className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                           </div>
                           <textarea aria-label={`${i + 1}. hazırlanış adımı`} rows={3} value={step.content} onChange={e => updateStep(i, e.target.value)}
                             className="w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-sm leading-6 outline-none focus:border-[#db4c3f]" />
-                          {step.original_span && step.userEdited && <p className="mt-2 text-[11px] leading-5 text-slate-500">Senin notundan: “{step.original_span}”</p>}
+                          {step.original_span && (step.userEdited || step.editorial_rewrite) && <p className="mt-2 text-[11px] leading-5 text-slate-500">Orijinal: “{step.original_span}”</p>}
                         </div>
                       </div>)}
                     {editor.steps.length === 0 && <Notice warning>Kaynakta doğrulanmış bir adım bulunamadı. Tarifin nasıl yapıldığını kendin eklemelisin.</Notice>}
