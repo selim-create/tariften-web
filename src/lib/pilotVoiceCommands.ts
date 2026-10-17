@@ -152,7 +152,7 @@ export function normalizePilotCommand(raw: string): string {
 }
 
 /** All patterns are short, exact and locale-aware; no fuzzy semantic matching. */
-export function parsePilotVoiceCommand(transcript: string): PilotVoiceCommand | null {
+export function parsePilotCommand(transcript: string): PilotVoiceCommand | null {
   const cmd = normalizePilotCommand(transcript);
   if (!cmd || cmd.length > 96 || cmd.split(' ').length > 9) return null;
   for (const group of PILOT_COMMAND_GROUPS) {
