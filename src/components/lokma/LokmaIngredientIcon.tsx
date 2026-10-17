@@ -8,7 +8,7 @@ import { lokmaIngredient } from "@/lib/lokma-emoji";
  * use a neutral plate illustration rather than an incorrect food identity.
  * Decorative only: source ingredient names and amounts remain text.
  */
-type Props = { name: string; size?: "sm" | "md" | "lg"; className?: string };
+type Props = { name: string; size?: "sm" | "md" | "lg"; className?: string; previewFigure?: Figure };
 
 type Figure = "tomato" | "carrot" | "onion" | "garlic" | "cheese" | "olive"
  | "pasta" | "herb" | "pepper" | "lemon" | "egg" | "milk"
@@ -39,9 +39,10 @@ const FIGURES: Record<string, Figure> = {
   "🥑": "avocado", "🌽": "corn", "☕": "coffee", "🍵": "tea", "🫗": "liquid",
 };
 
-export default function LokmaIngredientIcon({ name, size = "md", className = "" }: Props) {
+export default function LokmaIngredientIcon({ name, size = "md", className = "", previewFigure }: Props) {
   const ingredient = lokmaIngredient(name);
-  const figure = (ingredient.art || FIGURES[ingredient.emoji] || "plate") as Figure;
+  // Catalog preview is explicit; editorial ingredient names continue to resolve semantically.
+  const figure = previewFigure || (ingredient.art || FIGURES[ingredient.emoji] || "plate") as Figure;
   const dimensions = size === "sm" ? "h-5 w-5" : size === "lg" ? "h-7 w-7" : "h-6 w-6";
   const dark = "#65584c";
   const shine = "#ffffff";
