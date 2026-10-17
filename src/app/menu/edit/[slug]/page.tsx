@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getMenu, updateMenu, uploadMedia, getRecipes } from "@/lib/api";
+import { getMenu, updateMenu, getRecipes } from "@/lib/api";
+import { uploadRecipeImage } from "@/lib/recipe-media-upload";
 import { FaPen, FaArrowLeft, FaUtensils, FaUserGroup, FaFloppyDisk, FaTrash, FaImage, FaUpload, FaXmark, FaMagnifyingGlass, FaPlus } from "react-icons/fa6";
 import Link from "next/link";
 import { Menu, MenuSection, Recipe } from "@/types";
@@ -158,49 +159,26 @@ export default function EditMenuPage() {
     loadMenu();
   }, [slug, user, router]);
 
-  // Görsel Yükleme
+  // Uploaded media is stored by WordPress, then referenced by its permanent
+  // URL in the menu. Never persist a transient blob: or base64: preview.
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !user?.token) return;
-    
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = "";
+    if (!file || !user?.token || uploading) return;
     setUploading(true);
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-        const mediaId = await uploadMedia(user.token, formData);
-        if (mediaId) {
-            // Basitlik için media ID yerine URL almamız lazım ama uploadMedia ID dönüyor.
-            // Bu örnekte varsayımsal bir URL oluşturuyoruz veya backend'in direkt URL dönmesini bekliyoruz.
-            // Gerçek senaryoda uploadMedia fonksiyonu URL de dönmeli.
-            // Şimdilik client tarafında blob URL gösterip kaydederken backend'in halletmesini bekleyebiliriz 
-            // VEYA daha doğrusu: uploadMedia response'unu kontrol edelim.
-            // api.ts'de uploadMedia sadece ID dönüyor. URL almak için revize gerekebilir ama
-            // pratik çözüm olarak görseli base64 okuyup önizleme yapalım, backend ID ile işlem yapsın.
-            // Veya api.ts'i güncellemek yerine WP media endpoint'i URL de döner, onu kullanalım.
-            
-            // Hızlı çözüm: URL placeholder
-            // Not: api.ts güncellemesi yapmadan URL alamayız. 
-            // Varsayım: uploadMedia başarılıysa sayfa yenilenince gelir. 
-            // UX için FileReader kullanalım:
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({...prev, image: reader.result as string}));
-            };
-            reader.readAsDataURL(file);
-            
-            // Backend'e ID göndermek için updateMenu'yu güncellememiz gerekebilir ama
-            // şimdilik görsel URL'i string olarak sakladığımız için manuel URL girişi de çalışır.
-            // İdeal çözüm backend'in media ID kabul etmesidir.
-            // Fakat mevcut yapı image_url string tutuyor.
-            // Burası için basit bir alert verelim (API limitations).
-            alert("Görsel yüklendi. (Not: Tam entegrasyon için API güncellemesi gerekebilir, şimdilik önizleme modundasınız).");
-        }
-    } catch (error) {
-        console.error(error);
-        alert("Görsel yüklenirken hata oluştu.");
+      const result = await uploadRecipeImage(user.token, file);
+      if (!result.success) {
+        alert(result.message);
+        return;
+      }
+      if (!result.url) {
+        alert("Görsel yüklendi fakat bağlantısı alınamadı. Yeniden dene.");
+        return;
+      }
+      setFormData(prev => ({ ...prev, image: result.url }));
     } finally {
-        setUploading(false);
+      setUploading(false);
     }
   };
 

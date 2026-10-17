@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import QuotaPanel from "@/components/account/QuotaPanel";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
-import { createRecipe, getTerms, uploadMedia } from "@/lib/api"; // uploadMedia eklendi
+import { createRecipe, getTerms } from "@/lib/api";
+import { uploadRecipeImage } from "@/lib/recipe-media-upload";
 import { 
   FaArrowRight, FaArrowLeft, FaCheck, FaPlus, FaTrash, 
   FaClock, FaFire, FaImage, FaVideo, FaCloudArrowUp, FaLink, FaXmark, FaSpinner
@@ -75,28 +76,28 @@ export default function CreateRecipePage() {
 
   // --- YENİ DOSYA YÜKLEME MANTIĞI ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user || !user.token) return; // user.token kontrolü eklendi
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = ""; // Allow reselecting the same file after a failure.
+    if (!file || !user?.token || mediaUploading) return;
 
-    // 1. Önizleme göster (Kullanıcı bekletilmez)
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
+    const previousPreview = previewUrl;
+    const temporaryPreview = URL.createObjectURL(file);
+    setPreviewUrl(temporaryPreview);
     setMediaUploading(true);
-
-    // 2. Sunucuya Yükle
-    const formData = new FormData();
-    formData.append("file", file);
-
-    // user.token kesinlikle string olduğu için hata vermeyecek
-    const mediaId = await uploadMedia(user.token, formData);
-    
-    if (mediaId) {
-      handleInputChange("image", mediaId); // Başarılıysa ID kaydet
-    } else {
-      showError("Görsel yüklenemedi. Lütfen tekrar deneyin.");
-      setPreviewUrl(""); // Önizlemeyi geri al
+    try {
+      const result = await uploadRecipeImage(user.token, file);
+      if (!result.success) {
+        setPreviewUrl(previousPreview);
+        showError(result.message);
+        return;
+      }
+      handleInputChange("image", result.id);
+      setPreviewUrl(result.url || temporaryPreview);
+      // The server returns the persistent media URL; a local blob is no longer needed.
+      if (result.url) URL.revokeObjectURL(temporaryPreview);
+    } finally {
+      setMediaUploading(false);
     }
-    setMediaUploading(false);
   };
 
   const showSuccess = (msg: string) => { setModalMessage(msg); setModalType('success'); setShowModal(true); };

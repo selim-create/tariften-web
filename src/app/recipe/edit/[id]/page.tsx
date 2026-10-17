@@ -3,7 +3,8 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getRecipeById, updateRecipe, getTerms, uploadMedia } from "@/lib/api"; 
+import { getRecipeById, updateRecipe, getTerms } from "@/lib/api";
+import { uploadRecipeImage } from "@/lib/recipe-media-upload"; 
 import { 
   FaArrowRight, FaArrowLeft, FaCheck, FaPlus, FaTrash, 
   FaClock, FaFire, FaImage, FaUtensils, FaVideo, FaCloudArrowUp, FaLink, FaXmark, FaSpinner
@@ -116,25 +117,28 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   const handleInputChange = (field: string, value: any) => setFormData(prev => ({ ...prev, [field]: value }));
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user || !user.token) return;
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = ""; // Allow reselecting the same file after a failure.
+    if (!file || !user?.token || mediaUploading) return;
 
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
+    const previousPreview = previewUrl;
+    const temporaryPreview = URL.createObjectURL(file);
+    setPreviewUrl(temporaryPreview);
     setMediaUploading(true);
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const mediaId = await uploadMedia(user.token, formData);
-    
-    if (mediaId) {
-      handleInputChange("image", mediaId);
-    } else {
-      showError("Görsel yüklenemedi.");
-      setPreviewUrl("");
+    try {
+      const result = await uploadRecipeImage(user.token, file);
+      if (!result.success) {
+        setPreviewUrl(previousPreview);
+        showError(result.message);
+        return;
+      }
+      handleInputChange("image", result.id);
+      setPreviewUrl(result.url || temporaryPreview);
+      // The server returns the persistent media URL; a local blob is no longer needed.
+      if (result.url) URL.revokeObjectURL(temporaryPreview);
+    } finally {
+      setMediaUploading(false);
     }
-    setMediaUploading(false);
   };
 
   const showSuccess = (msg: string) => { setModalMessage(msg); setModalType('success'); setShowModal(true); };
