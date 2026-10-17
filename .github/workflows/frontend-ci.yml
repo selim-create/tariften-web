@@ -21,6 +21,8 @@ jobs:
         run: node --test scripts/check-pilot-commands.test.cjs
       - name: Grounded recipe text import web contract tests (no AI calls)
         run: node --test scripts/check-recipe-text-import.test.cjs
+      - name: Lokma food emoji and editorial import regression tests
+        run: node --test scripts/check-lokma-emoji.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build
