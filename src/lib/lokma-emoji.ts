@@ -23,10 +23,31 @@ export const LOKMA_RATINGS = [
   { rating: 5, emoji: "🤩", label: "Bayıldım!" },
 ] as const;
 
-type FoodSymbol = { emoji: string; label: string; tint: string };
+type FoodSymbol = { emoji: string; label: string; tint: string; art?: string };
 type FoodRule = FoodSymbol & { patterns: readonly string[] };
 
 const RULES: readonly FoodRule[] = [
+  // Ingredient-specific miniature art stays independent of platform-native emojis.
+  // More specific names precede broad categories, without modifying the user's text.
+  { emoji: "🥬", art: "leek", label: "Pırasa", tint: "sage", patterns: ["pırasa", "pirasa", "leek"] },
+  { emoji: "🥬", art: "celery", label: "Kereviz", tint: "sage", patterns: ["kereviz", "kereviz sapı", "celery"] },
+  { emoji: "🥦", art: "cauliflower", label: "Karnabahar", tint: "sand", patterns: ["karnabahar", "cauliflower"] },
+  { emoji: "🥬", art: "artichoke", label: "Enginar", tint: "sage", patterns: ["enginar", "artichoke"] },
+  { emoji: "🥕", art: "radish", label: "Turp", tint: "rose", patterns: ["turp", "radish"] },
+  { emoji: "🥕", art: "beet", label: "Pancar", tint: "rose", patterns: ["pancar", "beetroot"] },
+  { emoji: "🎃", art: "pumpkin", label: "Bal kabağı", tint: "orange", patterns: ["bal kabağı", "balkabağı", "pumpkin"] },
+  { emoji: "🥬", art: "asparagus", label: "Kuşkonmaz", tint: "sage", patterns: ["kuşkonmaz", "asparagus"] },
+  { emoji: "🥒", art: "okra", label: "Bamya", tint: "sage", patterns: ["bamya", "okra"] },
+  { emoji: "🥒", art: "zucchini", label: "Kabak", tint: "sage", patterns: ["kabak", "sakız kabağı", "zucchini"] },
+  { emoji: "🫘", art: "pea", label: "Bezelye", tint: "sage", patterns: ["bezelye", "peas"] },
+  { emoji: "🫘", art: "greenbean", label: "Taze fasulye", tint: "sage", patterns: ["taze fasulye", "yeşil fasulye", "çalı fasulyesi", "sırık fasulyesi"] },
+  { emoji: "🥛", art: "yogurt", label: "Yoğurt", tint: "blue", patterns: ["yoğurt", "yogurt", "süzme yoğurt"] },
+  { emoji: "🫒", art: "oil", label: "Sıvı yağ", tint: "yellow", patterns: ["ayçiçek yağı", "ayçiçek yagı", "sıvı yağ", "sivi yag", "kanola yağı", "mısırözü yağı", "bitkisel yağ", "susam yağı"] },
+  { emoji: "🍞", art: "flour", label: "Un", tint: "sand", patterns: ["un", "buğday unu", "mısır unu", "tam buğday unu", "nişasta", "mısır nişastası"] },
+  { emoji: "🍞", art: "baking", label: "Kabartma malzemesi", tint: "sand", patterns: ["kabartma tozu", "vanilin", "vanilya şekeri", "karbonat", "instant maya", "kuru maya", "yaş maya"] },
+  { emoji: "🌰", art: "sesame", label: "Tohum", tint: "sand", patterns: ["susam", "çörek otu", "chia tohumu", "keten tohumu", "haşhaş"] },
+  { emoji: "🍯", art: "sauce", label: "Sos", tint: "sand", patterns: ["tahin", "nar ekşisi", "soya sosu", "ketçap", "hardal", "mayonez", "worcestershire"] },
+  { emoji: "🍅", art: "paste", label: "Salça", tint: "rose", patterns: ["domates salçası", "biber salçası", "salça"] },
   { emoji: "🍅", label: "Domates", tint: "rose", patterns: ["domates", "domatesi", "domatesin", "domatas", "domatez", "tomato", "domates salçası"] },
   { emoji: "🥕", label: "Havuç", tint: "orange", patterns: ["havuç", "carrot"] },
   { emoji: "🧅", label: "Soğan", tint: "sand", patterns: ["soğan", "soğanı", "sogan", "arpacık"] },
@@ -53,8 +74,8 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🥛", label: "Süt", tint: "blue", patterns: ["süt", "milk", "krema", "kaymak"] },
   { emoji: "🧈", label: "Tereyağı", tint: "yellow", patterns: ["tereyağı", "tereyagi", "margarin", "butter"] },
   { emoji: "🫒", label: "Zeytin", tint: "sage", patterns: ["zeytinyağı", "zeytin yağı", "zeytin yagı", "zeytin", "olive"] },
-  { emoji: "🌿", label: "Taze otlar", tint: "sage", patterns: ["fesleğen", "maydanoz", "dereotu", "nane", "kekik", "biberiye", "kişniş", "roka", "taze ot", "defne"] },
-  { emoji: "🧂", label: "Baharat", tint: "sand", patterns: ["karabiber", "tuz", "kimyon", "zerdeçal", "tarçın", "köri", "sumak", "pul biber", "yenibahar", "muskat", "safran"] },
+  { emoji: "🌿", label: "Taze otlar", tint: "sage", patterns: ["fesleğen", "maydanoz", "dereotu", "nane", "kekik", "biberiye", "kişniş", "roka", "taze ot", "defne", "taze soğan", "yeşil soğan", "semizotu", "tere", "reyhan", "tarhun", "frenk soğanı"] },
+  { emoji: "🧂", label: "Baharat", tint: "sand", patterns: ["karabiber", "tuz", "deniz tuzu", "kaya tuzu", "kimyon", "zerdeçal", "tarçın", "köri", "sumak", "pul biber", "yenibahar", "muskat", "safran", "isot", "karanfil", "kakule", "zencefil", "toz zencefil", "kırmızı toz biber"] },
   { emoji: "🌶️", label: "Biber", tint: "rose", patterns: ["biber", "biber salçası", "chili", "jalapeño", "paprika"] },
   { emoji: "🍆", label: "Patlıcan", tint: "lavender", patterns: ["patlıcan", "aubergine"] },
   { emoji: "🥒", label: "Salatalık", tint: "sage", patterns: ["salatalık", "kornişon", "kabak", "zucchini"] },
@@ -93,7 +114,7 @@ export function lokmaIngredient(name: string): FoodSymbol {
   const words = ` ${text.replace(/\s+/g, " ")} `;
   for (const rule of RULES) {
     if (rule.patterns.some(p => words.includes(` ${p} `))) {
-      return { emoji: rule.emoji, label: rule.label, tint: rule.tint };
+      return { emoji: rule.emoji, label: rule.label, tint: rule.tint, ...(rule.art ? { art: rule.art } : {}) };
     }
   }
   return { emoji: "🍽️", label: "Malzeme", tint: "sand" };
