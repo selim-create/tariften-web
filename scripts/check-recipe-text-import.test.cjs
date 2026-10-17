@@ -130,3 +130,73 @@ test('screen requires login, approval and independent quota checks before public
   assert.match(page, /setAccepted\(false\)/);
   assert.doesNotMatch(page, /fetch_smart_image|generate_image|uploadMedia/);
 });
+
+test('import becomes a compact full-viewport workspace with internal scroll, not a long landing page', () => {
+  const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/recipe/import/page.tsx'), 'utf8');
+  const footer = fs.readFileSync(path.join(__dirname, '..', 'src/components/layout/Footer.tsx'), 'utf8');
+  assert.match(page, /lg:h-\[calc\(100dvh-4rem\)\]/);
+  assert.match(page, /lg:overflow-hidden/);
+  assert.match(page, /lg:overflow-y-auto/);
+  assert.match(page, /lg:grid-cols-\[minmax\(0,0\.95fr\)_minmax\(0,1\.05fr\)\]/);
+  assert.match(page, /CompactQuota/);
+  assert.doesNotMatch(page, /<QuotaPanel /);
+  assert.doesNotMatch(page, /md:text-6xl/);
+  assert.doesNotMatch(page, /min-h-\[590px\]/);
+  assert.match(footer, /pathname === '\/recipe\/import'/);
+});
+
+test('WordPress missing REST route and closed beta feature are distinct errors', async () => {
+  const routeSource = fs.readFileSync(path.join(__dirname, '..', 'src/app/api/recipe-import/preview/route.ts'), 'utf8');
+  assert.match(routeSource, /upstream\.status === 404/);
+  assert.match(routeSource, /data\.code === "rest_no_route"/);
+  assert.match(routeSource, /recipe_import_route_missing/);
+  assert.match(routeSource, /recipe_import_unavailable/);
+  const compiled = ts.transpileModule(routeSource, { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022,
+  } }).outputText;
+  const mod = { exports: {} };
+  Function('module', 'exports', 'require', compiled)(
+    mod, mod.exports, (name) => {
+      if (name === 'next/server') return { NextResponse: {
+        json: (payload, options) => ({ payload, status: options.status, headers: options.headers }),
+      } };
+      throw Error('Unexpected import ' + name);
+    }
+  );
+  const before = global.fetch;
+  try {
+    let calls = 0;
+    global.fetch = async () => { calls++; return new Response(JSON.stringify({
+      code: 'rest_no_route',
+      message: 'İstek yöntemi ve bağlantıyla eşleşen yol bulunamadı.',
+    }), { status: 404, headers: { 'content-type': 'application/json' } }); };
+    const request = new Request('http://localhost/api/recipe-import/preview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer test-jwt' },
+      body: JSON.stringify({ source_text: source }),
+    });
+    const missing = await mod.exports.POST(request);
+    assert.equal(calls, 1);
+    assert.equal(missing.status, 503);
+    assert.equal(missing.payload.code, 'recipe_import_route_missing');
+    assert.ok(!missing.payload.message.includes('İstek yöntemi'));
+
+    global.fetch = async () => new Response(JSON.stringify({
+      code: 'recipe_import_unavailable', message: 'Beta kapalı.',
+    }), { status: 503, headers: { 'content-type': 'application/json' } });
+    const disabled = await mod.exports.POST(new Request('http://localhost/api/recipe-import/preview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer test-jwt' },
+      body: JSON.stringify({ source_text: source }),
+    }));
+    assert.equal(disabled.payload.code, 'recipe_import_unavailable');
+    assert.equal(disabled.status, 503);
+    const unauthorized = await mod.exports.POST(new Request('http://localhost/api/recipe-import/preview', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source_text: source }),
+    }));
+    assert.equal(unauthorized.status, 401);
+  } finally {
+    global.fetch = before;
+  }
+});

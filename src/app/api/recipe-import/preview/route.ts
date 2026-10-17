@@ -74,6 +74,23 @@ export async function POST(request: NextRequest) {
         { status: 502, headers: NO_STORE }
       );
     }
+    // WordPress rest_no_route is NOT the feature flag. The newer Core plugin
+    // route has not been registered on the live server (likely not deployed).
+    // Never forward the generic, confusing WordPress 'no matching route' text.
+    if (upstream.status === 404 && "code" in data && data.code === "rest_no_route") {
+      return NextResponse.json({
+        success: false,
+        code: "recipe_import_route_missing",
+        message: "Tarif aktarma servisi sunucuda henüz kurulu değil. Core güncellemesi gerekiyor.",
+      }, { status: 503, headers: NO_STORE });
+    }
+    if (upstream.status === 503 && "code" in data && data.code === "recipe_import_unavailable") {
+      return NextResponse.json({
+        success: false,
+        code: "recipe_import_unavailable",
+        message: "Akıllı Tarif Aktarımı beta özelliği henüz etkinleştirilmedi.",
+      }, { status: 503, headers: NO_STORE });
+    }
     return NextResponse.json(data, { status: upstream.status, headers: NO_STORE });
   } catch {
     return NextResponse.json(
