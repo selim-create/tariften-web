@@ -17,7 +17,7 @@ export default function QuotaPanel({
   kinds?: QuotaKind[];
 }) {
   if (loading && !data) return <div role="status" className="rounded-2xl border border-gray-100 bg-white p-4 text-sm text-slate-500">Kullanım hakların kontrol ediliyor…</div>;
-  if (!data) return error ? <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{error} Haklarını kaybetmezsin; son kontrol sunucuda yapılır.</div> : null;
+  if (!data) return error ? <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{error}</div> : null;
   return (
     <section aria-label="Kullanım haklarım" className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3 mb-4">
@@ -46,8 +46,6 @@ export default function QuotaPanel({
           </div>;
         })}
       </div>
-      {data.account?.login && <p className="text-xs text-slate-500 mt-3">Bu kullanım hakları <strong>{data.account.login}</strong> (WordPress kullanıcı #{data.account.id}) hesabına aittir.</p>}
-      <p className="text-xs text-slate-500 mt-3">Menünün içindeki tarifler günlük bağımsız tarif hakkını tüketmez. Kotalar sunucuda kontrol edilir. Sınırsız içerik hakkı, küresel AI bütçesini kaldırmaz.</p>
     </section>
   );
 }

@@ -207,6 +207,12 @@ test('Standard Member messaging and disabled Premium tiers never activate a paym
   }
   assert.match(quota, /Standart Üye/);
   assert.match(quota, /Yönetici · Sınırsız/);
+  // Member-facing profile must never leak backend account IDs, WordPress
+  // internals or technical cost/ledger explanations.
+  assert.doesNotMatch(quota, /WordPress kullanıcı|data\.account|kullanıcı #/i);
+  assert.doesNotMatch(quota, /küresel AI bütçe|kotalar sunucuda kontrol|son kontrol sunucuda/i);
+  assert.doesNotMatch(quota, /Menünün içindeki tarifler günlük bağımsız tarif hakkını tüketmez/);
+  assert.match(quota, /Sınırsız/);
   assert.match(quota, /Premium \+ · Yakında/);
   assert.match(quota, /<button type="button" disabled/);
   assert.match(register, /Standart Üye/);
