@@ -339,32 +339,41 @@ export default function RecipeTextImportPage() {
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="flex items-center gap-2 font-heading text-lg font-black"><LokmaIngredientIcon name="domates" size="sm" /> Malzemeler <span className="text-sm font-normal text-slate-400">{editor.ingredients.length}</span></h3>
                     <button type="button" aria-label="Malzeme ekle" disabled={editor.ingredients.length >= 40}
-                      onClick={() => updateEditor(old => ({ ...old, ingredients: [...old.ingredients, { name: "", amount: "", unit: "", original_span: "", source_verified: false, userEdited: true }] }))}
+                      onClick={() => { setActiveIngredient(editor.ingredients.length); updateEditor(old => ({ ...old, ingredients: [...old.ingredients, { name: "", amount: "", unit: "", original_span: "", source_verified: false, userEdited: true }] })); }}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#db4c3f] disabled:opacity-50"><Plus className="h-4 w-4" /> Ekle</button>
                   </div>
-                  <div className="space-y-3">
+
+                  <div className="space-y-2">
                     {editor.ingredients.map((ingredient, i) =>
-                      <div key={i} className="rounded-xl border border-[#ebebeb] bg-white p-3">
-                        <div className="mb-2.5 flex items-center justify-between gap-2">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <LokmaIngredientIcon name={ingredient.name} size="sm" />
-                            <div className="min-w-0">
+                      <div key={i} className="overflow-hidden rounded-2xl border border-[#efe7de] bg-white transition hover:border-[#e5c8b9]">
+                        <div className="flex items-center gap-2 px-3 py-2.5">
+                          <LokmaIngredientIcon name={ingredient.name} size="sm" />
+                          <button type="button" aria-expanded={activeIngredient === i}
+                            onClick={() => setActiveIngredient(current => current === i ? null : i)}
+                            className="flex min-h-9 min-w-0 flex-1 items-center justify-between gap-3 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-[#db4c3f]">
+                            <span className="min-w-0 flex-1">
                               <span className="block truncate text-[13px] font-bold text-slate-800">{capitalizeIngredientTr(ingredient.name) || "Yeni malzeme"}</span>
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${ingredient.userEdited ? "text-amber-700" : "text-emerald-700"}`}>
-                            {ingredient.userEdited ? <PenLine className="h-3 w-3" /> : <Check className="h-3 w-3" />}
-                              {ingredient.userEdited ? "Sen düzenledin" : ingredient.name_corrected ? "Yazımı düzenlendi · Kontrol et" : "Kaynaktan alındı"}
+                              <span className={ingredient.userEdited ? "mt-0.5 block text-[10px] text-amber-700" : ingredient.name_corrected ? "mt-0.5 block text-[10px] text-[#b95c45]" : "mt-0.5 block text-[10px] text-emerald-700"}>
+                                {ingredient.userEdited ? "Sen düzenledin" : ingredient.name_corrected ? "Yazımı düzeltildi · kontrol et" : "Kaynaktan alındı"}
                               </span>
-                            </div>
+                            </span>
+                            <span className={!ingredient.amount ? "max-w-[38%] shrink-0 text-right text-xs font-semibold text-amber-700" : "max-w-[38%] shrink-0 text-right text-xs font-semibold text-[#6d665f]"}>
+                              {[ingredient.amount, ingredient.unit].filter(Boolean).join(" ") || "Miktar belirtilmemiş"}
+                            </span>
+                            <ChevronDown className={activeIngredient === i ? "h-4 w-4 shrink-0 rotate-180 text-[#9d8c7f]" : "h-4 w-4 shrink-0 text-[#9d8c7f]"} />
+                          </button>
+                          <button type="button" aria-label={(i + 1) + ". malzemeyi sil"}
+                            onClick={() => { updateEditor(old => ({ ...old, ingredients: old.ingredients.filter((_, index) => index !== i) })); setActiveIngredient(null); }}
+                            className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                        {activeIngredient === i && <div className="border-t border-[#f2ebe5] bg-[#fffcf9] px-3 pb-3 pt-3">
+                          <div className="grid gap-2 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,0.8fr)_minmax(0,0.9fr)]">
+                            <Input label="Malzeme" value={ingredient.name} onChange={v => updateIngredient(i, "name", v)} placeholder="Malzeme adı" />
+                            <Input label="Miktar" value={ingredient.amount} onChange={v => updateIngredient(i, "amount", v)} placeholder="Belirtilmemiş" />
+                            <Input label="Birim" value={ingredient.unit} onChange={v => updateIngredient(i, "unit", v)} placeholder="Belirtilmemiş" />
                           </div>
-                          <button type="button" aria-label={`${i + 1}. malzemeyi sil`} onClick={() => updateEditor(old => ({ ...old, ingredients: old.ingredients.filter((_, index) => index !== i) }))}
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,0.8fr)_minmax(0,0.9fr)]">
-                          <Input label="Malzeme" value={ingredient.name} onChange={v => updateIngredient(i, "name", v)} placeholder="Malzeme adı" />
-                          <Input label="Miktar" value={ingredient.amount} onChange={v => updateIngredient(i, "amount", v)} placeholder="Belirtilmemiş" />
-                          <Input label="Birim" value={ingredient.unit} onChange={v => updateIngredient(i, "unit", v)} placeholder="Belirtilmemiş" />
-                        </div>
-                        {ingredient.original_span && <p className="mt-2 rounded-md bg-[#fafafa] px-3 py-2 text-[11px] leading-5 text-slate-500">Kaynak: “{ingredient.original_span}”{ingredient.name_corrected && <span className="ml-2 font-semibold text-[#c84c3f]">Yazım düzeltmesi önerildi.</span>}</p>}
+                          {ingredient.original_span && <p className="mt-2 rounded-md bg-white px-3 py-2 text-[11px] leading-5 text-slate-500">Kaynak: “{ingredient.original_span}”{ingredient.name_corrected && <span className="ml-2 font-semibold text-[#c84c3f]">Yazım düzeltmesi önerildi.</span>}</p>}
+                        </div>}
                       </div>)}
                     {editor.ingredients.length === 0 && <Notice warning>Kaynakta doğrulanmış malzeme bulunamadı. Tarifi yayınlamak için malzemeleri kendin eklemelisin.</Notice>}
                   </div>
