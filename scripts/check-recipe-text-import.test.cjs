@@ -155,17 +155,19 @@ test('screen requires login, approval and independent quota checks before public
   assert.doesNotMatch(page, /fetch_smart_image|generate_image|uploadMedia/);
 });
 
-test('import becomes a compact full-viewport workspace with internal scroll, not a long landing page', () => {
+test('import uses a warm, accessible editor workspace with compact source evidence', () => {
   const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/recipe/import/page.tsx'), 'utf8');
   const footer = fs.readFileSync(path.join(__dirname, '..', 'src/components/layout/Footer.tsx'), 'utf8');
-  assert.match(page, /lg:h-\[calc\(100dvh-4rem\)\]/);
-  assert.match(page, /lg:overflow-hidden/);
-  assert.match(page, /lg:overflow-y-auto/);
-  assert.match(page, /lg:grid-cols-\[minmax\(0,0\.95fr\)_minmax\(0,1\.05fr\)\]/);
+  assert.match(page, /bg-\[#fffbf7\]/);
+  assert.match(page, /lg:sticky lg:top-5/);
+  assert.match(page, /lg:grid-cols-\[minmax\(0,0\.78fr\)_minmax\(0,1\.22fr\)\]/);
+  assert.match(page, /aria-expanded=\{activeIngredient === i\}/);
+  assert.match(page, /aria-expanded=\{activeStep === i\}/);
+  assert.match(page, /Miktar belirtilmemiş/);
+  assert.match(page, /<details className="group/);
   assert.match(page, /CompactQuota/);
+  assert.doesNotMatch(page, /lg:overflow-y-auto/);
   assert.doesNotMatch(page, /<QuotaPanel /);
-  assert.doesNotMatch(page, /md:text-6xl/);
-  assert.doesNotMatch(page, /min-h-\[590px\]/);
   assert.match(footer, /pathname === '\/recipe\/import'/);
 });
 
