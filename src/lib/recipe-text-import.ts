@@ -10,12 +10,15 @@ export type ImportIngredient = {
   unit: string;
   original_span: string;
   source_verified: boolean;
+  source_name?: string;
+  name_corrected?: boolean;
 };
 
 export type ImportStep = {
   content: string;
   original_span: string;
   source_verified: boolean;
+  editorial_rewrite?: boolean;
 };
 
 export type ImportSeo = {
@@ -78,11 +81,14 @@ function isStringArray(value: unknown): value is string[] {
 }
 function isIngredient(value: unknown): value is ImportIngredient {
   return isRecord(value) && isString(value.name) && isString(value.amount)
-    && isString(value.unit) && isString(value.original_span) && value.source_verified === true;
+    && isString(value.unit) && isString(value.original_span) && value.source_verified === true
+    && (value.source_name === undefined || isString(value.source_name))
+    && (value.name_corrected === undefined || typeof value.name_corrected === "boolean");
 }
 function isStep(value: unknown): value is ImportStep {
   return isRecord(value) && isString(value.content) && isString(value.original_span)
-    && value.source_verified === true;
+    && value.source_verified === true
+    && (value.editorial_rewrite === undefined || typeof value.editorial_rewrite === "boolean");
 }
 
 export function parseImportPreview(value: unknown): GroundedImportPreview {
@@ -103,13 +109,15 @@ export function parseImportPreview(value: unknown): GroundedImportPreview {
     throw new Error("Tarif alanları eksik veya beklenmeyen türde.");
   }
   for (const ingredient of r.ingredients as ImportIngredient[]) {
+    const sourceName = ingredient.source_name || ingredient.name;
     if (!value.source_text.includes(ingredient.original_span)
-        || !ingredient.original_span.toLocaleLowerCase("tr-TR").includes(ingredient.name.toLocaleLowerCase("tr-TR"))) {
+        || !ingredient.original_span.toLocaleLowerCase("tr-TR").includes(sourceName.toLocaleLowerCase("tr-TR"))
+        || (ingredient.name_corrected && !ingredient.source_name)) {
       throw new Error("Malzeme kanıtı orijinal kaynakla eşleşmiyor.");
     }
   }
   for (const step of r.steps as ImportStep[]) {
-    if (!value.source_text.includes(step.original_span) || step.content !== step.original_span) {
+    if (!value.source_text.includes(step.original_span) || !step.content.trim()) {
       throw new Error("Tarif adımı kaynakla doğrulanamadı.");
     }
   }
@@ -169,6 +177,10 @@ export function buildApprovedRecipe(editor: ImportEditor) {
 
 const WARNING_LABELS: Record<string, string> = {
   ingredient_evidence_invalid: "Bazı malzemeler kaynak metinde doğrulanamadı ve aktarılmadı.",
+  ingredient_name_corrected: "Yazım hataları düzeltilmiş olabilir. Malzeme adlarını kaynakla karşılaştır.",
+  ingredient_name_unverified: "Bazı malzeme isimlerinin düzeltmesi belirsiz. Kaynağa bakıp kontrol et.",
+  step_editorial_rewrite: "Adımlar daha akıcı bir Türkçeyle önerildi. Anlamın değişmediğini kontrol et.",
+  step_rewrite_needs_review: "Bazı adımların önerilen düzenlemesi korunamadı. Süre ve miktarları karşılaştır.",
   ingredient_amount_unverified: "Bazı malzemelerin miktarı belirsiz. Kontrol ederek tamamla.",
   ingredient_unit_unverified: "Bazı malzemelerin birimi doğrulanamadı. Kontrol et.",
   step_evidence_invalid: "Kaynakta doğrulanamayan bazı yapılış adımları çıkarıldı.",
