@@ -15,7 +15,12 @@ type Figure = "tomato" | "carrot" | "onion" | "garlic" | "cheese" | "olive"
  | "bean" | "spice" | "potato" | "fish" | "bread" | "plate"
  | "broccoli" | "eggplant" | "mushroom" | "cucumber" | "greens"
  | "chicken" | "meat" | "shrimp" | "butter" | "rice" | "strawberry"
- | "orange" | "apple" | "banana" | "nut" | "honey" | "chocolate" | "sugar";
+ | "orange" | "apple" | "banana" | "nut" | "honey" | "chocolate" | "sugar"
+ | "cherry" | "berry" | "pear" | "grape" | "watermelon" | "peach" | "kiwi"
+ | "pineapple" | "avocado" | "corn" | "coffee" | "tea" | "liquid"
+ | "leek" | "celery" | "cauliflower" | "artichoke" | "radish" | "beet"
+ | "pumpkin" | "asparagus" | "okra" | "zucchini" | "pea" | "greenbean"
+ | "yogurt" | "oil" | "flour" | "baking" | "sesame" | "sauce" | "paste";
 
 const FIGURES: Record<string, Figure> = {
   "🍅": "tomato", "🥕": "carrot", "🧅": "onion", "🧄": "garlic",
@@ -29,10 +34,14 @@ const FIGURES: Record<string, Figure> = {
   "🍊": "orange", "🍎": "apple", "🍌": "banana",
   "🌰": "nut", "🥜": "nut", "🍯": "honey",
   "🍫": "chocolate", "🍬": "sugar",
+  "🍒": "cherry", "🫐": "berry", "🍐": "pear", "🍇": "grape",
+  "🍉": "watermelon", "🍑": "peach", "🥝": "kiwi", "🍍": "pineapple",
+  "🥑": "avocado", "🌽": "corn", "☕": "coffee", "🍵": "tea", "🫗": "liquid",
 };
 
 export default function LokmaIngredientIcon({ name, size = "md", className = "" }: Props) {
-  const figure = FIGURES[lokmaIngredient(name).emoji] || "plate";
+  const ingredient = lokmaIngredient(name);
+  const figure = (ingredient.art || FIGURES[ingredient.emoji] || "plate") as Figure;
   const dimensions = size === "sm" ? "h-5 w-5" : size === "lg" ? "h-7 w-7" : "h-6 w-6";
   const dark = "#65584c";
   const shine = "#ffffff";
@@ -229,6 +238,84 @@ export default function LokmaIngredientIcon({ name, size = "md", className = "" 
         <path d="m11 15 10 7v12l-10-7V15Z" fill="#e5edf0" stroke="#beced5" strokeWidth="1.2" />
         <path d="m21 22 10-6v12l-10 6V22Z" fill="#f7faf9" stroke="#beced5" strokeWidth="1.2" />
         <path d="m6 26 7 4m22-15 2-2" stroke="#cedce0" strokeWidth="1.7" />
+      </>}
+
+      {figure === "cherry" && <>
+        <path d="M19 16c2-8 4-10 12-11m-13 13C13 9 13 7 11 5" stroke="#729463" strokeWidth="2" />
+        <path d="M10 21c6-5 13 1 12 8-2 8-13 9-17 3-3-5 0-9 5-11Z" fill="#d95f64" stroke="#af464e" strokeWidth="1.3" />
+        <path d="M26 20c8-3 12 4 9 11-3 7-14 6-16 0-2-4 1-9 7-11Z" fill="#c95158" stroke="#a13c49" strokeWidth="1.3" />
+        <path d="M10 25c1-2 3-3 5-3m11 2 3-1" stroke="#ffd8bf" strokeWidth="2" opacity=".85"/>
+      </>}
+      {figure === "berry" && <>
+        <g fill="#6c789f" stroke="#526383" strokeWidth="1">
+          <circle cx="15" cy="13" r="6"/><circle cx="25" cy="14" r="6"/><circle cx="11" cy="23" r="6"/><circle cx="21" cy="23" r="7"/><circle cx="30" cy="24" r="6"/>
+        </g>
+        <path d="M17 8c2-4 6-5 8-4m-3 0 2 6" stroke="#83a17a" strokeWidth="2"/>
+        <path d="m11 21 2-2m7 2 2-2m6 4 2-2" stroke="#d0d7ea" strokeWidth="1.7" opacity=".8"/>
+      </>}
+      {figure === "pear" && <>
+        <path d="M17 10c0-3 1-6 5-7" stroke="#6f8d55" strokeWidth="2"/>
+        <path d="M20 13c-6-1-7 4-8 9-7 9-2 16 8 16s15-7 9-16c-1-5-2-10-9-9Z" fill="#b2c879" stroke="#8ea55e" strokeWidth="1.3"/>
+        <path d="M17 13c-2-5-7-5-9-4 1 5 4 6 9 4Z" fill="#7ca474" stroke="#5b8a5f" strokeWidth="1.2"/>
+        <path d="M12 27c-1 4 2 7 5 8" stroke="#e8eeb8" strokeWidth="2.1"/>
+      </>}
+      {figure === "grape" && <>
+        <path d="M21 11c1-5 3-6 8-7m-8 9c-5-6-10-6-12-5 0 5 5 8 12 7" fill="#81a777" stroke="#608b69" strokeWidth="1.3"/>
+        <g fill="#9484b4" stroke="#756799" strokeWidth="1">
+          <circle cx="16" cy="16" r="5"/><circle cx="26" cy="16" r="5"/><circle cx="12" cy="25" r="5"/><circle cx="21" cy="25" r="6"/><circle cx="29" cy="24" r="5"/><circle cx="21" cy="33" r="5"/>
+        </g>
+        <path d="M14 14h2m8 1h2m-7 9h2" stroke="#ddd4ea" strokeWidth="1.9"/>
+      </>}
+      {figure === "watermelon" && <>
+        <path d="M5 27 19 6 36 27H5Z" fill="#e77e75" stroke="#c75e58" strokeWidth="1.2"/>
+        <path d="M5 27h31l-2 6H7l-2-6Z" fill="#79ac7a" stroke="#598b63" strokeWidth="1.2"/>
+        <path d="M7 28h27" stroke="#e6eedb" strokeWidth="2.2"/>
+        <path d="m19 15-1 4m9 3-2 4m-13-3 2 3" stroke="#8d584f" strokeWidth="2" />
+      </>}
+      {figure === "peach" && <>
+        <path d="M20 11c-2-4-2-7 1-9m0 10c2-8 8-8 12-6-2 5-6 8-12 6" fill="#8fb37b" stroke="#628e66" strokeWidth="1.2"/>
+        <path d="M21 12C7 6 4 18 8 29c3 10 12 8 14 6 7 4 13-1 13-10 0-9-5-15-14-13Z" fill="#f0ac80" stroke="#d78d69" strokeWidth="1.3"/>
+        <path d="M21 15c-4 8-4 15 1 20" stroke="#e48d73" strokeWidth="1.6"/>
+        <path d="M10 19c1-3 3-4 5-5" stroke="#ffe3ba" strokeWidth="2.2"/>
+      </>}
+      {figure === "kiwi" && <>
+        <ellipse cx="20" cy="22" rx="15" ry="13" fill="#a48459" stroke="#816747" strokeWidth="1.2"/>
+        <ellipse cx="20" cy="22" rx="12" ry="10" fill="#a8c576" stroke="#80a15a" strokeWidth="1.1"/>
+        <ellipse cx="20" cy="22" rx="4" ry="3.5" fill="#f5f0cf"/>
+        <path d="m20 11-1 6m-7 2 5 2m4 6-1 6m6-12 5-2m-3 8-4-3m-9-1-4 4" stroke="#6e7652" strokeWidth="1.8" />
+      </>}
+      {figure === "pineapple" && <>
+        <path d="M20 12C11 11 8 18 9 26c1 7 6 11 11 11s11-4 11-11c1-8-3-15-11-14Z" fill="#dfbd65" stroke="#be9c4e" strokeWidth="1.3"/>
+        <path d="m12 17 16 16m-17-7 14-13m-5 1 10 9M10 23l10 13" stroke="#b49b58" strokeWidth="1.5"/>
+        <path d="M20 14 12 6l7 3V2l4 8 7-4-6 9" fill="#78a779" stroke="#578b61" strokeWidth="1.2"/>
+      </>}
+      {figure === "avocado" && <>
+        <path d="M22 5c-8-1-11 8-12 14-5 9-2 18 9 19 10 1 17-7 14-16-1-7-3-16-11-17Z" fill="#709b65" stroke="#567e59" strokeWidth="1.3"/>
+        <path d="M21 10c-6 0-9 8-9 14-2 7 2 12 9 12 8 0 12-7 10-14-2-7-4-12-10-12Z" fill="#c8d794" stroke="#9eaf7b" strokeWidth="1"/>
+        <circle cx="21" cy="26" r="6" fill="#a97955" stroke="#895d47" strokeWidth="1.1"/>
+        <path d="M14 20c1-3 2-5 4-6" stroke="#f1f1c8" strokeWidth="2"/>
+      </>}
+      {figure === "corn" && <>
+        <path d="M16 8c3-3 6-3 9 0 6 8 6 22-2 28-7 2-14-7-13-16 0-4 3-9 6-12Z" fill="#e9c76c" stroke="#cba955" strokeWidth="1.2"/>
+        <path d="M13 16c5-2 11-2 15 1m-17 5c6-3 13-3 18 0m-16 5c5-3 11-2 15 1M18 9v24m5-24v24" stroke="#f8dd8a" strokeWidth="1.5"/>
+        <path d="M12 15c-8 6-8 16 2 21 4-2 6-5 7-8-6-3-7-7-9-13Zm18 1c8 7 6 15-4 20-3-2-5-4-6-7 6-4 8-9 10-13Z" fill="#8aaf7a" stroke="#619466" strokeWidth="1.2" />
+      </>}
+      {figure === "coffee" && <>
+        <path d="M8 15h23v10c0 9-4 12-12 12S8 33 8 25V15Z" fill="#f2e1cb" stroke="#bfaa94" strokeWidth="1.2"/>
+        <path d="M31 18c9-1 9 10 0 10" stroke="#c5a78d" strokeWidth="3" />
+        <ellipse cx="19.5" cy="15" rx="11.5" ry="4" fill="#946d59" stroke="#755542" strokeWidth="1.2"/>
+        <path d="M16 10c-3-4 3-4 0-8m7 8c-3-4 3-5 0-8" stroke="#cab6a5" strokeWidth="1.5"/>
+      </>}
+      {figure === "tea" && <>
+        <path d="M7 17h24v8c0 9-5 12-12 12S7 34 7 25v-8Z" fill="#d4ece0" stroke="#95b2a5" strokeWidth="1.2"/>
+        <path d="M31 21c8-2 7 10 0 9" stroke="#9cbcae" strokeWidth="2.5"/>
+        <ellipse cx="19" cy="17" rx="12" ry="3.7" fill="#a7be8d" stroke="#72905d" strokeWidth="1.2"/>
+        <path d="M16 10c-2-4 3-5 1-8m6 8c-2-4 3-5 1-8" stroke="#c5cbb4" strokeWidth="1.5"/>
+      </>}
+      {figure === "liquid" && <>
+        <path d="M20 5c3 7 11 15 11 22 0 8-5 12-12 12S7 34 7 27C7 20 16 12 20 5Z" fill="#91c7d5" stroke="#5ea3b6" strokeWidth="1.3"/>
+        <path d="M13 27c0-4 3-8 5-11" stroke="#e4f8f8" strokeWidth="2.4" opacity=".9"/>
+        <path d="M22 34c4-1 5-3 5-6" stroke="#5ea3b6" strokeWidth="1.4" opacity=".6"/>
       </>}
       {figure === "plate" && <>
         <ellipse cx="20" cy="21" rx="15" ry="12" fill="#f2eee7" stroke="#a7afa5" strokeWidth="1.2" />
