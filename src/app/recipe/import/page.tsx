@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, ArrowRight, BookOpen, Check, CheckCheck, CheckCircle2,
-  ChefHat, ClipboardList, FileText, Info, LoaderCircle, LockKeyhole,
+  ChefHat, ChevronDown, ClipboardList, FileText, Info, LoaderCircle, LockKeyhole,
   PenLine, Plus, RotateCcw, ShieldCheck, Sparkles, Trash2,
   TriangleAlert, WandSparkles,
 } from "lucide-react";
@@ -78,6 +78,8 @@ export default function RecipeTextImportPage() {
   const [error, setError] = useState("");
   const [betaUnavailable, setBetaUnavailable] = useState(false);
   const [routeMissing, setRouteMissing] = useState(false);
+  const [activeIngredient, setActiveIngredient] = useState<number | null>(null);
+  const [activeStep, setActiveStep] = useState<number | null>(null);
 
   const updateSource = (text: string) => {
     setSource(text);
@@ -87,6 +89,8 @@ export default function RecipeTextImportPage() {
     setError("");
     setBetaUnavailable(false);
     setRouteMissing(false);
+    setActiveIngredient(null);
+    setActiveStep(null);
   };
   const updateEditor = (change: (old: ImportEditor) => ImportEditor) => {
     setEditor(old => old ? change(old) : null);
@@ -132,6 +136,8 @@ export default function RecipeTextImportPage() {
       const checked = parseImportPreview(payload);
       setPreview(checked);
       setEditor(editorFromPreview(checked));
+      setActiveIngredient(null);
+      setActiveStep(null);
       setAccepted(false);
       void quotas.reload();
     } catch (cause) {
@@ -201,9 +207,9 @@ export default function RecipeTextImportPage() {
     ? Array.from(new Set([...preview.warnings, ...preview.needs_confirmation])).map(importWarningLabel)
     : [];
 
-  return <main className="bg-[#ffffff] text-slate-800 lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
-    <div className="mx-auto flex h-full max-w-[1620px] flex-col px-3 pb-3 pt-3 sm:px-5 lg:min-h-0 lg:px-6">
-      <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#eeeeee] bg-white px-4 py-3 text-slate-900 shadow-sm sm:px-5">
+  return <main className="min-h-[calc(100dvh-4rem)] bg-[#fffbf7] text-slate-800">
+    <div className="mx-auto max-w-[1460px] px-3 pb-12 pt-5 sm:px-6 lg:px-8">
+      <header className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[#f0e6dc] bg-white px-4 py-4 text-slate-900 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:px-6">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <Link href="/recipe/create" aria-label="Tarif oluşturmaya dön"
             className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fff0ed] text-[#db4c3f] transition hover:bg-[#f8d8cb]">
@@ -211,10 +217,10 @@ export default function RecipeTextImportPage() {
           </Link>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-heading text-[20px] font-extrabold tracking-tight sm:text-[23px]">Tarifini birlikte düzenleyelim.</h1>
+              <h1 className="font-heading text-[20px] font-extrabold tracking-tight sm:text-[23px]">Tarifin, en güzel hâline geliyor.</h1>
               <span className="rounded-full border border-[#f0d6ca] bg-[#fdf0e9] px-2 py-0.5 text-[9px] font-black tracking-wide text-[#ba6251]">BETA</span>
             </div>
-            <p className="mt-0.5 hidden text-[11px] text-white/65 sm:block">Mutfak notların, profesyonel bir tarif. Son söz her zaman senin.</p>
+            <p className="mt-1 text-xs leading-5 text-[#847a70]">Tarifini sen anlat, düzenlemesini Tariften’e bırak. Son söz her zaman senin.</p>
           </div>
         </div>
         <nav aria-label="Tarif aktarım adımları" className="hidden items-center gap-2 text-[11px] font-semibold text-[#9a8170] md:flex">
@@ -228,10 +234,9 @@ export default function RecipeTextImportPage() {
           <ShieldCheck className="h-4 w-4" /> Onayın olmadan yayımlanmaz
         </span>
       </header>
-      {/* Only the two content panels can scroll on desktop. */}
-      <div className="min-h-0 flex-1 rounded-[20px] border border-[#e8e8e8] bg-white shadow-[0_12px_30px_rgba(22,34,29,0.045)] lg:overflow-hidden">
-        <div className="grid min-h-0 lg:h-full lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:divide-x lg:divide-[#eeeeee]">
-        <section className="flex min-h-[510px] min-w-0 flex-col bg-[#fbfbfb] p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto">
+      {/* Independent editorial panels; the source remains accessible while the recipe grows. */}
+      <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
+        <section className="flex min-w-0 flex-col rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-5 lg:sticky lg:top-5">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-[14px] bg-[#ffede3] text-[#be5c49]"><span aria-hidden="true" className="text-2xl">📖</span></div>
@@ -243,7 +248,7 @@ export default function RecipeTextImportPage() {
           <textarea id="source-recipe" value={source} onChange={e => updateSource(e.target.value)}
             disabled={busy !== null} maxLength={20000} spellCheck
             placeholder={"Örn. 2 yumurta, 1 bardak süt, biraz un. Önce yumurtaları çırp, sütü ekle…"}
-            className="min-h-[180px] w-full flex-1 resize-none rounded-xl border border-[#e7e7e7] bg-white p-4 text-[13px] leading-7 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10 disabled:opacity-60 max-lg:h-[265px] max-lg:flex-none" />
+            className="h-[260px] min-h-[180px] w-full resize-y rounded-2xl border border-[#efe5dc] bg-[#fffdfa] p-4 text-[13px] leading-7 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10 disabled:opacity-60" />
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500">
             <span>Tarifin sana ait; eksik kalan yerleri beraber kontrol ederiz.</span>
             <span className="font-mono">{new TextEncoder().encode(source).length.toLocaleString("tr-TR")} / 20.000 bayt</span>
@@ -269,7 +274,7 @@ export default function RecipeTextImportPage() {
           </div>
         </section>
 
-        <section className="min-w-0 border-t border-[#eeeeee] bg-white p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-t-0" aria-live="polite">
+        <section className="min-w-0 rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-6" aria-live="polite">
           {!!error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium leading-5 text-red-800"><TriangleAlert className="mr-2 inline-block h-4 w-4" />{error}</div>}
           {!preview || !editor ? (
             <div className="flex min-h-[260px] flex-col items-center justify-center px-3 text-center lg:h-full">
@@ -308,8 +313,8 @@ export default function RecipeTextImportPage() {
               </div>
 
               {warnings.length > 0 && (
-                <div className="mb-7 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-                  <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-amber-900"><TriangleAlert className="h-4 w-4" /> Kontrol edilmesi gereken alanlar</div>
+                <div className="mb-5 rounded-2xl border border-amber-200 bg-[#fff9ee] p-4">
+                  <div className="mb-2 flex items-center gap-2 text-sm font-extrabold text-amber-900"><TriangleAlert className="h-4 w-4" /> Kontrol edilmesi gereken {warnings.length} konu</div>
                   <ul className="space-y-1.5 pl-5 text-xs leading-6 text-amber-900">
                     {Array.from(new Set(warnings)).map(w => <li key={w} className="list-disc">{w}</li>)}
                   </ul>
@@ -427,7 +432,6 @@ export default function RecipeTextImportPage() {
           )}
 
         </section>
-        </div>
       </div>
     </div>
   </main>;
