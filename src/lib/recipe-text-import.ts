@@ -188,6 +188,7 @@ const WARNING_LABELS: Record<string, string> = {
   steps_missing_or_unverified: "Yapılış adımları eksik veya doğrulanamadı.",
   high_salt_quantity_review: "Tuz miktarı alışılmadık derecede yüksek olabilir. Kaynağı dikkatle incele.",
   title_missing: "Tarif başlığı önerilemedi. Başlığı kendin yaz.",
+  spot_needs_editorial_review: "Spot yeterince özgün olmayabilir. Kaynağa uygun, daha iştah açıcı bir giriş yazabilirsin.",
 };
 export function importWarningLabel(code: string): string {
   if (WARNING_LABELS[code]) return WARNING_LABELS[code];
@@ -195,6 +196,7 @@ export function importWarningLabel(code: string): string {
   if (code.startsWith("step_")) return "Bir yapılış adımını kaynak metinden doğrulamalısın.";
   if (code === "salt_quantity") return "Tuz miktarını kontrol edip onayla.";
   if (code === "title") return "Tarif başlığını tamamla.";
+  if (code === "excerpt") return "Editoryal spotu tarifinle karşılaştırarak gözden geçir.";
   if (code === "ingredients") return "Malzemeleri tamamla.";
   if (code === "steps") return "Yapılış adımlarını tamamla.";
   return "Tarifin bu alanını kaynak metinle karşılaştırıp doğrula.";
