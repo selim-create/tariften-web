@@ -178,58 +178,36 @@ export default function RecipeTextImportPage() {
     ? Array.from(new Set([...preview.warnings, ...preview.needs_confirmation])).map(importWarningLabel)
     : [];
 
-  return <main className="min-h-screen bg-[#f7f7f5] pb-24 text-slate-800">
-    <section className="relative overflow-hidden bg-[#101c24] text-white">
-      <div aria-hidden="true" className="pointer-events-none absolute -right-36 -top-64 h-[580px] w-[580px] rounded-full bg-[#db4c3f]/18 blur-[110px]" />
-      <div aria-hidden="true" className="pointer-events-none absolute -bottom-48 left-12 h-[380px] w-[380px] rounded-full bg-[#74ac84]/10 blur-[90px]" />
-      <div className="relative mx-auto max-w-7xl px-5 pb-14 pt-8 md:px-9 md:pb-20 md:pt-10">
-        <Link href="/recipe/create" className="inline-flex items-center gap-2 text-sm font-medium text-white/55 transition hover:text-white">
-          <ArrowLeft className="h-4 w-4" /> Tarif oluşturma
-        </Link>
-        <div className="mt-12 grid items-end gap-9 lg:grid-cols-[1.3fr_0.7fr]">
-          <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#db4c3f]/50 bg-[#db4c3f]/10 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#ff9c90]">
-              <Sparkles className="h-3.5 w-3.5" /> Akıllı Tarif Aktarımı <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-white/75">BETA</span>
+  return <main className="bg-[#f6f6f4] text-slate-800 lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
+    <div className="mx-auto flex h-full max-w-[1620px] flex-col px-3 pb-3 pt-3 sm:px-5 lg:min-h-0 lg:px-6">
+      <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#13222a] px-4 py-3 text-white sm:px-5">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <Link href="/recipe/create" aria-label="Tarif oluşturmaya dön"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-[17px] font-black tracking-tight sm:text-xl">Akıllı Tarif Aktarımı</h1>
+              <span className="rounded-md border border-[#fb9185]/40 bg-[#db4c3f]/20 px-1.5 py-0.5 text-[9px] font-black tracking-wide text-[#ffa296]">BETA</span>
             </div>
-            <h1 className="max-w-3xl text-4xl font-black leading-[1.08] tracking-[-0.04em] md:text-6xl">
-              Ailenden kalan tarif,<br /><span className="text-[#ff9e90]">yeni bir hikâyeye.</span>
-            </h1>
-            <p className="mt-6 max-w-xl text-base leading-8 text-[#c0c9c9] md:text-lg">
-              Dağınık notlarını yapıştır. Tariften malzemeleri ve adımları kaynak metne sadık kalarak ayırsın; son sözü yine sen söyle.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            {[
-              ["01", "Metni ekle", "Kendi tarifinin orijinali sende kalır."],
-              ["02", "Karşılaştır", "Her malzemeyi ve adımı kontrol et."],
-              ["03", "Onayla", "Hazır olduğunda sen yayımla."],
-            ].map(([number, heading, detail]) =>
-              <div key={number} className="flex gap-4 rounded-2xl border border-white/10 bg-white/[0.05] px-5 py-4 backdrop-blur-sm">
-                <span className="font-mono text-lg font-bold text-[#ff9e90]">{number}</span>
-                <div><p className="text-sm font-extrabold">{heading}</p><p className="mt-1 text-xs leading-5 text-white/55">{detail}</p></div>
-              </div>
-            )}
+            <p className="mt-0.5 hidden text-[11px] text-white/65 sm:block">Metnini yapıştır, kaynakla karşılaştır, kontrol ederek yayımla.</p>
           </div>
         </div>
-      </div>
-    </section>
-
-    <div className="mx-auto max-w-7xl px-5 pt-10 md:px-9">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#db4c3f] text-white">1</span>
-          Kaynak
-          <span className="mx-1 text-slate-300">/</span>
-          <span className={`flex h-8 w-8 items-center justify-center rounded-full ${preview ? "bg-[#db4c3f] text-white" : "bg-slate-200 text-slate-500"}`}>2</span>
-          Önizleme
-          <span className="mx-1 text-slate-300">/</span>
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500">3</span>
-          Onay
-        </div>
-        <span className="flex items-center gap-2 text-xs font-semibold text-slate-500"><ShieldCheck className="h-4 w-4 text-[#42936c]" /> Kaynak odaklı aktarım · Otomatik yayın yok</span>
-      </div>
-
-      <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+        <nav aria-label="Tarif aktarım adımları" className="hidden items-center gap-2 text-[11px] font-bold text-white/70 md:flex">
+          <span className="rounded-lg bg-white/10 px-2.5 py-1.5 text-white">01 · Metin</span>
+          <ArrowRight className="h-3 w-3 opacity-50" />
+          <span className={`rounded-lg px-2.5 py-1.5 ${preview ? "bg-white/10 text-white" : ""}`}>02 · Kontrol</span>
+          <ArrowRight className="h-3 w-3 opacity-50" />
+          <span>03 · Onay</span>
+        </nav>
+        <span className="hidden items-center gap-1.5 text-[11px] text-[#a6d4bd] xl:inline-flex">
+          <ShieldCheck className="h-4 w-4" /> Onayın olmadan yayımlanmaz
+        </span>
+      </header>
+      {/* Only the two content panels can scroll on desktop. */}
+      <div className="min-h-0 flex-1 rounded-[20px] border border-[#e3e6e4] bg-white shadow-[0_12px_40px_rgba(19,34,42,0.07)] lg:overflow-hidden">
+        <div className="grid min-h-0 lg:h-full lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:divide-x lg:divide-slate-200">
         <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -417,10 +395,6 @@ export default function RecipeTextImportPage() {
 
           {!!error && <div role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium leading-6 text-red-800"><TriangleAlert className="mr-2 inline-block h-4 w-4" />{error}</div>}
         </section>
-      </div>
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm text-slate-500">
-        <span className="inline-flex items-center gap-2"><LockKeyhole className="h-4 w-4" /> Tarif, sen onaylamadan yayımlanmaz.</span>
-        <Link href="/recipe/create" className="inline-flex items-center gap-2 font-bold text-[#db4c3f] hover:underline">Klasik tarif oluşturucuya dön <ArrowRight className="h-4 w-4" /></Link>
       </div>
     </div>
   </main>;
