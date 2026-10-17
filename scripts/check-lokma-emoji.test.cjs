@@ -35,10 +35,10 @@ test('key Turkish ingredients receive recognizable food icons rather than false 
  assert.equal(lokmaIngredient('bilinmeyen gurme malzeme').art,undefined);
 });
 
-test('visual gallery showcases all 68 exact SVG figures with stable names and category filters', () => {
+test('visual gallery showcases all 89 exact SVG figures with stable names and category filters', () => {
   const items = shim.exports.LOKMA_ICON_SAMPLES;
-  assert.equal(items.length, 68);
-  assert.equal(new Set(items.map(item => item.figure)).size, 68);
+  assert.equal(items.length, 89);
+  assert.equal(new Set(items.map(item => item.figure)).size, 89);
   const icon = fs.readFileSync(path.join(__dirname, '..', 'src/components/lokma/LokmaIngredientIcon.tsx'), 'utf8');
   const gallery = fs.readFileSync(path.join(__dirname, '..', 'src/app/lokma/ikonlar/page.tsx'), 'utf8');
   items.forEach(item => {
@@ -50,6 +50,31 @@ test('visual gallery showcases all 68 exact SVG figures with stable names and ca
   assert.match(gallery, /previewFigure=\{item\.figure\}/);
   assert.match(gallery, /aria-pressed=\{category === item\}/);
   assert.match(gallery, /navigator\.clipboard\.writeText/);
+});
+
+test('regional vegetable, herb, fruit and spice varieties use independent artwork', () => {
+  const cases = [
+    ['yeşil mercimek','greenlentil'], ['kırmızı mercimek','redlentil'],
+    ['dolmalık biber','bellpepper'], ['kapya biber','kapiapepper'],
+    ['kırmızı biber','redpepper'], ['çarliston biber','carliston'],
+    ['sivri biber','sivri'], ['yeşil biber','sweetpepper'],
+    ['acı biber','pepper'], ['biber','sweetpepper'],
+    ['tuz','salt'], ['kırmızı biber (baharat)','paprikaspice'],
+    ['toz kırmızı biber','paprikaspice'], ['kimyon','cumin'],
+    ['çubuk tarçın','cinnamon'], ['vanilya çubuğu','vanilla'],
+    ['dereotu','dill'], ['roka','arugula'],
+    ['ceviz','walnut'], ['badem','almond'], ['lahana','cabbage'],
+    ['kavun','melon'], ['zeytin yağı','oliveoil'], ['zeytinyağı','oliveoil'],
+    ['yeşil elma','greenapple'],
+    ['bal kabağı','pumpkin'], ['bamya','okra'], ['kabak','zucchini']
+  ];
+  for (const [name,art] of cases) assert.equal(lokmaIngredient(name).art,art,name);
+  assert.equal(lokmaIngredient('zeytin').emoji,'🫒','whole olives stay olives, not olive oil');
+  assert.equal(lokmaIngredient('karabiber').emoji,'🧂','black pepper remains a spice');
+  assert.equal(lokmaIngredient('kırmızı toz biber').art,'paprikaspice');
+  assert.equal(lokmaIngredient('elma').emoji,'🍎','regular apple remains red');
+  assert.notEqual(lokmaIngredient('yeşil mercimek').art,lokmaIngredient('kırmızı mercimek').art);
+  assert.notEqual(lokmaIngredient('kırmızı biber (baharat)').art,lokmaIngredient('kırmızı biber').art);
 });
 
 test('rating emojis preserve numeric 1-5 API contracts', () => {
