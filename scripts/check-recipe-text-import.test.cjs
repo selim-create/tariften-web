@@ -1,0 +1,132 @@
+/**
+ * Source-grounded import UI contract tests; no network or paid AI requests.
+ * Run: node --test scripts/check-recipe-text-import.test.cjs
+ */
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const ts = require('typescript');
+
+const file = fs.readFileSync(path.join(__dirname, '..', 'src/lib/recipe-text-import.ts'), 'utf8');
+const compiled = ts.transpileModule(file, { compilerOptions: {
+  module: ts.ModuleKind.CommonJS,
+  target: ts.ScriptTarget.ES2022,
+} }).outputText;
+const moduleShim = { exports: {} };
+Function('module', 'exports', compiled)(moduleShim, moduleShim.exports);
+const lib = moduleShim.exports;
+
+const source = '2 yumurta ve 1 bardak sütü karıştır. Sonra kızgın tavada iki tarafını pişir.';
+function fakePreview() {
+  return {
+    success: true,
+    mode: 'manual_text_import',
+    generation_status: 'needs_review',
+    requires_approval: true,
+    source_text: source,
+    recipe: {
+      title: 'Sütlü Yumurta',
+      excerpt: 'Yumurtalı bir tavada hazırlık',
+      ingredients: [
+        { name: 'yumurta', amount: '2', unit: '', original_span: '2 yumurta', source_verified: true },
+        { name: 'süt', amount: '1', unit: 'bardak', original_span: '1 bardak süt', source_verified: true },
+      ],
+      steps: [
+        { content: '2 yumurta ve 1 bardak sütü karıştır.', original_span: '2 yumurta ve 1 bardak sütü karıştır.', source_verified: true },
+        { content: 'Sonra kızgın tavada iki tarafını pişir.', original_span: 'Sonra kızgın tavada iki tarafını pişir.', source_verified: true },
+      ],
+      seo: { title: 'Pratik Yumurta', description: 'Tarif düzenlemesi', focus_keywords: ['yumurta', 'süt'] },
+    },
+    warnings: ['ingredient_amount_unverified'],
+    needs_confirmation: ['ingredient_2_amount_missing'],
+    provenance: { origin_type: 'manual_text', ingredient_evidence: 'exact_source_excerpt', step_evidence: 'exact_source_excerpt', editorial_fields: ['title', 'excerpt', 'seo'] },
+  };
+}
+
+test('input validation enforces minimum text and UTF-8 bytes without sending data', () => {
+  assert.match(lib.validateRecipeSource('tarif'), /ayrıntılı/);
+  assert.equal(lib.validateRecipeSource(source), null);
+  assert.match(lib.validateRecipeSource('ş'.repeat(11000)), /20 KB/);
+});
+
+test('verified preview parsed and editable recipe faithfully copies user data', () => {
+  const preview = lib.parseImportPreview(fakePreview());
+  const editor = lib.editorFromPreview(preview);
+  assert.equal(editor.ingredients.length, 2);
+  assert.deepEqual(editor.steps.map(s => s.content), preview.recipe.steps.map(s => s.original_span));
+  assert.equal(editor.seoKeywords, 'yumurta, süt');
+  assert.equal(lib.publishValidation(editor), null);
+  const payload = lib.buildApprovedRecipe(editor);
+  assert.equal(payload.title, 'Sütlü Yumurta');
+  assert.deepEqual(payload.ingredients[0], { name: 'yumurta', amount: '2', unit: '' });
+  assert.equal(payload.steps[0], '2 yumurta ve 1 bardak sütü karıştır.');
+  assert.equal(payload.seo.focus_keywords, 'yumurta, süt');
+  assert.equal(Object.hasOwn(payload, 'image'), false, 'never auto-request paid image');
+  assert.equal(Object.hasOwn(payload, 'source_text'), false, 'do not save private raw text in public recipe');
+  assert.equal(Object.hasOwn(payload, 'requires_approval'), false);
+});
+
+test('untrusted or ungrounded AI preview response rejected before showing it', () => {
+  const a = fakePreview();
+  a.requires_approval = false;
+  assert.throws(() => lib.parseImportPreview(a), /beklenen biçimde/);
+  const b = fakePreview();
+  b.recipe.ingredients[0].original_span = '1 litre zeytinyağı';
+  assert.throws(() => lib.parseImportPreview(b), /Malzeme kanıtı/);
+  const c = fakePreview();
+  c.recipe.steps[0].content = 'Üç yumurta ekle ve beklet.';
+  assert.throws(() => lib.parseImportPreview(c), /adımı kaynakla/);
+  const d = fakePreview();
+  d.recipe.steps = Array.from({ length: 41 }, () => d.recipe.steps[0]);
+  assert.throws(() => lib.parseImportPreview(d), /beklenmeyen türde/);
+});
+
+test('editable fields require explicit user completion but never require invented amounts', () => {
+  const editor = lib.editorFromPreview(fakePreview());
+  editor.ingredients[1].amount = '';
+  assert.equal(lib.publishValidation(editor), null, 'source can omit a quantity');
+  editor.title = '';
+  assert.match(lib.publishValidation(editor), /başlığını/);
+  editor.title = 'Yumurta';
+  editor.ingredients = [];
+  assert.match(lib.publishValidation(editor), /malzeme/);
+  editor.ingredients = [{ name: 'yumurta', amount: '', unit: '', original_span: '', source_verified: false }];
+  editor.steps[0].content = '';
+  assert.match(lib.publishValidation(editor), /adım/);
+});
+
+test('warnings and unknown source confirmation codes never render untranslated internals', () => {
+  assert.match(lib.importWarningLabel('high_salt_quantity_review'), /Tuz miktarı/);
+  assert.match(lib.importWarningLabel('ingredient_4_amount_missing'), /malzeme/);
+  assert.match(lib.importWarningLabel('step_2_source_check'), /adım/);
+  assert.match(lib.importWarningLabel('unknown_request'), /kaynak metinle/);
+});
+
+test('route is strictly authorized, no-store, bounded, preview-only and uses the existing Core endpoint', () => {
+  const route = fs.readFileSync(path.join(__dirname, '..', 'src/app/api/recipe-import/preview/route.ts'), 'utf8');
+  assert.match(route, /\/tariften\/v1\/ai\/recipe-import\/preview/);
+  assert.match(route, /authorization/);
+  assert.match(route, /status: 401/);
+  assert.match(route, /source_text/);
+  assert.match(route, /20000/);
+  assert.match(route, /no-store/);
+  assert.doesNotMatch(route, /console\.(log|error)\(/);
+  assert.doesNotMatch(route, /\/recipes\/create/);
+});
+
+test('screen requires login, approval and independent quota checks before public publish', () => {
+  const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/recipe/import/page.tsx'), 'utf8');
+  assert.match(page, /if \(!token\)/);
+  assert.match(page, /fetchAccountQuotas\(token\)/);
+  assert.match(page, /quotaReached\(fresh, "recipe_ai_day"\)/);
+  assert.match(page, /quotaReached\(fresh, "recipe_day"\)/);
+  assert.match(page, /!accepted/);
+  assert.match(page, /<input type="checkbox" checked=\{accepted\}/);
+  assert.match(page, /buildApprovedRecipe\(editor\)/);
+  assert.match(page, /createRecipe\(token, buildApprovedRecipe\(editor\)\)/);
+  assert.match(page, /herkese açık yayımlanmasını/);
+  assert.match(page, /setPreview\(null\)/);
+  assert.match(page, /setAccepted\(false\)/);
+  assert.doesNotMatch(page, /fetch_smart_image|generate_image|uploadMedia/);
+});
