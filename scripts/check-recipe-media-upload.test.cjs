@@ -86,6 +86,31 @@ test('proxy forwards valid Turkish-named file as multipart with ASCII filename a
   }
 });
 
+test('browser uploads over 4MB directly to Core, bypassing hosting body limits', async () => {
+  const uploadClient = tsModule('src/lib/recipe-media-upload.ts', { './recipe-media': media });
+  const before = global.fetch;
+  const bigPicture = new File([new Uint8Array(4 * 1024 * 1024 + 32)],
+    'Şefin özel yemeği.jpg', { type: 'image/jpeg' });
+  let captured = null;
+  try {
+    global.fetch = async (url, opts) => {
+      captured = { url, opts };
+      return new Response(JSON.stringify({
+        success: true, id: 777, url: 'https://api.tariften.com/wp-content/uploads/sefin-ozel-yemegi.jpg',
+      }), { status: 201, headers: { 'content-type': 'application/json' } });
+    };
+    const result = await uploadClient.uploadRecipeImage('jwt-test', bigPicture);
+    assert.equal(result.success, true);
+    assert.equal(result.id, 777);
+    assert.equal(captured.url, 'https://api.tariften.com/wp-json/tariften/v1/recipes/image/upload');
+    assert.equal(captured.opts.headers.Authorization, 'Bearer jwt-test');
+    assert.equal(captured.opts.headers['Content-Type'], undefined);
+    assert.equal(captured.opts.body.get('file').name, 'sefin-ozel-yemegi.jpg');
+  } finally {
+    global.fetch = before;
+  }
+});
+
 test('missing JWT and invalid image cannot trigger Core upload', async () => {
   const before = global.fetch;
   let calls = 0;
@@ -134,6 +159,9 @@ test('recipe screens never invoke old Unicode Content-Disposition Server Action 
   assert.match(menu, /uploadRecipeImage\(user\.token, file\)/);
   assert.match(menu, /image: result\.url/);
   assert.doesNotMatch(menu, /readAsDataURL|uploadMedia|base64 okuyup/);
-  assert.match(client, /fetch\("\/api\/recipes\/image\/upload"/);
+  assert.match(client, /file\.size > 4 \* 1024 \* 1024/);
+  assert.match(client, /const endpoint = directToCore/);
+  assert.match(client, /safeRecipeImageFilename\(file\.name, file\.type\)/);
+  assert.match(client, /fetch\(endpoint/);
   assert.doesNotMatch(client, /console\.error/);
 });
