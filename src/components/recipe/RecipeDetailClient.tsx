@@ -14,6 +14,7 @@ import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
 import { parseIngredients, parseSteps } from "@/lib/recipeUtils";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
+import { capitalizeIngredientTr, formatIngredientAmount } from "@/lib/ingredient-display";
 import { LOKMA_REACTIONS, LOKMA_RATINGS } from "@/lib/lokma-emoji";
 
 // Helper: Tahmini porsiyon ağırlığı hesapla
@@ -403,21 +404,16 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             </div>
             <ul className="space-y-3">
               {ingredients.map((item, idx) => {
-                const numericAmount = item.amount;
-                let displayAmount = item.amount.toString();
-                if (!isNaN(numericAmount)) {
-                  const scaled = (numericAmount / baseServings) * servings;
-                  displayAmount = Number.isInteger(scaled) ? scaled.toString() : scaled.toFixed(1);
-                }
+                const displayAmount = formatIngredientAmount(item.amount, item.unit, baseServings, servings);
                 const isChecked = checkedIngredients.includes(idx);
                 return (
-                  <li key={idx} onClick={() => toggleIngredient(idx)} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${isChecked ? 'bg-green-50 border-green-100 opacity-60' : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200 hover:shadow-sm'}`}>
+                  <li key={idx} onClick={() => toggleIngredient(idx)} className={`flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer transition-all border ${isChecked ? 'bg-green-50 border-green-100 opacity-60' : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200 hover:shadow-sm'}`}>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isChecked ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 bg-white'}`}>
                       {isChecked && <FaCheck className="text-[10px]" />}
                     </div>
-                    <LokmaIngredientIcon name={item.name} size="md" />
+                    <LokmaIngredientIcon name={item.name} size="sm" />
                     <span className={`flex-1 text-sm font-medium ${isChecked ? 'line-through text-gray-400' : 'text-slate-700'}`}>
-                      <strong className="text-brand">{displayAmount} {item.unit}</strong> {item.name}
+                      {displayAmount && <strong className="text-brand">{displayAmount} </strong>}{capitalizeIngredientTr(item.name)}
                     </span>
                   </li>
                 );
