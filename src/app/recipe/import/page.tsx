@@ -330,6 +330,17 @@ export default function RecipeTextImportPage() {
                     onChange={e => updateEditor(old => ({ ...old, title: e.target.value }))}
                     className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-lg font-black outline-none focus:border-[#db4c3f]" />
                 </div>
+                <div className="rounded-2xl border border-[#f0dfca] bg-[#fffaf2] p-4 sm:p-5">
+                  <label htmlFor="recipe-import-servings" className="mb-2 block text-[12px] font-extrabold text-slate-800">Kaç kişilik? <span className="text-[#db4c3f]">*</span></label>
+                  <div className="flex items-center gap-4">
+                    <input id="recipe-import-servings" type="number" min={1} max={36} step={1}
+                      value={editor.servings} onChange={e => updateEditor(old => ({ ...old, servings: e.target.value }))}
+                      placeholder="Örn. 4" aria-required="true"
+                      className="h-12 w-32 rounded-xl border border-[#ddc8b7] bg-white px-4 text-base font-bold text-slate-800 outline-none focus:border-[#db4c3f]" />
+                    <span className="text-xs leading-5 text-[#7c6f62]">Tarifindeki miktarlara göre kaç kişilik olduğunu sen belirle.</span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-5 text-[#8d7563]">Kaynak tarifte porsiyon belirtilmediğinde yapay zekâ tahmin üretmez. Örneğin 1 kg fasulye için 4 kişi veya daha fazlasını seçebilirsin.</p>
+                </div>
                 <div>
                   <FormLabel>Editoryal spot · Kaynaktaki bilgilere dayalı öneri</FormLabel>
                   <textarea aria-label="Tarif spotu" rows={2} value={editor.excerpt}
