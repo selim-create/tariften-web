@@ -1,6 +1,6 @@
 import { getRecipe } from "@/lib/api";
 import { notFound } from "next/navigation";
-import PilotClient from "@/components/pilot/PilotClient";
+import PilotAccessGate from "@/components/pilot/PilotAccessGate";
 import { parseSteps } from "@/lib/recipeUtils"; 
 
 // Bu sayfa sunucuda çalışır (Server Component) ve veriyi çeker
@@ -33,7 +33,7 @@ export default async function PilotPage({
 
   return (
     <main className="h-screen w-full bg-[#0f172a] text-white overflow-hidden">
-      <PilotClient recipe={recipe} steps={finalSteps} hasStoredSteps={storedSteps.length > 0} />
+      <PilotAccessGate recipe={recipe} steps={finalSteps} hasStoredSteps={storedSteps.length > 0} />
     </main>
   );
 }
