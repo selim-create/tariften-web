@@ -270,7 +270,12 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
         speak(steps[currentStep]);
         return;
       case "pause_audio":
-        if (timerActive && normalized === "durdur") {
+        naturalVoice.pause();
+        if (useDeviceVoice) window.speechSynthesis?.pause();
+        setVoiceFeedback("Okuma duraklatıldı.");
+        return;
+      case "pause_context":
+        if (timerActive) {
           setIsTimerPaused(true);
           setVoiceFeedback("Sayaç duraklatıldı.");
         } else {
@@ -309,12 +314,30 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
           setVoiceFeedback(timerActive ? "Sayaç zaten çalışıyor." : "Devam ettirilecek sayaç bulunmuyor.");
         }
         return;
+      case "cancel_context":
+        if (!timerActive) {
+          naturalVoice.stop();
+          window.speechSynthesis?.cancel();
+          setVoiceFeedback("Okuma durduruldu.");
+          return;
+        }
+        // A timer is in progress; a generic "iptal" targets the timer.
       case "cancel_timer":
         setTimerActive(false);
         setTimeLeft(0);
         setIsTimerPaused(false);
         setIsAlarmPlaying(false);
         setVoiceFeedback("Sayaç iptal edildi.");
+        return;
+      case "step_status":
+        setVoiceFeedback("Şu anda " + (currentStep + 1) + ". adımdasın · Toplam " + steps.length + " adım.");
+        return;
+      case "mute_mic":
+        wantListeningRef.current = false;
+        if (retryMicRef.current) clearTimeout(retryMicRef.current);
+        try { recognitionRef.current?.stop(); } catch { /* already stopped */ }
+        setIsListening(false);
+        setVoiceFeedback("Mikrofon kapatıldı. Yeniden açmak için simgeye dokun.");
         return;
       case "start_timer":
         startTimer(command.minutes);
