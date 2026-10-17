@@ -22,7 +22,7 @@ export function validateRecipeImage(file: { size: number; type: string }): strin
 export function safeRecipeImageFilename(name: string, type: string): string {
   const ext = TYPES[type];
   if (!ext) throw new Error("Desteklenmeyen görsel türü.");
-  const base = name.replace(/\\.[^.]+$/, "").normalize("NFKD")
+  const base = name.replace(/\.[^.]+$/, "").normalize("NFKD")
     .replace(/ı/g, "i").replace(/İ/g, "I")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9]+/g, "-")
