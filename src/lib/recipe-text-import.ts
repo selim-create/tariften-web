@@ -141,7 +141,7 @@ export function editorFromPreview(p: GroundedImportPreview): ImportEditor {
 
 export function publishValidation(editor: ImportEditor): string | null {
   if (!editor.title.trim()) return "Tarif başlığını tamamlamalısın.";
-  if (!/^[1-9]\\d*$/.test(editor.servings.trim()) || Number(editor.servings) > 36) {
+  if (!/^[1-9]\d*$/.test(editor.servings.trim()) || Number(editor.servings) > 36) {
     return "Tarifin kaç kişilik olduğunu seçmelisin (1–36 kişi).";
   }
   if (!editor.ingredients.length || editor.ingredients.some(i => !i.name.trim())) {
