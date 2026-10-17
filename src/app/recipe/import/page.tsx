@@ -73,7 +73,7 @@ export default function RecipeTextImportPage() {
   const [source, setSource] = useState("");
   const [preview, setPreview] = useState<GroundedImportPreview | null>(null);
   const [editor, setEditor] = useState<ImportEditor | null>(null);
-  const [accepted, setAccepted] = useState(false);
+  const [accepted, setAccepted] = useState(true);
   const [busy, setBusy] = useState<"preview" | "publish" | null>(null);
   const [error, setError] = useState("");
   const [betaUnavailable, setBetaUnavailable] = useState(false);
@@ -85,7 +85,7 @@ export default function RecipeTextImportPage() {
     setSource(text);
     setPreview(null);
     setEditor(null);
-    setAccepted(false);
+    setAccepted(true);
     setError("");
     setBetaUnavailable(false);
     setRouteMissing(false);
@@ -94,7 +94,7 @@ export default function RecipeTextImportPage() {
   };
   const updateEditor = (change: (old: ImportEditor) => ImportEditor) => {
     setEditor(old => old ? change(old) : null);
-    setAccepted(false);
+    // Preserve the user's choice if they intentionally uncheck the preselected option.
     setError("");
   };
 
@@ -138,7 +138,7 @@ export default function RecipeTextImportPage() {
       setEditor(editorFromPreview(checked));
       setActiveIngredient(null);
       setActiveStep(null);
-      setAccepted(false);
+      setAccepted(true);
       void quotas.reload();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Önizleme hazırlanamadı. Yeniden deneyebilirsin.");
@@ -236,7 +236,7 @@ export default function RecipeTextImportPage() {
       </header>
       {/* Independent editorial panels; the source remains accessible while the recipe grows. */}
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
-        <section className="flex min-w-0 flex-col rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-5 lg:sticky lg:top-5">
+        <section className="flex min-w-0 flex-col rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-[14px] bg-[#ffede3] text-[#be5c49]"><span aria-hidden="true" className="text-2xl">📖</span></div>
@@ -442,7 +442,7 @@ export default function RecipeTextImportPage() {
                   <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
                     <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)}
                       className="mt-1 h-4 w-4 shrink-0 accent-[#db4c3f]" />
-                    <span className="text-xs font-medium leading-6 text-slate-700">Orijinal tarifle tüm malzeme ve adımları karşılaştırdım. Belirsiz alanları kontrol ettim ve tarifimin <strong>herkese açık yayımlanmasını</strong> onaylıyorum.</span>
+                    <span className="text-xs font-medium leading-6 text-slate-700">Tarifimin <strong>herkese açık yayımlanacağını</strong> biliyorum. Malzeme miktarlarını, hazırlanış adımlarını ve belirsiz alanları yayından önce kontrol edebilirim. Yayımlamak için ayrıca “Onayla ve yayımla” düğmesine basmalıyım.</span>
                   </label>
                   <button type="button" onClick={() => void publish()}
                     disabled={!accepted || busy !== null || quotas.loading || !!quotas.error || !quotas.data || quotaReached(quotas.data, "recipe_day") || !!publishValidation(editor)}

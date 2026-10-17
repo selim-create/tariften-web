@@ -21,7 +21,18 @@ test('key Turkish ingredients receive recognizable food icons rather than false 
  ];
  cases.forEach(([ingredient,emoji])=>assert.equal(lokmaIngredient(ingredient).emoji,emoji,ingredient));
  assert.equal(lokmaIngredient('bilinmeyen gurme malzeme').emoji,'🍽️');
- assert.equal(lokmaIngredient('turp').emoji,'🍽️');
+ const newArtCases = [
+   ['turp', 'radish'], ['pırasa', 'leek'], ['kereviz', 'celery'], ['pancar', 'beet'],
+   ['karnabahar', 'cauliflower'], ['enginar', 'artichoke'], ['bal kabağı', 'pumpkin'],
+   ['kuşkonmaz', 'asparagus'], ['bamya', 'okra'], ['kabak', 'zucchini'],
+   ['bezelye', 'pea'], ['taze fasulye', 'greenbean'],
+   ['yoğurt', 'yogurt'], ['ayçiçek yağı', 'oil'],
+   ['un', 'flour'], ['kabartma tozu', 'baking'], ['susam', 'sesame'],
+   ['tahin', 'sauce'], ['domates salçası', 'paste'],
+ ];
+ newArtCases.forEach(([ingredient,art])=>assert.equal(lokmaIngredient(ingredient).art,art,ingredient));
+ assert.equal(lokmaIngredient('domates').art,undefined,'standard art stays mapped by emoji');
+ assert.equal(lokmaIngredient('bilinmeyen gurme malzeme').art,undefined);
 });
 
 test('rating emojis preserve numeric 1-5 API contracts', () => {
@@ -50,11 +61,14 @@ test('ingredient illustrations are compact vector art and never render native fo
   const icon = fs.readFileSync(path.join(__dirname, '..', 'src/components/lokma/LokmaIngredientIcon.tsx'), 'utf8');
   const recipe = fs.readFileSync(path.join(__dirname, '..', 'src/components/recipe/RecipeDetailClient.tsx'), 'utf8');
   assert.match(icon, /<svg viewBox="0 0 40 40"/);
-  assert.match(icon, /FIGURES\[lokmaIngredient\(name\)\.emoji\]/);
+  assert.match(icon, /ingredient\.art \|\| FIGURES\[ingredient\.emoji\]/);
   assert.match(icon, /figure === "tomato"/);
   assert.match(icon, /figure === "carrot"/);
   for (const art of ['broccoli','eggplant','mushroom','cucumber','greens','chicken','meat','shrimp','butter','rice','strawberry','orange','apple','banana','nut','honey','chocolate','sugar']) {
     assert.ok(icon.includes(`figure === "${art}"`), `Missing illustration: ${art}`);
+  }
+  for (const art of ['cherry','berry','pear','grape','watermelon','peach','kiwi','pineapple','avocado','corn','coffee','tea','liquid','leek','celery','cauliflower','artichoke','radish','beet','pumpkin','asparagus','okra','zucchini','pea','greenbean','yogurt','oil','flour','baking','sesame','sauce','paste']) {
+    assert.ok(icon.includes(`figure === "${art}"`), `Missing curated miniature: ${art}`);
   }
   assert.match(icon, /figure === "plate"/);
   assert.match(icon, /h-5 w-5/);
