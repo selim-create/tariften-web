@@ -122,6 +122,7 @@ test('recipe screens never invoke old Unicode Content-Disposition Server Action 
   const edit = text('src/app/recipe/edit/[id]/page.tsx');
   const create = text('src/app/recipe/create/page.tsx');
   const client = text('src/lib/recipe-media-upload.ts');
+  const menu = text('src/app/menu/edit/[slug]/page.tsx');
   assert.doesNotMatch(api, /Content-Disposition.*file\.name/);
   assert.doesNotMatch(api, /export async function uploadMedia/);
   for (const screen of [edit, create]) {
@@ -130,6 +131,9 @@ test('recipe screens never invoke old Unicode Content-Disposition Server Action 
     assert.match(screen, /setPreviewUrl\(previousPreview\)/);
     assert.match(screen, /e\.currentTarget\.value = ""/);
   }
+  assert.match(menu, /uploadRecipeImage\(user\.token, file\)/);
+  assert.match(menu, /image: result\.url/);
+  assert.doesNotMatch(menu, /readAsDataURL|uploadMedia|base64 okuyup/);
   assert.match(client, /fetch\("\/api\/recipes\/image\/upload"/);
   assert.doesNotMatch(client, /console\.error/);
 });
