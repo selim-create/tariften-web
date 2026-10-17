@@ -148,7 +148,7 @@ const timerFirstPattern = new RegExp(
 
 export function normalizePilotCommand(raw: string): string {
   return raw.toLocaleLowerCase('tr-TR').normalize('NFC').trim()
-    .replace(/[.,!?;:]/g, ' ').replace(/\s+/g, ' ');
+    .replace(/[.,!?;:]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 /** All patterns are short, exact and locale-aware; no fuzzy semantic matching. */
