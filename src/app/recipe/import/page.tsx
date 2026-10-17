@@ -194,10 +194,10 @@ export default function RecipeTextImportPage() {
       <section className="w-full rounded-[32px] border border-slate-100 bg-white p-10 text-center shadow-xl shadow-slate-900/5">
         <LockKeyhole className="mx-auto mb-5 h-12 w-12 text-[#db4c3f]" aria-hidden />
         <h1 className="text-3xl font-black text-slate-900">Tarifini Tariften’e Aktar</h1>
-        <p className="mx-auto my-5 max-w-lg text-slate-600">Kendi tariflerini akıllı biçimde düzenlemek için Tariften hesabına giriş yap veya ücretsiz kayıt ol.</p>
+        <p className="mx-auto my-5 max-w-lg text-slate-600">Kendi tariflerini akıllı biçimde düzenlemek için Tariften hesabına giriş yap veya Standart Üye olarak kayıt ol.</p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link href="/login" className="rounded-xl bg-[#db4c3f] px-7 py-3.5 font-bold text-white">Giriş Yap</Link>
-          <Link href="/register" className="rounded-xl border border-slate-200 px-7 py-3.5 font-bold text-slate-800">Ücretsiz Kayıt Ol</Link>
+          <Link href="/register" className="rounded-xl border border-slate-200 px-7 py-3.5 font-bold text-slate-800">Standart Üye Ol</Link>
         </div>
       </section>
     </main>
@@ -336,6 +336,7 @@ export default function RecipeTextImportPage() {
                 <div className="border-t border-slate-100 pt-6">
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="flex items-center gap-2 font-heading text-lg font-black"><LokmaIngredientIcon name="domates" size="sm" /> Malzemeler <span className="text-sm font-normal text-slate-400">{editor.ingredients.length}</span></h3>
+                    <Link href="/lokma/ikonlar" target="_blank" rel="noopener noreferrer" className="ml-auto mr-3 text-[11px] font-semibold text-[#a75b4b] underline decoration-[#dfc5b8] underline-offset-4 hover:text-[#db4c3f]">Tüm ikonları gör</Link>
                     <button type="button" aria-label="Malzeme ekle" disabled={editor.ingredients.length >= 40}
                       onClick={() => { setActiveIngredient(editor.ingredients.length); updateEditor(old => ({ ...old, ingredients: [...old.ingredients, { name: "", amount: "", unit: "", original_span: "", source_verified: false, userEdited: true }] })); }}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#db4c3f] disabled:opacity-50"><Plus className="h-4 w-4" /> Ekle</button>
