@@ -141,7 +141,7 @@ test('warnings and unknown source confirmation codes never render untranslated i
   assert.match(lib.importWarningLabel('high_salt_quantity_review'), /Tuz miktarı/);
   assert.match(lib.importWarningLabel('ingredient_4_amount_missing'), /malzeme/);
   assert.match(lib.importWarningLabel('step_2_source_check'), /adım/);
-  assert.match(lib.importWarningLabel('unknown_request'), /kaynak metinle/);
+  assert.match(lib.importWarningLabel('unknown_request'), /göz at/);
 });
 
 test('route is strictly authorized, no-store, bounded, preview-only and uses the existing Core endpoint', () => {
