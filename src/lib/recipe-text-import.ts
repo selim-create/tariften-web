@@ -175,29 +175,47 @@ export function buildApprovedRecipe(editor: ImportEditor) {
   };
 }
 
-const WARNING_LABELS: Record<string, string> = {
-  ingredient_evidence_invalid: "Bazı malzemeler kaynak metinde doğrulanamadı ve aktarılmadı.",
-  ingredient_name_corrected: "Yazım hataları düzeltilmiş olabilir. Malzeme adlarını kaynakla karşılaştır.",
-  ingredient_name_unverified: "Bazı malzeme isimlerinin düzeltmesi belirsiz. Kaynağa bakıp kontrol et.",
-  step_editorial_rewrite: "Adımlar daha akıcı bir Türkçeyle önerildi. Anlamın değişmediğini kontrol et.",
-  step_rewrite_needs_review: "Bazı adımların önerilen düzenlemesi korunamadı. Süre ve miktarları karşılaştır.",
-  ingredient_amount_unverified: "Bazı malzemelerin miktarı belirsiz. Kontrol ederek tamamla.",
-  ingredient_unit_unverified: "Bazı malzemelerin birimi doğrulanamadı. Kontrol et.",
-  step_evidence_invalid: "Kaynakta doğrulanamayan bazı yapılış adımları çıkarıldı.",
-  ingredients_missing_or_unverified: "Malzeme listesi eksik veya doğrulanamadı.",
-  steps_missing_or_unverified: "Yapılış adımları eksik veya doğrulanamadı.",
-  high_salt_quantity_review: "Tuz miktarı alışılmadık derecede yüksek olabilir. Kaynağı dikkatle incele.",
-  title_missing: "Tarif başlığı önerilemedi. Başlığı kendin yaz.",
-  spot_needs_editorial_review: "Spot yeterince özgün olmayabilir. Kaynağa uygun, daha iştah açıcı bir giriş yazabilirsin.",
+/**
+ * Keep the review panel human and short. Duplicated backend evidence codes
+ * remain intact in the preview; only their editorial presentation is grouped.
+ * Safety-specific warnings never disappear into a generic review tip.
+ */
+const REVIEW_MESSAGES = {
+  spelling: "Yazım hataları düzeltilmiş olabilir. Malzeme adlarını kendi tarifinle karşılaştır.",
+  editorial: "Adımlar daha akıcı bir Türkçe ile tekrar yazıldı. Anlamın değişmediğini kontrol et.",
+  ingredient: "Bir malzemeyi doğrulamalısın.",
+  step: "Bir yapılış adımını doğrulamalısın.",
+} as const;
+
+const SPECIAL_WARNINGS: Record<string, string> = {
+  high_salt_quantity_review: "Tuz miktarı fazla olabilir. Tarifindeki ölçüyü bir kez daha kontrol et.",
+  salt_quantity: "Tuz miktarını kontrol et.",
+  title_missing: "Tarifine bir isim ekleyebilirsin.",
+  title: "Tarifinin adını kontrol et.",
+  spot_needs_editorial_review: "Tarifini anlatan kısa metne bir göz at.",
+  excerpt: "Tarifinin kısa açıklamasını kontrol et.",
+  ingredients: "Malzeme listeni tamamla.",
+  steps: "Yapılış adımlarını tamamla.",
 };
+
 export function importWarningLabel(code: string): string {
-  if (WARNING_LABELS[code]) return WARNING_LABELS[code];
-  if (code.startsWith("ingredient_")) return "Bir malzeme alanını kaynak metinden doğrulamalısın.";
-  if (code.startsWith("step_")) return "Bir yapılış adımını kaynak metinden doğrulamalısın.";
-  if (code === "salt_quantity") return "Tuz miktarını kontrol edip onayla.";
-  if (code === "title") return "Tarif başlığını tamamla.";
-  if (code === "excerpt") return "Editoryal spotu tarifinle karşılaştırarak gözden geçir.";
-  if (code === "ingredients") return "Malzemeleri tamamla.";
-  if (code === "steps") return "Yapılış adımlarını tamamla.";
-  return "Tarifin bu alanını kaynak metinle karşılaştırıp doğrula.";
+  if (SPECIAL_WARNINGS[code]) return SPECIAL_WARNINGS[code];
+  if (code === "ingredient_name_corrected" || code === "ingredient_name_unverified") return REVIEW_MESSAGES.spelling;
+  if (code === "step_editorial_rewrite" || code === "step_rewrite_needs_review") return REVIEW_MESSAGES.editorial;
+  if (code.startsWith("ingredient_") || code === "ingredients_missing_or_unverified") return REVIEW_MESSAGES.ingredient;
+  if (code.startsWith("step_") || code === "steps_missing_or_unverified") return REVIEW_MESSAGES.step;
+  return "Tarifine son bir kez göz at.";
+}
+
+export function importReviewNotes(warnings: readonly string[], confirmations: readonly string[]): string[] {
+  const codes = new Set([...warnings, ...confirmations]);
+  const result: string[] = [];
+  if ([...codes].some(code => code === "ingredient_name_corrected" || code === "ingredient_name_unverified")) result.push(REVIEW_MESSAGES.spelling);
+  if ([...codes].some(code => code === "step_editorial_rewrite" || code === "step_rewrite_needs_review")) result.push(REVIEW_MESSAGES.editorial);
+  if ([...codes].some(code => (code.startsWith("ingredient_") || code === "ingredients_missing_or_unverified") && !["ingredient_name_corrected", "ingredient_name_unverified"].includes(code))) result.push(REVIEW_MESSAGES.ingredient);
+  if ([...codes].some(code => (code.startsWith("step_") || code === "steps_missing_or_unverified") && !["step_editorial_rewrite", "step_rewrite_needs_review"].includes(code))) result.push(REVIEW_MESSAGES.step);
+  for (const code of codes) {
+    if (SPECIAL_WARNINGS[code] && !result.includes(SPECIAL_WARNINGS[code])) result.push(SPECIAL_WARNINGS[code]);
+  }
+  return result;
 }
