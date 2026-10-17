@@ -16,7 +16,7 @@ import { createRecipe } from "@/lib/api";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import { capitalizeIngredientTr } from "@/lib/ingredient-display";
 import {
-  buildApprovedRecipe, editorFromPreview, importWarningLabel, parseImportPreview,
+  buildApprovedRecipe, editorFromPreview, importReviewNotes, parseImportPreview,
   publishValidation, validateRecipeSource,
 } from "@/lib/recipe-text-import";
 import type {
@@ -203,9 +203,7 @@ export default function RecipeTextImportPage() {
     </main>
   );
 
-  const warnings = preview
-    ? Array.from(new Set([...preview.warnings, ...preview.needs_confirmation])).map(importWarningLabel)
-    : [];
+  const warnings = preview ? importReviewNotes(preview.warnings, preview.needs_confirmation) : [];
 
   return <main className="min-h-[calc(100dvh-4rem)] bg-[#fffbf7] text-slate-800">
     <div className="mx-auto max-w-[1460px] px-3 pb-12 pt-5 sm:px-6 lg:px-8">
@@ -314,7 +312,7 @@ export default function RecipeTextImportPage() {
 
               {warnings.length > 0 && (
                 <div className="mb-5 rounded-2xl border border-amber-200 bg-[#fff9ee] p-4">
-                  <div className="mb-2 flex items-center gap-2 text-sm font-extrabold text-amber-900"><TriangleAlert className="h-4 w-4" /> Kontrol edilmesi gereken {warnings.length} konu</div>
+                  <div className="mb-2 flex items-center gap-2 text-sm font-extrabold text-amber-900"><TriangleAlert className="h-4 w-4" /> Tarifine son kez birlikte bakalım</div>
                   <ul className="space-y-1.5 pl-5 text-xs leading-6 text-amber-900">
                     {Array.from(new Set(warnings)).map(w => <li key={w} className="list-disc">{w}</li>)}
                   </ul>
