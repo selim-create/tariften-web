@@ -13,7 +13,8 @@ export function capitalizeIngredientTr(value: unknown): string {
 export function formatIngredientAmount(
   amount: unknown, unit: unknown, baseServings: unknown, servings: unknown,
 ): string {
-  const raw = (typeof amount === "number" || typeof amount === "string") ? String(amount).trim() : "";
+  const incoming = (typeof amount === "number" || typeof amount === "string") ? String(amount).trim() : "";
+  const raw = /^(?:nan|undefined|null|infinity|-infinity)$/i.test(incoming) ? "" : incoming;
   const unitText = typeof unit === "string" ? unit.trim() : "";
   let quantity = raw;
   if (/^\d+(?:[.,]\d+)?$/.test(raw)) {
