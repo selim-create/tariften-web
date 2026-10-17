@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import {
   FaApple,
@@ -24,6 +25,10 @@ const socialLinks = [
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  // Text import is a dedicated full-height writing workspace on desktop.
+  // Do not place a large marketing footer beneath the editor.
+  const pathname = usePathname();
+  if (pathname === '/recipe/import') return null;
 
   return (
     <footer className="mt-16 border-t border-[#eee7e3] bg-[#fbfaf8] text-slate-800">
