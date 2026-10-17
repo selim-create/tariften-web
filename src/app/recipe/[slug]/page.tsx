@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { FaClock, FaFire, FaChartSimple, FaChevronRight, FaPlay, FaUtensils, FaLeaf } from "react-icons/fa6";
 import { FaRegClock, FaRegBookmark } from "react-icons/fa";
 import RecipeDetailClient from "@/components/recipe/RecipeDetailClient";
+import PilotEntryButton from "@/components/pilot/PilotEntryButton";
 import RecipeActions from "@/components/recipe/RecipeActions"; 
 import EditButton from "@/components/recipe/EditButton";
 import AuthorCard from "@/components/AuthorCard";
@@ -184,12 +185,7 @@ export default async function RecipeDetailPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-3 mt-auto pt-6 border-t border-gray-100">
-              <Link 
-                href={`/pilot/${recipe.slug}`} 
-                className="flex-1 bg-brand hover:bg-brand-dark text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-orange-500/20 transform hover:scale-[1.02] min-w-[200px]"
-              >
-                <FaPlay className="text-sm" /> Pilotu Başlat
-              </Link>
+              <PilotEntryButton slug={recipe.slug} />
               <RecipeActions recipeId={recipe.id} title={recipe.title} />
             </div>
           </div>
