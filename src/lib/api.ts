@@ -42,35 +42,6 @@ async function fetchDynamic(endpoint: string) {
   }
 }
 
-// --- MEDYA YÜKLEME ---
-export async function uploadMedia(token: string, formData: FormData): Promise<number | null> {
-  const file = formData.get("file") as File;
-  if (!file) return null;
-
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const res = await fetch(`${API_URL}/wp/v2/media`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Disposition": `attachment; filename="${file.name}"`,
-        "Content-Type": file.type,
-      },
-      body: buffer,
-    });
-
-    if (!res.ok) throw new Error("Görsel yüklenemedi");
-
-    const data = await res.json();
-    return data.id;
-  } catch (error) {
-    console.error("Upload Media Error:", error);
-    return null;
-  }
-}
-
 // --- TARİF İŞLEMLERİ ---
 
 export async function getTerms() {
