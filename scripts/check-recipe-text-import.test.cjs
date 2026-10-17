@@ -149,9 +149,14 @@ test('screen requires login, approval and independent quota checks before public
   assert.match(page, /<input type="checkbox" checked=\{accepted\}/);
   assert.match(page, /buildApprovedRecipe\(editor\)/);
   assert.match(page, /createRecipe\(token, buildApprovedRecipe\(editor\)\)/);
-  assert.match(page, /herkese açık yayımlanmasını/);
+  assert.match(page, /herkese açık yayımlanacağını/);
+  assert.match(page, /const \[accepted, setAccepted\] = useState\(true\)/);
+  assert.match(page, /setAccepted\(true\)/);
+  assert.doesNotMatch(page, /setAccepted\(false\)/);
   assert.match(page, /setPreview\(null\)/);
-  assert.match(page, /setAccepted\(false\)/);
+  assert.match(page, /onChange=\{e => setAccepted\(e.target.checked\)\}/);
+  assert.match(page, /!accepted \|\| busy/);
+  assert.match(page, /disabled=\{!accepted/);
   assert.doesNotMatch(page, /fetch_smart_image|generate_image|uploadMedia/);
 });
 
@@ -159,7 +164,8 @@ test('import uses a warm, accessible editor workspace with compact source eviden
   const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/recipe/import/page.tsx'), 'utf8');
   const footer = fs.readFileSync(path.join(__dirname, '..', 'src/components/layout/Footer.tsx'), 'utf8');
   assert.match(page, /bg-\[#fffbf7\]/);
-  assert.match(page, /lg:sticky lg:top-5/);
+  assert.match(page, /lg:sticky lg:top-20/);
+  assert.match(page, /lg:max-h-\[calc\(100dvh-6rem\)\]/);
   assert.match(page, /lg:grid-cols-\[minmax\(0,0\.78fr\)_minmax\(0,1\.22fr\)\]/);
   assert.match(page, /aria-expanded=\{activeIngredient === i\}/);
   assert.match(page, /aria-expanded=\{activeStep === i\}/);
