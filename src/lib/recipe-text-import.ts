@@ -56,6 +56,8 @@ export type EditableStep = ImportStep & { userEdited?: boolean };
 export type ImportEditor = {
   title: string;
   excerpt: string;
+  /** User-provided number of people. Never generated from ingredient mass. */
+  servings: string;
   ingredients: EditableIngredient[];
   steps: EditableStep[];
   seoTitle: string;
@@ -128,6 +130,7 @@ export function editorFromPreview(p: GroundedImportPreview): ImportEditor {
   return {
     title: p.recipe.title,
     excerpt: p.recipe.excerpt,
+    servings: "", // Source does not verify servings; require explicit human choice.
     ingredients: p.recipe.ingredients.map(i => ({ ...i })),
     steps: p.recipe.steps.map(s => ({ ...s })),
     seoTitle: p.recipe.seo.title,
@@ -138,6 +141,9 @@ export function editorFromPreview(p: GroundedImportPreview): ImportEditor {
 
 export function publishValidation(editor: ImportEditor): string | null {
   if (!editor.title.trim()) return "Tarif başlığını tamamlamalısın.";
+  if (!/^[1-9]\\d*$/.test(editor.servings.trim()) || Number(editor.servings) > 36) {
+    return "Tarifin kaç kişilik olduğunu seçmelisin (1–36 kişi).";
+  }
   if (!editor.ingredients.length || editor.ingredients.some(i => !i.name.trim())) {
     return "En az bir malzeme eklemeli ve tüm malzeme isimlerini tamamlamalısın.";
   }
@@ -161,6 +167,7 @@ export function buildApprovedRecipe(editor: ImportEditor) {
   return {
     title: editor.title.trim(),
     excerpt: editor.excerpt.trim(),
+    servings: Number(editor.servings),
     ingredients: editor.ingredients.map(i => ({
       name: i.name.trim(),
       amount: i.amount.trim(),
