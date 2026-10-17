@@ -419,10 +419,13 @@ export default function RecipeTextImportPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-slate-100 pt-6">
-                  <div className="mb-4 flex items-center gap-2"><Sparkles className="h-5 w-5 text-[#db4c3f]" /><h3 className="text-lg font-black">Tarifini daha kolay bulsunlar</h3></div>
-                  <p className="mb-4 text-xs leading-6 text-slate-500">Başlık ve açıklama önerilerine son dokunuşu sen yapabilirsin; bunlar tarif metninden ayrı önerilerdir.</p>
-                  <div className="space-y-3">
+                <details className="group rounded-2xl border border-[#efe7de] bg-[#fffcf9]">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 marker:hidden">
+                    <span className="flex items-center gap-2 text-sm font-bold text-slate-800"><Sparkles className="h-4 w-4 text-[#db4c3f]" /> Tarifini daha kolay bulsunlar <span className="text-[10px] font-medium text-slate-400">SEO · İsteğe bağlı</span></span>
+                    <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="space-y-3 border-t border-[#efe7de] px-4 pb-4 pt-3">
+                    <p className="text-xs leading-6 text-slate-500">Arama görünürlüğü için önerilen metinlerdir; gerçek tarifi değiştirmezler.</p>
                     <Input label="SEO başlığı" value={editor.seoTitle} onChange={v => updateEditor(old => ({ ...old, seoTitle: v }))} />
                     <label className="block"><span className="mb-2 block text-[11px] font-semibold text-slate-500">Meta açıklaması</span>
                       <textarea rows={2} value={editor.seoDescription} onChange={e => updateEditor(old => ({ ...old, seoDescription: e.target.value }))}
@@ -430,7 +433,7 @@ export default function RecipeTextImportPage() {
                     </label>
                     <Input label="Anahtar kelimeler · Virgülle ayır" value={editor.seoKeywords} onChange={v => updateEditor(old => ({ ...old, seoKeywords: v }))} />
                   </div>
-                </div>
+                </details>
 
                 <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[#f9faf9] p-4">
                   <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900"><ShieldCheck className="h-5 w-5 text-emerald-700" /> Son kontrol ve yayımlama</div>
