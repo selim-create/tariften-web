@@ -17,35 +17,15 @@ import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import { capitalizeIngredientTr, formatIngredientAmount } from "@/lib/ingredient-display";
 import { LOKMA_REACTIONS, LOKMA_RATINGS } from "@/lib/lokma-emoji";
 
-// Helper: Tahmini porsiyon ağırlığı hesapla
-const WEIGHT_PER_PIECE = 50; // Malzeme adedi başına ortalama gram
-const DEFAULT_WEIGHT_FACTOR = 30; // Bilinmeyen birimler için varsayılan gram
-const calculateEstimatedWeight = (recipe: Recipe): number => {
-  // Malzeme miktarlarından tahmini hesaplama
-  if (!recipe.ingredients || recipe.ingredients.length === 0) return 250;
-  
-  let totalWeight = 0;
-  recipe.ingredients.forEach(ing => {
-    const amount = typeof ing.amount === 'string' ? parseFloat(ing.amount) : ing.amount;
-    if (!isNaN(amount)) {
-      // Birime göre gram'a çevir
-      if (ing.unit === 'gr' || ing.unit === 'g') totalWeight += amount;
-      else if (ing.unit === 'kg') totalWeight += amount * 1000;
-      else if (ing.unit === 'ml' || ing.unit === 'su bardağı') totalWeight += amount;
-      else if (ing.unit === 'adet') totalWeight += amount * WEIGHT_PER_PIECE;
-      else totalWeight += amount * DEFAULT_WEIGHT_FACTOR;
-    }
-  });
-  
-  const servings = typeof recipe.servings === 'string' ? parseInt(recipe.servings) : recipe.servings || 2;
-  return Math.round(totalWeight / servings);
-}; 
-
 export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const { user } = useAuth();
   
   // --- STATE ---
-  const [servings, setServings] = useState(typeof recipe.servings === 'string' ? parseInt(recipe.servings) : recipe.servings || 2);
+  // Missing source servings must never appear as an invented "2 kişilik".
+  const originalServings = Number(recipe.servings);
+  const verifiedServings = Number.isInteger(originalServings) && originalServings > 0 && originalServings <= 36
+    ? originalServings : null;
+  const [servings, setServings] = useState<number | null>(verifiedServings);
   const [checkedIngredients, setCheckedIngredients] = useState<number[]>([]);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   
@@ -239,6 +219,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
 
   // --- HANDLERS ---
   const handleServings = (delta: number) => {
+    if (!verifiedServings || servings === null) return;
     const newValue = servings + delta;
     if (newValue > 0 && newValue <= 20) setServings(newValue);
   };
@@ -383,7 +364,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
     }
   };
 
-  const baseServings = typeof recipe.servings === 'string' ? parseInt(recipe.servings) : recipe.servings || 2;
+  const baseServings = verifiedServings;
 
   // Placeholder görsel (eğer resim yoksa kullanılacak)
   const fallbackImage = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop";
@@ -397,14 +378,15 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-slate-800 font-heading">Malzemeler</h3>
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                <button onClick={() => handleServings(-1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-gray-600 hover:text-brand font-bold">-</button>
-                <span className="w-8 text-center font-bold text-sm">{servings}</span>
-                <button onClick={() => handleServings(1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-gray-600 hover:text-brand font-bold">+</button>
+                <button type="button" onClick={() => handleServings(-1)} disabled={!baseServings} aria-label="Porsiyonu azalt" className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-gray-600 hover:text-brand font-bold disabled:cursor-not-allowed disabled:opacity-40">-</button>
+                <span className="min-w-8 text-center font-bold text-sm" title={baseServings ? "Tarifte belirtilen porsiyon" : "Porsiyon bilgisi belirtilmemiş"}>{servings ?? "—"}</span>
+                <button type="button" onClick={() => handleServings(1)} disabled={!baseServings} aria-label="Porsiyonu artır" className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-gray-600 hover:text-brand font-bold disabled:cursor-not-allowed disabled:opacity-40">+</button>
               </div>
             </div>
+            {!baseServings && <p className="mb-4 text-xs leading-5 text-amber-800">Bu tarifte kişi sayısı belirtilmemiş. Miktarlar orijinal hâliyle gösteriliyor; porsiyona göre çarpma kapalı.</p>}
             <ul className="space-y-3">
               {ingredients.map((item, idx) => {
-                const displayAmount = formatIngredientAmount(item.amount, item.unit, baseServings, servings);
+                const displayAmount = formatIngredientAmount(item.amount, item.unit, baseServings ?? 1, servings ?? 1);
                 const isChecked = checkedIngredients.includes(idx);
                 return (
                   <li key={idx} onClick={() => toggleIngredient(idx)} className={`flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer transition-all border ${isChecked ? 'bg-green-50 border-green-100 opacity-60' : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200 hover:shadow-sm'}`}>
