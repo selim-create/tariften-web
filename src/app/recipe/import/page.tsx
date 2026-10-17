@@ -419,6 +419,7 @@ export default function RecipeTextImportPage() {
           )}
 
         </section>
+        </div>
       </div>
     </div>
   </main>;
