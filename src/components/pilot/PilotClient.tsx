@@ -771,16 +771,17 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
               <div className="p-6 space-y-4">
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Navigasyon</div>
-                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"İleri / Sonraki"</span> <span className="text-white font-bold">Sonraki Adım</span></div>
+                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"İleri / Sıradaki / Sonraki"</span> <span className="text-white font-bold">Sonraki Adım</span></div>
                       <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Geri / Önceki"</span> <span className="text-white font-bold">Önceki Adım</span></div>
-                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Oku / Tekrar Et"</span> <span className="text-white font-bold">Adımı Oku</span></div>
+                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Oku / Konuş / Anlat"</span> <span className="text-white font-bold">Adımı Oku</span></div>
                   </div>
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Araçlar</div>
+                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Kaçıncı Adımdayım?"</span> <span className="text-white font-bold">Adım Durumu</span></div>
                       <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"5 Dakika Başlat"</span> <span className="text-white font-bold">Sayaç Kur</span></div>
-                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Süreyi Durdur"</span> <span className="text-white font-bold">Sayacı Duraklat</span></div>
-                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Süreyi İptal Et"</span> <span className="text-white font-bold">Sayacı Sıfırla</span></div>
-                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Kapat / Gizle"</span> <span className="text-white font-bold">Menüleri Kapat</span></div>
+                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Sayacı Durdur / Duraklat"</span> <span className="text-white font-bold">Sayacı Duraklat</span></div>
+                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"İptal Et / Sayacı Sıfırla"</span> <span className="text-white font-bold">Sayacı Sıfırla</span></div>
+                      <div className="bg-white/5 p-3 rounded-xl text-sm text-gray-300 flex justify-between"><span>"Kapat / Yardımı Kapat"</span> <span className="text-white font-bold">Menüleri Kapat</span></div>
                   </div>
               </div>
            </div>
