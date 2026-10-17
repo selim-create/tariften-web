@@ -10,8 +10,8 @@ import {
   TriangleAlert, WandSparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import QuotaPanel from "@/components/account/QuotaPanel";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
+import type { Quotas, QuotaKind } from "@/lib/account-quotas-client";
 import { createRecipe } from "@/lib/api";
 import {
   buildApprovedRecipe, editorFromPreview, importWarningLabel, parseImportPreview,
@@ -42,6 +42,19 @@ function Input({ label, value, onChange, placeholder, extraClass = "" }: {
       className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10" />
   </label>;
 }
+function CompactQuota({ data, error, loading, kind }: {
+  data: Quotas | null; error?: string; loading?: boolean; kind: QuotaKind;
+}) {
+  const q = data?.quotas?.[kind];
+  const label = kind === "recipe_ai_day" ? "AI önizleme hakkı" : "Tarif yayımlama hakkı";
+  return <div role="status" className="flex min-h-9 items-center justify-between gap-2 rounded-xl border border-[#e6e8e7] bg-[#f7f8f7] px-3 py-2 text-[11px]">
+    <span className="flex items-center gap-1.5 font-semibold text-slate-600"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {label}</span>
+    <span className="shrink-0 font-extrabold text-[#273e39]">
+      {loading && !q ? "Kontrol ediliyor…" : error ? "Kontrol edilemedi" : !q ? "—" : q.remaining === null ? "Sınırsız" : `${q.remaining} / ${q.limit} kaldı`}
+    </span>
+  </div>;
+}
+
 function Notice({ children, warning = false }: { children: React.ReactNode; warning?: boolean }) {
   return <div className={`flex gap-3 rounded-2xl border px-4 py-3.5 text-sm leading-6 ${warning ? "border-amber-200 bg-amber-50 text-amber-900" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
     {warning ? <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" /> : <Info className="mt-0.5 h-4 w-4 shrink-0" />}
@@ -231,19 +244,18 @@ export default function RecipeTextImportPage() {
             <ClipboardList className="h-4 w-4" /> Örnek bir tarif metni getir
           </button>}
 
-          <div className="mt-6 border-t border-slate-100 pt-5">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Önizleme için AI kullanım hakkın</p>
-            <QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} kinds={["recipe_ai_day"]} />
-            <p className="mb-5 mt-3 text-xs leading-5 text-slate-500">
+          <div className="mt-3 shrink-0 border-t border-slate-100 pt-3">
+            <CompactQuota data={quotas.data} error={quotas.error} loading={quotas.loading} kind="recipe_ai_day" />
+            <p className="mb-3 mt-2 text-[10px] leading-4 text-slate-500">
               Her önizleme isteği günlük bir AI hakkı kullanır. Aynı metni tekrar göndermek yeni bir kullanım sayılır. Metnin otomatik kaydedilmez.
             </p>
             <button type="button" onClick={() => void requestPreview()}
               disabled={busy !== null || quotas.loading || !!quotas.error || !quotas.data || quotaReached(quotas.data, "recipe_ai_day") || !!validateRecipeSource(source)}
-              className="flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-2xl bg-[#db4c3f] px-5 py-4 text-sm font-extrabold text-white shadow-lg shadow-[#db4c3f]/15 transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
               {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> Tarifin yapılandırılıyor…</> : <><WandSparkles className="h-5 w-5" /> {preview ? "Önizlemeyi yeniden oluştur" : "Tarifi yapılandır ve önizle"} <ArrowRight className="h-4 w-4" /></>}
             </button>
             {quotaReached(quotas.data, "recipe_ai_day") && <p className="mt-3 text-xs text-amber-700">Bugünkü AI aktarım hakkın doldu. Sonraki hak: {quotaReset(quotas.data, "recipe_ai_day")}</p>}
-            <p className="mt-3 text-center text-xs text-slate-400">Bu işlem yalnızca senin tıklamanla başlar. AI görseli üretilmez.</p>
+            <p className="mt-2 text-center text-[10px] text-slate-400">Bu işlem yalnızca senin tıklamanla başlar. AI görseli üretilmez.</p>
           </div>
         </section>
 
@@ -373,10 +385,10 @@ export default function RecipeTextImportPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 space-y-4 rounded-2xl border border-slate-200 bg-[#f9faf9] p-5">
+                <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[#f9faf9] p-4">
                   <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900"><ShieldCheck className="h-5 w-5 text-emerald-700" /> Son kontrol ve yayımlama</div>
                   <p className="text-xs leading-6 text-slate-600">Kaynakla karşılaştır, özellikle eksik miktarları ve gıda güvenliğini kontrol et. “Onayla ve yayımla” tarifini herkese açık şekilde yayımlar. Otomatik görsel üretimi yapılmaz.</p>
-                  <QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} kinds={["recipe_day"]} />
+                  <CompactQuota data={quotas.data} error={quotas.error} loading={quotas.loading} kind="recipe_day" />
                   <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
                     <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)}
                       className="mt-1 h-4 w-4 shrink-0 accent-[#db4c3f]" />
