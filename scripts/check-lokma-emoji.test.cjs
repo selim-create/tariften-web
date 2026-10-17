@@ -40,7 +40,7 @@ test('food visual identity is integrated without removing the recipe ingredient 
  assert.match(detail,/LOKMA_REACTIONS\.map/);
  assert.match(detail,/setCommentText\(current =>/);
  assert.match(importPage,/LokmaIngredientIcon name=\{ingredient\.name\}/);
- assert.match(importPage,/Tarifini birlikte düzenleyelim/);
+ assert.match(importPage,/Tarifin, en güzel hâline geliyor/);
  assert.match(importPage,/Tarifimi güzelleştir/);
  assert.match(importPage,/createRecipe\(token, buildApprovedRecipe\(editor\)\)/);
  assert.match(importPage,/!accepted/);
