@@ -75,11 +75,35 @@ test('untrusted or ungrounded AI preview response rejected before showing it', (
   b.recipe.ingredients[0].original_span = '1 litre zeytinyağı';
   assert.throws(() => lib.parseImportPreview(b), /Malzeme kanıtı/);
   const c = fakePreview();
-  c.recipe.steps[0].content = 'Üç yumurta ekle ve beklet.';
+  c.recipe.steps[0].content = 'İki yumurta ile bir bardak sütü güzelce karıştırın.';
+  c.recipe.steps[0].editorial_rewrite = true;
+  assert.equal(lib.parseImportPreview(c).recipe.steps[0].content, c.recipe.steps[0].content);
+  c.recipe.steps[0].original_span = 'Kaynakta yer almayan adım.';
   assert.throws(() => lib.parseImportPreview(c), /adımı kaynakla/);
   const d = fakePreview();
   d.recipe.steps = Array.from({ length: 41 }, () => d.recipe.steps[0]);
   assert.throws(() => lib.parseImportPreview(d), /beklenmeyen türde/);
+});
+
+test('Turkish typo correction keeps immutable literal source and flags editorial suggestion', () => {
+  const value = fakePreview();
+  value.source_text = 'Bir domatası rendele. Sonra tavada pişir.';
+  value.recipe.ingredients = [{
+    name: 'domates', source_name: 'domatas', name_corrected: true,
+    amount: '', unit: '', original_span: 'Bir domatası rendele', source_verified: true,
+  }];
+  value.recipe.steps = [{
+    content: 'Domatesi rendeleyin.',
+    original_span: 'Bir domatası rendele.', editorial_rewrite: true, source_verified: true,
+  }];
+  const reviewed = lib.parseImportPreview(value);
+  assert.equal(reviewed.recipe.ingredients[0].name, 'domates');
+  assert.equal(reviewed.recipe.ingredients[0].source_name, 'domatas');
+  assert.equal(reviewed.recipe.steps[0].content, 'Domatesi rendeleyin.');
+  const corrupted = fakePreview();
+  corrupted.recipe.ingredients[0].name = 'avokado';
+  corrupted.recipe.ingredients[0].name_corrected = true;
+  assert.throws(() => lib.parseImportPreview(corrupted), /Malzeme kanıtı/);
 });
 
 test('editable fields require explicit user completion but never require invented amounts', () => {
