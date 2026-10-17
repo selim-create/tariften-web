@@ -156,6 +156,34 @@ test('route is strictly authorized, no-store, bounded, preview-only and uses the
   assert.doesNotMatch(route, /\/recipes\/create/);
 });
 
+test('Standard Member messaging and disabled Premium tiers never activate a payment workflow', () => {
+  const root = path.join(__dirname, '..');
+  const quota = fs.readFileSync(path.join(root, 'src/components/account/QuotaPanel.tsx'), 'utf8');
+  const register = fs.readFileSync(path.join(root, 'src/app/register/page.tsx'), 'utf8');
+  const footer = fs.readFileSync(path.join(root, 'src/components/layout/Footer.tsx'), 'utf8');
+  const gate = fs.readFileSync(path.join(root, 'src/components/pilot/PilotAccessGate.tsx'), 'utf8');
+  const entry = fs.readFileSync(path.join(root, 'src/components/pilot/PilotEntryButton.tsx'), 'utf8');
+  for (const text of [quota,register,footer,gate,entry]) {
+    assert.doesNotMatch(text, /Ücretsiz hesap|Ücretsiz Kayıt Ol|ücretsiz kayıt ol/);
+  }
+  assert.match(quota, /Standart Üye/);
+  assert.match(quota, /Yönetici · Sınırsız/);
+  assert.match(quota, /Premium \+ · Yakında/);
+  assert.match(quota, /<button type="button" disabled/);
+  assert.match(register, /Standart Üye/);
+  assert.match(register, /Premium · Yakında/);
+  assert.match(register, /<button type="button" disabled/);
+});
+
+test('AI timeout shows a human message and quota is reloaded after failed attempts', () => {
+  const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/recipe/import/page.tsx'), 'utf8');
+  assert.match(page, /response\.status === 504/);
+  assert.match(page, /code === "recipe_import_timeout"/);
+  assert.match(page, /Deneme hakkından kullanım düşmüş olabilir/);
+  assert.match(page, /A failed paid AI attempt may still consume the daily quota/);
+  assert.match(page, /void quotas\.reload\(\)/);
+});
+
 test('screen requires login, approval and independent quota checks before public publish', () => {
   const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/recipe/import/page.tsx'), 'utf8');
   assert.match(page, /if \(!token\)/);
