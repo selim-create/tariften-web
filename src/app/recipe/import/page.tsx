@@ -295,7 +295,7 @@ export default function RecipeTextImportPage() {
             </div>
           ) : (
             <div>
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><CheckCheck className="h-5 w-5" /></div>
                   <div><h2 className="font-heading text-xl font-extrabold">Tarifinin yeni sayfası ✨</h2><p className="text-xs text-[#93887a]">Tüm dokunuşlar senin elinde</p></div>
@@ -331,19 +331,25 @@ export default function RecipeTextImportPage() {
 
                 <div className="border-t border-slate-100 pt-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="flex items-center gap-2 text-lg font-black"><ChefHat className="h-5 w-5 text-[#db4c3f]" /> Malzemeler <span className="text-sm font-normal text-slate-400">{editor.ingredients.length}</span></h3>
+                    <h3 className="flex items-center gap-2 font-heading text-lg font-black"><span aria-hidden="true">🍅</span> Malzemeler <span className="text-sm font-normal text-slate-400">{editor.ingredients.length}</span></h3>
                     <button type="button" aria-label="Malzeme ekle" disabled={editor.ingredients.length >= 40}
                       onClick={() => updateEditor(old => ({ ...old, ingredients: [...old.ingredients, { name: "", amount: "", unit: "", original_span: "", source_verified: false, userEdited: true }] }))}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#db4c3f] disabled:opacity-50"><Plus className="h-4 w-4" /> Ekle</button>
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {editor.ingredients.map((ingredient, i) =>
-                      <div key={i} className="rounded-2xl border border-slate-200 bg-[#fcfcfb] p-4">
+                      <div key={i} className="rounded-2xl border border-[#eee3d8] bg-[#fffaf5] p-3.5">
                         <div className="mb-3 flex items-center justify-between gap-2">
-                          <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${ingredient.userEdited ? "text-amber-700" : "text-emerald-700"}`}>
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <LokmaIngredientIcon name={ingredient.name} size="sm" />
+                            <div className="min-w-0">
+                              <span className="block truncate text-[13px] font-extrabold text-[#384037]">{ingredient.name || "Yeni malzeme"}</span>
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${ingredient.userEdited ? "text-amber-700" : "text-emerald-700"}`}>
                             {ingredient.userEdited ? <PenLine className="h-3 w-3" /> : <Check className="h-3 w-3" />}
-                            {ingredient.userEdited ? "Sen düzenledin" : "Kaynakta bulundu"}
-                          </span>
+                              {ingredient.userEdited ? "Senin dokunuşun" : "Notlarından alındı"}
+                              </span>
+                            </div>
+                          </div>
                           <button type="button" aria-label={`${i + 1}. malzemeyi sil`} onClick={() => updateEditor(old => ({ ...old, ingredients: old.ingredients.filter((_, index) => index !== i) }))}
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                         </div>
@@ -352,7 +358,7 @@ export default function RecipeTextImportPage() {
                           <Input label="Miktar" value={ingredient.amount} onChange={v => updateIngredient(i, "amount", v)} placeholder="Belirtilmemiş" />
                           <Input label="Birim" value={ingredient.unit} onChange={v => updateIngredient(i, "unit", v)} placeholder="Belirtilmemiş" />
                         </div>
-                        {ingredient.original_span && <p className="mt-3 rounded-lg bg-white px-3 py-2 text-[11px] leading-5 text-slate-500">Kaynakta: “{ingredient.original_span}”</p>}
+                        {ingredient.original_span && <p className="mt-3 rounded-lg bg-white px-3 py-2 text-[11px] leading-5 text-slate-500">Tarif notundan: “{ingredient.original_span}”</p>}
                       </div>)}
                     {editor.ingredients.length === 0 && <Notice warning>Kaynakta doğrulanmış malzeme bulunamadı. Tarifi yayınlamak için malzemeleri kendin eklemelisin.</Notice>}
                   </div>
@@ -360,7 +366,7 @@ export default function RecipeTextImportPage() {
 
                 <div className="border-t border-slate-100 pt-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="flex items-center gap-2 text-lg font-black"><ClipboardList className="h-5 w-5 text-[#db4c3f]" /> Hazırlanış <span className="text-sm font-normal text-slate-400">{editor.steps.length}</span></h3>
+                    <h3 className="flex items-center gap-2 font-heading text-lg font-black"><span aria-hidden="true">🥄</span> Yapılışı <span className="text-sm font-normal text-slate-400">{editor.steps.length}</span></h3>
                     <button type="button" aria-label="Adım ekle" disabled={editor.steps.length >= 40}
                       onClick={() => updateEditor(old => ({ ...old, steps: [...old.steps, { content: "", original_span: "", source_verified: false, userEdited: true }] }))}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#db4c3f] disabled:opacity-50"><Plus className="h-4 w-4" /> Ekle</button>
@@ -379,7 +385,7 @@ export default function RecipeTextImportPage() {
                           </div>
                           <textarea aria-label={`${i + 1}. hazırlanış adımı`} rows={3} value={step.content} onChange={e => updateStep(i, e.target.value)}
                             className="w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-sm leading-6 outline-none focus:border-[#db4c3f]" />
-                          {step.original_span && step.userEdited && <p className="mt-2 text-[11px] leading-5 text-slate-500">Kaynakta: “{step.original_span}”</p>}
+                          {step.original_span && step.userEdited && <p className="mt-2 text-[11px] leading-5 text-slate-500">Senin notundan: “{step.original_span}”</p>}
                         </div>
                       </div>)}
                     {editor.steps.length === 0 && <Notice warning>Kaynakta doğrulanmış bir adım bulunamadı. Tarifin nasıl yapıldığını kendin eklemelisin.</Notice>}
