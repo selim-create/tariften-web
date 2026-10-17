@@ -103,7 +103,7 @@ export default function RegisterPage() {
         <div className="relative z-10 max-w-md mb-20">
           <h2 className="text-4xl font-bold font-heading mb-4 leading-tight">Kendi Tarif Defterini Oluştur.</h2>
           <p className="text-slate-400 text-lg font-light leading-relaxed">
-            Sevdiğin tarifleri kaydet, dolabını yönet ve sana özel haftalık planlar oluştur. Üstelik tamamen ücretsiz.
+            Sevdiğin tarifleri kaydet, dolabını yönet ve sana özel haftalık planlar oluştur. Standart Üyelik ile mutfağını Tariften'de keşfet.
           </p>
         </div>
 
