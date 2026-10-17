@@ -27,9 +27,11 @@ export default function QuotaPanel({
         </span>
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-2" aria-label="Üyelik seçenekleri">
-        <span className="rounded-full border border-[#e6d3c7] bg-[#fff5ee] px-3 py-1.5 text-xs font-bold text-[#a95642]">Standart Üye</span>
-        <span aria-disabled="true" title="Yakında" className="cursor-not-allowed rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400">Premium · Yakında</span>
-        <span aria-disabled="true" title="Yakında" className="cursor-not-allowed rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400">Premium + · Yakında</span>
+        {data.tier === "administrator"
+          ? <span className="rounded-full border border-[#cce6da] bg-[#eef8f0] px-3 py-1.5 text-xs font-bold text-[#317b57]">Yönetici · Sınırsız</span>
+          : <span className="rounded-full border border-[#e6d3c7] bg-[#fff5ee] px-3 py-1.5 text-xs font-bold text-[#a95642]">Standart Üye</span>}
+        <button type="button" disabled title="Henüz yayında değil" className="cursor-not-allowed rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400 opacity-65">Premium · Yakında</button>
+        <button type="button" disabled title="Henüz yayında değil" className="cursor-not-allowed rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400 opacity-65">Premium + · Yakında</button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {kinds.map((kind) => {
