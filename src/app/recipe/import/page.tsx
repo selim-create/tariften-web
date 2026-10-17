@@ -208,11 +208,11 @@ export default function RecipeTextImportPage() {
       {/* Only the two content panels can scroll on desktop. */}
       <div className="min-h-0 flex-1 rounded-[20px] border border-[#e3e6e4] bg-white shadow-[0_12px_40px_rgba(19,34,42,0.07)] lg:overflow-hidden">
         <div className="grid min-h-0 lg:h-full lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:divide-x lg:divide-slate-200">
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-          <div className="mb-5 flex items-center justify-between gap-3">
+        <section className="flex min-h-[510px] min-w-0 flex-col p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#fcebe7] text-[#db4c3f]"><FileText className="h-5 w-5" /></div>
-              <div><h2 className="text-xl font-black">Orijinal tarifin</h2><p className="text-xs text-slate-500">Yalnızca yazı · URL, video ve fotoğraf henüz yok</p></div>
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#fcebe7] text-[#db4c3f]"><FileText className="h-5 w-5" /></div>
+              <div><h2 className="text-base font-black">Orijinal tarifin</h2><p className="text-xs text-slate-500">Yalnızca yazı · URL, video ve fotoğraf henüz yok</p></div>
             </div>
           </div>
 
@@ -220,14 +220,14 @@ export default function RecipeTextImportPage() {
           <textarea id="source-recipe" value={source} onChange={e => updateSource(e.target.value)}
             disabled={busy !== null} maxLength={20000} spellCheck
             placeholder={"Örn. 2 yumurta, 1 bardak süt, biraz un. Önce yumurtaları çırp, sütü ekle…"}
-            className="h-[360px] w-full resize-y rounded-2xl border border-slate-200 bg-[#fafaf9] p-5 text-[15px] leading-7 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#db4c3f] focus:ring-4 focus:ring-[#db4c3f]/10 disabled:opacity-60" />
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            className="min-h-[180px] w-full flex-1 resize-none rounded-xl border border-slate-200 bg-[#fafaf9] p-3.5 text-[13px] leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10 disabled:opacity-60 max-lg:h-[265px] max-lg:flex-none" />
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500">
             <span>Eksik bilgiler tahmin edilmez; düzenleyerek tamamlayabilirsin.</span>
             <span className="font-mono">{new TextEncoder().encode(source).length.toLocaleString("tr-TR")} / 20.000 bayt</span>
           </div>
 
           {!preview && <button type="button" disabled={busy !== null} onClick={() => updateSource(EXAMPLE)}
-            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#b44c41] hover:underline disabled:opacity-50">
+            className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[#b44c41] hover:underline disabled:opacity-50">
             <ClipboardList className="h-4 w-4" /> Örnek bir tarif metni getir
           </button>}
 
@@ -247,23 +247,23 @@ export default function RecipeTextImportPage() {
           </div>
         </section>
 
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm md:p-8" aria-live="polite">
+        <section className="min-w-0 border-t border-slate-200 p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-t-0" aria-live="polite">
           {!preview || !editor ? (
-            <div className="flex min-h-[590px] flex-col items-center justify-center px-3 text-center">
-              <div className="mb-7 grid h-24 w-24 place-items-center rounded-[30px] bg-[#f8ede9] text-[#db4c3f]">
-                {busy === "preview" ? <LoaderCircle className="h-11 w-11 animate-spin" /> : <BookOpen className="h-11 w-11" strokeWidth={1.6} />}
+            <div className="flex min-h-[260px] flex-col items-center justify-center px-3 text-center lg:h-full">
+              <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#f8ede9] text-[#db4c3f]">
+                {busy === "preview" ? <LoaderCircle className="h-7 w-7 animate-spin" /> : <BookOpen className="h-7 w-7" strokeWidth={1.6} />}
               </div>
-              <span className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-[#db4c3f]">Kaynak doğrulamalı önizleme</span>
-              <h2 className="max-w-sm text-2xl font-black leading-tight text-slate-900 md:text-3xl">
+              <span className="mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-[#db4c3f]">Kaynak doğrulamalı önizleme</span>
+              <h2 className="max-w-sm text-lg font-black leading-tight text-slate-900 md:text-xl">
                 {busy === "preview" ? "Tarifin ayrıştırılıyor" : "Tarifinin düzenli hâli burada belirecek"}
               </h2>
-              <p className="mt-4 max-w-sm text-sm leading-7 text-slate-500">
+              <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
                 {busy === "preview" ? "Malzemeler, adımlar ve kanıt parçaları karşılaştırılıyor. Bu işlem biraz sürebilir." :
                   "Sol taraftan metnini ekle. Eksik veya doğrulanamayan bölümleri belirteceğiz; hiçbir malzemeyi kendiliğimizden eklemeyeceğiz."}
               </p>
-              <div className="mt-7 flex flex-wrap justify-center gap-2">
+              <div className="mt-4 flex flex-wrap justify-center gap-1.5">
                 {["Malzemeler", "Hazırlanış", "SEO önerileri"].map(x =>
-                  <span key={x} className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-500">{x}</span>)}
+                  <span key={x} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-semibold text-slate-500">{x}</span>)}
               </div>
               {betaUnavailable && <div className="mt-7 max-w-sm"><Notice warning>Akıllı Tarif Aktarımı şu anda sunucuda kapalı. Ekran hazır; beta açıldığında kullanıma sunulacak. Kendi tarifini <Link className="font-bold underline" href="/recipe/create">elle oluşturabilirsin.</Link></Notice></div>}
             </div>
