@@ -75,6 +75,7 @@ export default function RecipeTextImportPage() {
   const [busy, setBusy] = useState<"preview" | "publish" | null>(null);
   const [error, setError] = useState("");
   const [betaUnavailable, setBetaUnavailable] = useState(false);
+  const [routeMissing, setRouteMissing] = useState(false);
 
   const updateSource = (text: string) => {
     setSource(text);
@@ -83,6 +84,7 @@ export default function RecipeTextImportPage() {
     setAccepted(false);
     setError("");
     setBetaUnavailable(false);
+    setRouteMissing(false);
   };
   const updateEditor = (change: (old: ImportEditor) => ImportEditor) => {
     setEditor(old => old ? change(old) : null);
@@ -98,6 +100,7 @@ export default function RecipeTextImportPage() {
     setBusy("preview");
     setError("");
     setBetaUnavailable(false);
+    setRouteMissing(false);
     try {
       // A paid AI attempt consumes recipe_ai_day even when never published.
       // If quota service is unavailable, refuse to trigger a paid request.
@@ -116,7 +119,12 @@ export default function RecipeTextImportPage() {
       if (!response.ok) {
         const msg = payload && typeof payload === "object" && "message" in payload
           && typeof payload.message === "string" ? payload.message : "Önizleme hazırlanamadı.";
-        if (response.status === 503 && (msg.includes("henüz") || msg.includes("açık değil"))) setBetaUnavailable(true);
+        const code = payload && typeof payload === "object" && "code" in payload
+          && typeof payload.code === "string" ? payload.code : "";
+        if (code === "recipe_import_route_missing" || code === "recipe_import_unavailable") {
+          setBetaUnavailable(true);
+          setRouteMissing(code === "recipe_import_route_missing");
+        }
         throw new Error(msg);
       }
       const checked = parseImportPreview(payload);
@@ -260,6 +268,7 @@ export default function RecipeTextImportPage() {
         </section>
 
         <section className="min-w-0 border-t border-slate-200 p-4 sm:p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-t-0" aria-live="polite">
+          {!!error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium leading-5 text-red-800"><TriangleAlert className="mr-2 inline-block h-4 w-4" />{error}</div>}
           {!preview || !editor ? (
             <div className="flex min-h-[260px] flex-col items-center justify-center px-3 text-center lg:h-full">
               <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#f8ede9] text-[#db4c3f]">
@@ -277,7 +286,11 @@ export default function RecipeTextImportPage() {
                 {["Malzemeler", "Hazırlanış", "SEO önerileri"].map(x =>
                   <span key={x} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-semibold text-slate-500">{x}</span>)}
               </div>
-              {betaUnavailable && <div className="mt-7 max-w-sm"><Notice warning>Akıllı Tarif Aktarımı şu anda sunucuda kapalı. Ekran hazır; beta açıldığında kullanıma sunulacak. Kendi tarifini <Link className="font-bold underline" href="/recipe/create">elle oluşturabilirsin.</Link></Notice></div>}
+              {betaUnavailable && <div className="mt-5 max-w-sm"><Notice warning>
+                {routeMissing ? "Akıllı Tarif Aktarımı API yolu bu sunucuda bulunamadı. Core eklentisinin yeni sürümü henüz dağıtılmamış olabilir. Yönetici güncellemesi gerekiyor."
+                  : "Akıllı Tarif Aktarımı özelliği sunucuda henüz etkinleştirilmedi."}
+                {" "}İstersen tarifini <Link className="font-bold underline" href="/recipe/create">elle oluşturabilirsin.</Link>
+              </Notice></div>}
             </div>
           ) : (
             <div>
@@ -405,7 +418,6 @@ export default function RecipeTextImportPage() {
             </div>
           )}
 
-          {!!error && <div role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium leading-6 text-red-800"><TriangleAlert className="mr-2 inline-block h-4 w-4" />{error}</div>}
         </section>
       </div>
     </div>
