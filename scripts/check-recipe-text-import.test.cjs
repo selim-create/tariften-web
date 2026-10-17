@@ -120,6 +120,23 @@ test('editable fields require explicit user completion but never require invente
   assert.match(lib.publishValidation(editor), /adım/);
 });
 
+test('review notes sound like Tariften, group duplicate evidence and preserve urgent salt warnings', () => {
+  const codes = [
+    'ingredient_name_corrected', 'step_editorial_rewrite',
+    'ingredient_2_source_check', 'ingredient_3_source_check',
+    'step_2_source_check', 'step_4_source_check',
+  ];
+  assert.deepEqual(lib.importReviewNotes(codes, []), [
+    'Yazım hataları düzeltilmiş olabilir. Malzeme adlarını kendi tarifinle karşılaştır.',
+    'Adımlar daha akıcı bir Türkçe ile tekrar yazıldı. Anlamın değişmediğini kontrol et.',
+    'Bir malzemeyi doğrulamalısın.',
+    'Bir yapılış adımını doğrulamalısın.',
+  ]);
+  assert.ok(lib.importReviewNotes(['high_salt_quantity_review'], [])
+    .some(x => x.includes('Tuz miktarı')));
+  assert.deepEqual(lib.importReviewNotes([], []), []);
+});
+
 test('warnings and unknown source confirmation codes never render untranslated internals', () => {
   assert.match(lib.importWarningLabel('high_salt_quantity_review'), /Tuz miktarı/);
   assert.match(lib.importWarningLabel('ingredient_4_amount_missing'), /malzeme/);
