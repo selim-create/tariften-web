@@ -131,6 +131,9 @@ export default function RecipeTextImportPage() {
           setBetaUnavailable(true);
           setRouteMissing(code === "recipe_import_route_missing");
         }
+        if (response.status === 504 || code === "recipe_import_timeout" || /cURL error 28|operation timed out/i.test(msg)) {
+          throw new Error("Tarifini düzenlemek bu kez beklediğimizden uzun sürdü. Notların burada duruyor; birazdan yeniden deneyebilirsin. Deneme hakkından kullanım düşmüş olabilir.");
+        }
         throw new Error(msg);
       }
       const checked = parseImportPreview(payload);
@@ -139,10 +142,11 @@ export default function RecipeTextImportPage() {
       setActiveIngredient(null);
       setActiveStep(null);
       setAccepted(true);
-      void quotas.reload();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Önizleme hazırlanamadı. Yeniden deneyebilirsin.");
     } finally {
+      // A failed paid AI attempt may still consume the daily quota.
+      void quotas.reload();
       setBusy(null);
     }
   };
