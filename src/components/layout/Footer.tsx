@@ -88,7 +88,7 @@ export default function Footer() {
                   <li><Link href="/about" className="transition hover:text-[#db4c3f]">Hakkımızda</Link></li>
                   <li><Link href="/contact" className="transition hover:text-[#db4c3f]">İletişim & Reklam</Link></li>
                   <li><Link href="/blog" className="transition hover:text-[#db4c3f]">İçerikler</Link></li>
-                  <li><Link href="/register" className="transition hover:text-[#db4c3f]">Ücretsiz Kayıt Ol</Link></li>
+                  <li><Link href="/register" className="transition hover:text-[#db4c3f]">Standart Üye Ol</Link></li>
                 </ul>
               </div>
 
