@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import QuotaPanel from "@/components/account/QuotaPanel";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
@@ -175,6 +176,13 @@ export default function CreateRecipePage() {
         
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-slate-900 font-heading">Yeni Tarif Oluştur</h1>
+          <Link href="/recipe/import" className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-[#db4c3f]/20 bg-[#fdf0ed] p-4 text-left transition hover:border-[#db4c3f]/50">
+            <span className="min-w-0">
+              <span className="block text-sm font-extrabold text-[#ac4037]">✨ Akıllı Tarif Aktarımı <span className="ml-1 text-[10px] font-bold tracking-widest">BETA</span></span>
+              <span className="mt-1 block text-xs leading-5 text-slate-600">El yazısından kopyaladığın veya not aldığın tarif metnini malzeme ve adımlara ayır. Önce sen kontrol et.</span>
+            </span>
+            <FaArrowRight className="shrink-0 text-[#db4c3f]" />
+          </Link>
           <div className="mt-5 text-left"><QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} kinds={["recipe_day"]} /></div>
           <p className="text-gray-500">Adım {step} / 3</p>
           <div className="w-full bg-gray-200 h-1.5 rounded-full mt-4 overflow-hidden">
