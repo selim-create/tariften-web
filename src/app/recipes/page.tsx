@@ -9,7 +9,7 @@ import { generateRecipeClient, createRecipeClient } from "@/lib/recipe-write-cli
 import { Recipe } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
-import QuickRecipeReview from "@/components/recipes/QuickRecipeReview";
+import SimilarRecipeChoice from "@/components/recipes/SimilarRecipeChoice";
 import { approvedQuickRecipe, quickRecipeFromAI, validateQuickRecipe, type QuickRecipeDraft } from "@/lib/quick-recipe-review";
 // İkonlar - Standart ve Yeni Paket Ayrımı (Hata Önleyici)
 import { FaSortAmountDown } from "react-icons/fa";
@@ -55,12 +55,16 @@ function RecipeSkeleton() {
 }
 
 function RecipeAICard({
-  query, generating, loadingMessage, reviewReady, onGenerate,
+  query, generating, loadingMessage, reviewReady, onGenerate, saving, uncertain, failure, onNew,
 }: {
   query: string;
   generating: boolean;
   loadingMessage: string;
   reviewReady: boolean;
+  saving: boolean;
+  uncertain: boolean;
+  failure: string;
+  onNew: () => void;
   onGenerate: () => void;
 }) {
   return (
@@ -73,10 +77,13 @@ function RecipeAICard({
       <p className="mt-2 mb-6 max-w-sm text-sm leading-6 text-[#7f7167]">
         {generating ? loadingMessage : `"${query || "Özel"}" için sıfırdan tarif oluşturabiliriz.`}
       </p>
-      <button type="button" onClick={onGenerate} disabled={generating}
+      <button type="button" onClick={onGenerate} disabled={generating || saving || uncertain}
         className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-2xl bg-[#db4c3f] px-5 py-3 text-sm font-extrabold text-white transition-colors hover:bg-[#b64137] disabled:opacity-60">
-        {generating ? "Tarif hazırlanıyor…" : reviewReady ? "Tarif önizlemene dön" : "AI ile tarif oluştur"}
+        {saving ? "Tarif yayımlanıyor…" : generating ? "Tarif hazırlanıyor…" : reviewReady ? "Tarifini kaydetmeye devam et" : "AI ile tarif oluştur"}
       </button>
+      {failure && <p role="alert" className="mt-3 max-w-sm rounded-xl bg-[#fff0e8] p-3 text-xs font-bold text-[#ac4339]">{failure}</p>}
+      {uncertain && <p role="alert" className="mt-2 text-xs leading-5 text-[#a85646]">Tarif kaydedilmiş olabilir. Tekrar göndermeden önce Profil &gt; Tariflerim bölümüne bak.</p>}
+      {reviewReady && !saving && <button type="button" onClick={onNew} className="mt-3 text-xs font-bold text-[#aa584b] underline underline-offset-4">Başka bir tarif iste</button>}
     </div>
   );
 }
@@ -103,6 +110,7 @@ function RecipesContent() {
   const [reviewDraft, setReviewDraft] = useState<QuickRecipeDraft | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [similarRecipeId, setSimilarRecipeId] = useState<number | null>(null);
+  const [similarRecipeSlug, setSimilarRecipeSlug] = useState<string | null>(null);
   const [publishError, setPublishError] = useState("");
   const [publishUncertain, setPublishUncertain] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -227,21 +235,71 @@ function RecipesContent() {
   const toggleSection = (section: string) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const showModalMessage = (type: 'success' | 'error', message: string) => setModal({ show: true, type, message });
 
-  // AI OLUŞTURMA — one request at a time, with a mandatory fresh quota check.
-  const handleGenerateRecipe = async () => {
-    // The ref is set before the first await: repeated taps cannot create two
-    // paid AI jobs even before React has rendered the loading state.
-    if (quickCreateInFlightRef.current) return;
-    if (reviewDraft) {
-      setReviewOpen(true); // Reopen the already paid-for candidate instead of charging again.
+  // The generated candidate is persisted automatically. Review is shown ONLY
+  // when Core reports an already published similar recipe.
+  const publishGeneratedRecipe = async (draft: QuickRecipeDraft, token: string) => {
+    if (quickPublishInFlightRef.current || publishUncertain) return;
+    const issue = validateQuickRecipe(draft);
+    if (issue) {
+      setPublishError("AI tarifinde eksik bilgi var: " + issue);
       return;
     }
+    quickPublishInFlightRef.current = true;
+    setIsPublishing(true);
+    setPublishError("");
+    let requestStarted = false;
+    try {
+      let fresh;
+      try { fresh = await fetchAccountQuotas(token); }
+      catch {
+        setPublishError("Tarif yayınlama hakkın şu anda doğrulanamıyor. AI çıktısı korunuyor.");
+        return;
+      }
+      if (quotaReached(fresh, "recipe_day")) {
+        setPublishError("Bugünkü tarif yayımlama hakkın doldu. Yeni hak: " + quotaReset(fresh, "recipe_day"));
+        return;
+      }
+      const payload = approvedQuickRecipe(draft);
+      requestStarted = true;
+      const saved = await createRecipeClient(token, payload);
+      if (!saved.success || !(saved.slug || saved.id)) {
+        setPublishError(saved.message || "Tarif yayımlanamadı.");
+        return;
+      }
+      void quotas.reload();
+      setReviewDraft(null);
+      setSimilarRecipeId(null);
+      setSimilarRecipeSlug(null);
+      setReviewOpen(false);
+      setAiPromptInput("");
+      router.push(`/recipe/${encodeURIComponent(String(saved.slug || saved.id))}`);
+    } catch (error: unknown) {
+      // Network or Server disconnect after a write request may mean it saved:
+      // never re-submit an ambiguous write and create duplicates.
+      if (requestStarted) {
+        setPublishUncertain(true);
+        setPublishError("Tarif kaydedilmiş olabilir. Yeni istek göndermeden önce Profil > Tariflerim bölümünü kontrol et.");
+      } else {
+        setPublishError(error instanceof Error ? error.message : "Tarif yayımlanamadı.");
+      }
+    } finally {
+      quickPublishInFlightRef.current = false;
+      setIsPublishing(false);
+    }
+  };
+
+  const handleGenerateRecipe = async () => {
+    if (quickCreateInFlightRef.current || quickPublishInFlightRef.current || isPublishing) return;
     const token = user?.token;
     if (!token) {
       showModalMessage("error", "Tarif oluşturmak için giriş yapmalısın.");
       return;
     }
-
+    if (reviewDraft) {
+      if (similarRecipeId) setReviewOpen(true);
+      else if (!publishUncertain) await publishGeneratedRecipe(reviewDraft, token);
+      return; // Never incur a second AI charge for an existing candidate.
+    }
     const searchTerm = aiPromptInput.trim() || query.trim();
     if (!searchTerm) {
       setShowPromptModal(true);
@@ -251,12 +309,12 @@ function RecipesContent() {
     quickCreateInFlightRef.current = true;
     setIsGenerating(true);
     setLoadingMsgIndex(0);
+    setPublishError("");
     try {
-      // If account rights cannot be verified, do not start a billable request.
+      // Fail closed: expensive AI request needs both generation and publication quota.
       let fresh;
-      try {
-        fresh = await fetchAccountQuotas(token);
-      } catch {
+      try { fresh = await fetchAccountQuotas(token); }
+      catch {
         showModalMessage("error", "Kullanım hakların şu anda kontrol edilemiyor. Lütfen tekrar dene.");
         return;
       }
@@ -265,30 +323,32 @@ function RecipesContent() {
         showModalMessage("error", "Günlük tarif oluşturma hakkın doldu. Yeni hak: " + quotaReset(fresh, key));
         return;
       }
-
       const aiResponse = await generateRecipeClient(token, searchTerm);
       void quotas.reload();
       setUsageNotice("AI tarif oluşturma denemen kullanıldı. Güncel hakların Profil'de.");
       if (!aiResponse.success || !aiResponse.recipe) {
-        showModalMessage("error", "Yapay zekâ yanıt veremedi.");
+        showModalMessage("error", aiResponse.message || "Yapay zekâ yanıt veremedi.");
         return;
       }
-
-      // Core /ai/generate returns an *unsaved* candidate. Only a separate,
-      // user-triggered review action may send it to /recipes/create.
-      const candidate = quickRecipeFromAI(aiResponse.recipe);
-      setReviewDraft(candidate);
-      const existingRecipe = aiResponse.existing_recipe_id;
-      setSimilarRecipeId(typeof existingRecipe === "number"
-        && Number.isSafeInteger(existingRecipe) && existingRecipe > 0 ? existingRecipe : null);
-      setPublishError("");
+      const draft = quickRecipeFromAI(aiResponse.recipe);
+      setReviewDraft(draft); // Keep the paid-for candidate for safe retries.
+      const existingId = aiResponse.existing_recipe_id;
+      const duplicateId = typeof existingId === "number" && Number.isSafeInteger(existingId) && existingId > 0
+        ? existingId : null;
+      setSimilarRecipeId(duplicateId);
+      setSimilarRecipeSlug(typeof aiResponse.existing_recipe_slug === "string"
+        && aiResponse.existing_recipe_slug.trim() ? aiResponse.existing_recipe_slug.trim() : null);
       setPublishUncertain(false);
-      setReviewOpen(true);
+      if (duplicateId) {
+        // Duplicates require an explicit choice; no extra AI call on either option.
+        setReviewOpen(true);
+      } else {
+        await publishGeneratedRecipe(draft, token);
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Tarif oluşturulamadı.";
       showModalMessage("error", message.toLowerCase().includes("billing")
-        ? "AI bütçe sınırına ulaşıldı. Lütfen sonra tekrar deneyin."
-        : message);
+        ? "AI bütçe sınırına ulaşıldı. Lütfen sonra tekrar dene." : message);
     } finally {
       quickCreateInFlightRef.current = false;
       setIsGenerating(false);
@@ -296,50 +356,15 @@ function RecipesContent() {
   };
 
   const handlePublishQuickRecipe = async () => {
-    if (quickPublishInFlightRef.current || isPublishing || publishUncertain || !reviewDraft) return;
-    const problem = validateQuickRecipe(reviewDraft);
-    if (problem) { setPublishError(problem); return; }
-    const token = user?.token;
-    if (!token) { setPublishError("Tarifini yayımlamak için giriş yapmalısın."); return; }
-    quickPublishInFlightRef.current = true;
-    setIsPublishing(true);
-    setPublishError("");
-    let requestStarted = false;
-    try {
-      let fresh;
-      try {
-        fresh = await fetchAccountQuotas(token);
-      } catch {
-        setPublishError("Kullanım hakların doğrulanamadı. Tarifin burada korunuyor; birazdan tekrar dene.");
-        return;
-      }
-      if (quotaReached(fresh, "recipe_day")) {
-        setPublishError("Bugünkü tarif yayımlama hakkın doldu. Yeni hak: " + quotaReset(fresh, "recipe_day"));
-        return;
-      }
-      const approved = approvedQuickRecipe(reviewDraft);
-      requestStarted = true;
-      const saved = await createRecipeClient(token, approved);
-      if (!saved?.success || !(saved.slug || saved.id)) {
-        setPublishError(saved?.message || "Tarif yayımlanamadı.");
-        return;
-      }
-      void quotas.reload();
-      setAiPromptInput("");
-      router.push(`/recipe/${saved.slug || saved.id}`);
-    } catch {
-      if (requestStarted) setPublishUncertain(true);
-      else setPublishError("Tarif yayımlama kontrolü tamamlanamadı.");
-    } finally {
-      setIsPublishing(false);
-      quickPublishInFlightRef.current = false;
-    }
+    if (!reviewDraft || !user?.token) return;
+    await publishGeneratedRecipe(reviewDraft, user.token);
   };
 
   const handleNewQuickRecipe = () => {
     if (isPublishing || quickCreateInFlightRef.current) return;
     setReviewDraft(null);
     setSimilarRecipeId(null);
+    setSimilarRecipeSlug(null);
     setPublishUncertain(false);
     setPublishError("");
     setReviewOpen(false);
@@ -347,9 +372,8 @@ function RecipesContent() {
     setShowPromptModal(true);
   };
 
-  // The prompt is kept for retries; the catalogue search remains independent.
   const handlePromptModalSubmit = () => {
-    if (!aiPromptInput.trim() || quickCreateInFlightRef.current) return;
+    if (!aiPromptInput.trim() || quickCreateInFlightRef.current || isPublishing) return;
     setShowPromptModal(false);
     void handleGenerateRecipe();
   };
@@ -466,13 +490,13 @@ function RecipesContent() {
                         ))}
                         
                         {/* SENARYO 2: SONUÇLARIN SONUNA AI KARTI EKLE */}
-                        <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} onGenerate={() => void handleGenerateRecipe()} />
+                        <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} />
                         
                     </div>
                 ) : (
                     // SONUÇ YOKSA SADECE AI KARTI
                     <div className="flex justify-center">
-                        <div className="w-full max-w-md"><RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} onGenerate={() => void handleGenerateRecipe()} /></div>
+                        <div className="w-full max-w-md"><RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} /></div>
                     </div>
                 )}
                 
@@ -562,19 +586,16 @@ function RecipesContent() {
           </div>
         )}
         
-        {reviewOpen && reviewDraft && (
-          <QuickRecipeReview
-            draft={reviewDraft}
-            setDraft={setReviewDraft}
+        {reviewOpen && reviewDraft && similarRecipeId && (
+          <SimilarRecipeChoice
+            title={reviewDraft.title}
             existingRecipeId={similarRecipeId}
-            cuisineOptions={availableFilters.cuisine}
-            mealOptions={availableFilters.mealType}
+            existingRecipeSlug={similarRecipeSlug}
             saving={isPublishing}
             uncertain={publishUncertain}
             error={publishError}
-            onPublish={() => { void handlePublishQuickRecipe(); }}
-            onClose={() => setReviewOpen(false)}
-            onNew={handleNewQuickRecipe}
+            onCreate={() => void handlePublishQuickRecipe()}
+            onClose={() => { if (!isPublishing) setReviewOpen(false); }}
           />
         )}
                 {/* HATA MODALI */}

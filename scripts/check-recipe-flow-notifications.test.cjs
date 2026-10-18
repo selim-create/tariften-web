@@ -10,7 +10,7 @@ test('quick AI generation no longer uses opaque RSC server actions or blinking a
   const client = read('src/lib/recipe-write-client.ts');
   const route = read('src/app/api/recipes/write/route.ts');
   assert.match(screen,/await generateRecipeClient\(token, searchTerm\)/);
-  assert.match(screen,/await createRecipeClient\(token, approved\)/);
+  assert.match(screen,/await createRecipeClient\(token, payload\)/);
   assert.doesNotMatch(screen,/setShowAIModal|showAIModal|<AICard/);
   assert.match(screen,/function RecipeAICard\(/);
   assert.doesNotMatch(screen,/newRecipes\.length === 0 && query\.trim\(\) !==/);
