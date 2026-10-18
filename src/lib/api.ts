@@ -154,6 +154,32 @@ export async function createRecipe(token: string, recipeData: any) {
   }
 }
 
+export type RecipeEditReviewStatus = {
+  status: 'none' | 'pending' | 'approved' | 'rejected';
+  updated_at: string;
+  note: string;
+};
+
+// Owners can follow admin review decisions; public recipe search never
+// exposes draft fields or approval notes.
+export async function getRecipeEditReviewStatus(
+  token: string, id: number,
+): Promise<RecipeEditReviewStatus> {
+  const res = await fetch(`${API_URL}/tariften/v1/recipes/edit-review/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Düzenleme durumu alınamadı.');
+  const data = await res.json();
+  if (!['none', 'pending', 'approved', 'rejected'].includes(data.status)) {
+    throw new Error('Düzenleme durumu geçersiz.');
+  }
+  return {
+    status: data.status,
+    updated_at: typeof data.updated_at === 'string' ? data.updated_at : '',
+    note: typeof data.note === 'string' ? data.note : '',
+  };
+}
+
 // Tarif Güncelleme
 export async function updateRecipe(token: string, recipeData: any) {
   try {
