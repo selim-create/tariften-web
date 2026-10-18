@@ -8,6 +8,16 @@ import { useAuth } from "@/context/AuthContext";
 
 const ACTIONS = [
   {
+    href: "/recipes?quick=1", title: "Hızlı tarif oluştur",
+    description: "Tarifin adını veya elindeki malzemeleri söyle.",
+    icon: FaPlus,
+  },
+  {
+    href: "/pantry", title: "Dolabımdakilerle tarif",
+    description: "Dolabındaki malzemelerden yeni bir tarif hazırla.",
+    icon: FaUtensils,
+  },
+  {
     href: "/recipe/create", title: "Tarifini kendin yaz",
     description: "Malzemeler, adımlar ve fotoğraf tamamen senin elinde.",
     icon: FaPen,
@@ -111,9 +121,7 @@ export default function GlobalCreateMenu() {
           ))}
         </div>
         <p className="mt-5 text-center text-[11px] leading-5 text-[#a09288]">
-          {user?.token
-            ? "Yeni tarifin sen yayınladığında açılır; mevcut tarif düzenlemeleri yönetici onayına sunulur."
-            : "Devam etmek için hesabına giriş yapabilirsin."}
+          {!user?.token ? "Devam etmek için hesabına giriş yapabilirsin." : "Fikirlerini mutfağına ekle."}
         </p>
       </div>
     </div>
