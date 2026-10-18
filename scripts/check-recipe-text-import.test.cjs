@@ -261,7 +261,7 @@ test('import uses a warm, accessible editor workspace with compact source eviden
   assert.match(page, /aria-expanded=\{activeStep === i\}/);
   assert.match(page, /Miktar belirtilmemiş/);
   assert.match(page, /<details className="group/);
-  assert.match(page, /CompactQuota/);
+  assert.doesNotMatch(page, /CompactQuota/);
   assert.match(page, /lg:overflow-y-auto/, 'sticky source panel can scroll if taller than the viewport');
   assert.doesNotMatch(page, /<QuotaPanel /);
   assert.match(footer, /pathname === '\/recipe\/import'/);
