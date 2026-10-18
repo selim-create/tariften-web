@@ -57,6 +57,8 @@ export default function RecipeTextImportPage() {
   const quotas = useAccountQuotas(token);
 
   const [source, setSource] = useState("");
+  const [importMethod, setImportMethod] = useState<"social" | "text">("social");
+  const [socialUrl, setSocialUrl] = useState("");
   const [preview, setPreview] = useState<GroundedImportPreview | null>(null);
   const [editor, setEditor] = useState<ImportEditor | null>(null);
   const [accepted, setAccepted] = useState(true);
@@ -145,6 +147,52 @@ export default function RecipeTextImportPage() {
       setError(cause instanceof Error ? cause.message : "Önizleme hazırlanamadı. Yeniden deneyebilirsin.");
     } finally {
       // A failed paid AI attempt may still consume the daily quota.
+      void quotas.reload();
+      setBusy(null);
+    }
+  };
+
+  const requestSocialPreview = async () => {
+    if (!token || busy) return;
+    const url = socialUrl.trim();
+    if (!/^https:\/\/[^\s]+$/i.test(url) || url.length > 2048) {
+      setError("Lütfen gönderinin HTTPS bağlantısını yapıştır.");
+      return;
+    }
+    setBusy("preview");
+    setError("");
+    try {
+      const fresh = await fetchAccountQuotas(token);
+      if (quotaReached(fresh, "recipe_ai_day")) {
+        setError("Bugünkü yapay zekâ hakkın doldu. Yenilenme: " + quotaReset(fresh, "recipe_ai_day"));
+        return;
+      }
+      const response = await fetch("/api/recipe-social/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ source_url: url }),
+        cache: "no-store",
+      });
+      const payload: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = payload && typeof payload === "object" && "message" in payload
+          && typeof payload.message === "string" ? payload.message : "Bağlantıdan tarif çıkarılamadı.";
+        throw new Error(message);
+      }
+      const checked = parseImportPreview(payload);
+      if (checked.provenance.origin_type !== "social_creator_description") {
+        throw new Error("Sosyal tarif kaynağı doğrulanamadı.");
+      }
+      setSource(checked.source_text);
+      setPreview(checked);
+      setEditor(editorFromPreview(checked));
+      setActiveIngredient(null);
+      setActiveStep(null);
+      setAccepted(true);
+      setUsageNotice("Tarif düzenleme hakkından bir deneme kullanıldı.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Bağlantı incelenemedi.");
+    } finally {
       void quotas.reload();
       setBusy(null);
     }
@@ -246,6 +294,19 @@ export default function RecipeTextImportPage() {
             </div>
           </div>
 
+          <div className="mb-5 grid grid-cols-2 gap-2 rounded-2xl bg-[#fff6f0] p-1.5" role="tablist" aria-label="Tarif aktarma yöntemi">
+            <button type="button" role="tab" aria-selected={importMethod === "social"} disabled={!!busy}
+              onClick={() => { setImportMethod("social"); setError(""); }}
+              className={`rounded-xl px-3 py-2.5 text-xs font-extrabold transition ${importMethod === "social" ? "bg-white text-[#b64d3b] shadow-sm" : "text-[#8c7b6e]"}`}>
+              Video / gönderi bağlantısı
+            </button>
+            <button type="button" role="tab" aria-selected={importMethod === "text"} disabled={!!busy}
+              onClick={() => { setImportMethod("text"); setError(""); }}
+              className={`rounded-xl px-3 py-2.5 text-xs font-extrabold transition ${importMethod === "text" ? "bg-white text-[#b64d3b] shadow-sm" : "text-[#8c7b6e]"}`}>
+              Tarif metni
+            </button>
+          </div>
+          {importMethod === "text" ? <>
           <FormLabel htmlFor="source-recipe">Hadi, tarifini anlat 🍅</FormLabel>
           <textarea id="source-recipe" value={source} onChange={e => updateSource(e.target.value)}
             disabled={busy !== null} maxLength={20000} spellCheck
@@ -269,6 +330,38 @@ export default function RecipeTextImportPage() {
             </button>
             <p className="mt-2 text-center text-[10px] text-slate-400">Yalnızca istersen başlar. Görsel üretimi yapılmaz.</p>
           </div>
+          </> : <>
+            <FormLabel htmlFor="social-source-url">Sosyal medya paylaşım bağlantısı</FormLabel>
+            <input id="social-source-url" type="url" inputMode="url" value={socialUrl}
+              onChange={event => { setSocialUrl(event.target.value); setPreview(null); setEditor(null); setError(""); }}
+              placeholder="https://www.youtube.com/shorts/…"
+              disabled={!!busy} maxLength={2048}
+              className="min-h-12 w-full rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-4 text-sm text-slate-800 outline-none focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10" />
+            <p className="mt-3 text-xs leading-6 text-[#86766b]">
+              YouTube Shorts, TikTok, Instagram Reels, Facebook veya Pinterest bağlantısı yapıştır.
+              Bu beta sürümünde yalnızca erişilebilen paylaşım açıklaması değerlendirilir; video ve ses henüz analiz edilmez.
+            </p>
+            {preview?.provenance.origin_type === "social_creator_description" && (
+              <div className="mt-4 rounded-2xl border border-[#e6dfd5] bg-[#fffcf9] p-3">
+                <p className="mb-2 text-xs font-bold text-[#5e7167]">Kaynak açıklaması · düzenlenmiş tarif sağda</p>
+                <p className="max-h-32 overflow-y-auto whitespace-pre-wrap text-xs leading-6 text-slate-600">{preview.source_text}</p>
+                {preview.provenance.source_url && <a href={preview.provenance.source_url} target="_blank"
+                  rel="noopener noreferrer" className="mt-3 inline-block text-xs font-semibold text-[#b54e40] underline">
+                  Orijinal paylaşımı aç
+                </a>}
+              </div>
+            )}
+            <div className="mt-4 border-t border-slate-100 pt-3">
+              <button type="button" onClick={() => void requestSocialPreview()}
+                disabled={!!busy || quotas.loading || !!quotas.error || !quotas.data
+                  || quotaReached(quotas.data, "recipe_ai_day") || !socialUrl.trim()}
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300">
+                {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> Kaynak inceleniyor…</>
+                  : <><Sparkles className="h-4 w-4" /> Bağlantıdan tarif oluştur <ArrowRight className="h-4 w-4" /></>}
+              </button>
+              <p className="mt-2 text-center text-[10px] text-slate-400">Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin.</p>
+            </div>
+          </>}
         </section>
 
         <section className="min-w-0 rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-6" aria-live="polite">
