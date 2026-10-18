@@ -7,7 +7,8 @@ import RecipeIngredientRow from "@/components/recipes/RecipeIngredientRow";
 import { validateManualRecipeStage, type ManualRecipeStage } from "@/lib/manual-recipe-validation";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getRecipeById, updateRecipe, getTerms, getRecipeEditReviewStatus, type RecipeEditReviewStatus } from "@/lib/api";
+import { getRecipeById, getTerms, getRecipeEditReviewStatus, type RecipeEditReviewStatus } from "@/lib/api";
+import { updateRecipeClient } from "@/lib/recipe-write-client";
 import { uploadRecipeImage } from "@/lib/recipe-media-upload"; 
 import { 
   FaArrowRight, FaArrowLeft, FaCheck, FaPlus, FaTrash, 
@@ -44,6 +45,12 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'error' | 'input'>('success');
   const [modalMessage, setModalMessage] = useState("");
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 4800);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
   const [inputValue, setInputValue] = useState("");
   const [inputCallback, setInputCallback] = useState<(val: string) => void>(() => {});
 
@@ -196,8 +203,9 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     }
   };
 
-  const showSuccess = (msg: string) => { setModalMessage(msg); setModalType('success'); setShowModal(true); };
-  const showError = (msg: string) => { setModalMessage(msg); setModalType('error'); setShowModal(true); };
+  const showError = (msg: string) => {
+    setNotice(msg);
+  };
   
   const showInput = (title: string, callback: (val: string) => void) => {
     setModalMessage(title);
@@ -266,20 +274,19 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         clear_image: !formData.image,
       };
       
-      const result = await updateRecipe(user.token, dataToSend);
+      const result = await updateRecipeClient(user.token, dataToSend);
       if (result.success) {
-        if (result.pending_review || result.status === "pending_review") {
-          setReviewStatus({ status: 'pending', updated_at: new Date().toISOString(), note: '' });
-          showSuccess("Değişikliklerin yönetici onayına gönderildi. Yayındaki tarifin bu sırada değişmeyecek.");
-        } else {
-          showSuccess("Tarif başarıyla güncellendi!");
-          setTimeout(() => router.push(`/recipe/${result.slug || recipeId}`), 2000);
-        }
+        const target = `/recipe/${result.slug || recipeId}`;
+        // Both moderation and direct update return to the published recipe.
+        // The destination displays a short, dismissible notice and owner-only review status.
+        router.replace(target + (result.pending_review || result.status === "pending_review"
+          ? "?edit_review=submitted" : "?edit_review=updated"));
+        router.refresh();
       } else {
         showError(result.message || "Güncelleme başarısız.");
       }
-    } catch (error: any) {
-      showError(error.message || "Bağlantı hatası.");
+    } catch (error: unknown) {
+      showError(error instanceof Error ? error.message : "Bağlantı hatası.");
     } finally {
       saveInFlightRef.current = false;
       setSaving(false);
@@ -301,6 +308,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
 
   return (
     <main className="min-h-screen bg-[#fffaf5] px-4 py-8 sm:py-12 relative">
+      {notice && <div role="alert" className="fixed bottom-5 right-5 left-5 z-[180] max-w-sm rounded-2xl border border-[#f1cbc2] bg-white px-5 py-4 text-sm font-semibold text-[#b64b3d] shadow-2xl sm:left-auto">{notice}</div>}
       <div className="mx-auto max-w-4xl">
         
         <header ref={editorTopRef} className="scroll-mt-6 mb-8 rounded-[30px] border border-[#f0e2d7] bg-white px-5 py-7 shadow-[0_16px_45px_-30px_rgba(79,46,35,0.3)] sm:px-9 sm:py-9">
