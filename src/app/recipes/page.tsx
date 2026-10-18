@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getRecipes, generateAIRecipe, createRecipe, getTerms } from "@/lib/api"; 
+import { getRecipes, getTerms } from "@/lib/api";
+import { generateRecipeClient, createRecipeClient } from "@/lib/recipe-write-client"; 
 import { Recipe } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
@@ -53,6 +54,33 @@ function RecipeSkeleton() {
   );
 }
 
+function RecipeAICard({
+  query, generating, loadingMessage, reviewReady, onGenerate,
+}: {
+  query: string;
+  generating: boolean;
+  loadingMessage: string;
+  reviewReady: boolean;
+  onGenerate: () => void;
+}) {
+  return (
+    <div className="relative flex min-h-[275px] flex-col items-center justify-center overflow-hidden rounded-[28px] border border-[#e9d9cd] bg-[#fff7f0] p-7 text-center shadow-[0_18px_46px_-34px_rgba(79,46,35,0.3)]">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fde7df] text-2xl text-[#d64c3f]">
+        {generating ? <FaSpinner className="animate-spin" /> : <FaWandMagicSparkles />}
+      </div>
+      <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#b95346]">Tariften · AI Şef</p>
+      <h3 className="mt-2 font-heading text-xl font-extrabold text-[#25353a]">Aradığın tarif burada yok mu?</h3>
+      <p className="mt-2 mb-6 max-w-sm text-sm leading-6 text-[#7f7167]">
+        {generating ? loadingMessage : `"${query || "Özel"}" için sıfırdan tarif oluşturabiliriz.`}
+      </p>
+      <button type="button" onClick={onGenerate} disabled={generating}
+        className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-2xl bg-[#db4c3f] px-5 py-3 text-sm font-extrabold text-white transition-colors hover:bg-[#b64137] disabled:opacity-60">
+        {generating ? "Tarif hazırlanıyor…" : reviewReady ? "Tarif önizlemene dön" : "AI ile tarif oluştur"}
+      </button>
+    </div>
+  );
+}
+
 function RecipesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -69,7 +97,6 @@ function RecipesContent() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   // AI Modal
-  const [showAIModal, setShowAIModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const quickCreateInFlightRef = useRef(false);
   const quickPublishInFlightRef = useRef(false);
@@ -95,6 +122,12 @@ function RecipesContent() {
 
   const [modal, setModal] = useState({ show: false, type: 'success', message: '' });
   
+  useEffect(() => {
+    if (!modal.show) return;
+    const timer = setTimeout(() => setModal(previous => ({ ...previous, show: false })), 4800);
+    return () => clearTimeout(timer);
+  }, [modal.show, modal.message]);
+
   // AI Prompt Modal için
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [aiPromptInput, setAiPromptInput] = useState("");
@@ -102,7 +135,7 @@ function RecipesContent() {
   useEffect(() => {
     if (searchParams.get("quick") === "1") {
       setShowPromptModal(true);
-      router.replace("/recipes", { scroll: false });
+      window.history.replaceState(window.history.state, "", "/recipes");
     }
   }, [searchParams, router]);
   useEffect(() => {
@@ -162,12 +195,6 @@ function RecipesContent() {
       // Daha fazla veri var mı kontrolü (Basit mantık: Gelen veri 10 ise muhtemelen devamı vardır)
       setHasMore(newRecipes.length >= 10);
       
-      // Sonuç hiç yoksa AI Modalını aç (Sadece ilk aramada ve yükleme değilken)
-      if (!isLoadMore && newRecipes.length === 0 && query.trim() !== "") {
-        setShowAIModal(true);
-      } else {
-        setShowAIModal(false);
-      }
 
     } catch (err) {
       console.error(err);
@@ -239,7 +266,7 @@ function RecipesContent() {
         return;
       }
 
-      const aiResponse = await generateAIRecipe(token, searchTerm);
+      const aiResponse = await generateRecipeClient(token, searchTerm);
       void quotas.reload();
       setUsageNotice("AI tarif oluşturma denemen kullanıldı. Güncel hakların Profil'de.");
       if (!aiResponse.success || !aiResponse.recipe) {
@@ -291,7 +318,7 @@ function RecipesContent() {
       }
       const approved = approvedQuickRecipe(reviewDraft);
       requestStarted = true;
-      const saved = await createRecipe(token, approved);
+      const saved = await createRecipeClient(token, approved);
       if (!saved?.success || !(saved.slug || saved.id)) {
         setPublishError(saved?.message || "Tarif yayımlanamadı.");
         return;
@@ -354,27 +381,7 @@ function RecipesContent() {
     );
   };
 
-  // --- AI KARTI BİLEŞENİ ---
-  const AICard = () => (
-    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[300px] border border-slate-700 shadow-xl group hover:scale-[1.02] transition-transform duration-300">
-        <div className="absolute top-0 right-0 w-40 h-40 bg-[#db4c3f] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
-        <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4 text-3xl text-[#db4c3f] border border-white/10 animate-pulse">
-            {isGenerating ? <FaSpinner className="animate-spin" /> : <FaRobot />}
-        </div>
-        <h3 className="text-xl font-bold text-white mb-2 font-heading">Aradığın Burada Yok mu?</h3>
-        <p className="text-slate-400 text-sm mb-6 font-light">
-           {isGenerating ? LOADING_MESSAGES[loadingMsgIndex] : `"${query || 'Özel'}" tarifini senin için sıfırdan yaratabilirim.`}
-        </p>
-        <button
-          type="button"
-          onClick={handleGenerateRecipe}
-          disabled={isGenerating}
-          className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-[#db4c3f]/20 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-        >
-           {isGenerating ? "Hazırlanıyor..." : reviewDraft ? <><FaWandMagicSparkles /> Tarif önizlemene dön</> : <><FaWandMagicSparkles /> AI ile Oluştur</>}
-        </button>
-    </div>
-  );
+
 
   return (
     <div className="container mx-auto px-4 py-8 relative">
@@ -458,13 +465,13 @@ function RecipesContent() {
                         ))}
                         
                         {/* SENARYO 2: SONUÇLARIN SONUNA AI KARTI EKLE */}
-                        <AICard />
+                        <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} onGenerate={() => void handleGenerateRecipe()} />
                         
                     </div>
                 ) : (
                     // SONUÇ YOKSA SADECE AI KARTI
                     <div className="flex justify-center">
-                        <div className="w-full max-w-md"><AICard /></div>
+                        <div className="w-full max-w-md"><RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} onGenerate={() => void handleGenerateRecipe()} /></div>
                     </div>
                 )}
                 
@@ -481,25 +488,14 @@ function RecipesContent() {
             </section>
         </div>
 
-        {/* MODAL (Otomatik Açılan) */}
-        {showAIModal && (
-            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowAIModal(false)}></div>
-                <div className="relative z-10 w-full max-w-lg">
-                    <AICard /> {/* Modalı AI Kartı ile doldur */}
-                    <button onClick={() => setShowAIModal(false)} className="absolute top-4 right-4 text-white/50 hover:text-white"><FaXmark className="text-2xl"/></button>
-                </div>
-            </div>
-        )}
-        
-        {/* AI PROMPT MODAL - Boş aramada açılır */}
+        {/* AI prompt appears only after an explicit user action; no overlapping automatic modal. */}
         {showPromptModal && (
           <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
             <div 
-              className="absolute inset-0 bg-black/60 backdrop-blur-md" 
+              className="absolute inset-0 bg-[#1e2932]/60" 
               onClick={() => setShowPromptModal(false)}
             ></div>
-            <div className="relative z-10 bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-fade-in">
+            <div className="relative z-10 bg-[#fffaf6] rounded-[28px] p-7 w-full max-w-md border border-[#efded0] shadow-[0_28px_90px_rgba(25,28,33,0.25)]">
               <button 
                 onClick={() => setShowPromptModal(false)} 
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
@@ -582,15 +578,15 @@ function RecipesContent() {
         )}
                 {/* HATA MODALI */}
         {modal.show && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-               <div className="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl text-center relative">
-                   <button onClick={() => setModal({ ...modal, show: false })} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><FaXmark className="text-xl"/></button>
-                   <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl ${modal.type === 'success' ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>
+            <div className="fixed bottom-5 right-5 left-5 sm:left-auto z-[200] flex items-center justify-center sm:w-[360px]">
+               <div className="relative w-full rounded-2xl border border-[#f1d2c7] bg-white p-5 shadow-2xl">
+                   <button onClick={() => setModal({ ...modal, show: false })} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"><FaXmark className="text-xl"/></button>
+                   <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-2 text-lg ${modal.type === 'success' ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>
                       {modal.type === 'success' ? <FaCheck /> : <FaXmark />}
                    </div>
-                   <h3 className="text-xl font-bold text-slate-900 mb-2">{modal.type === 'success' ? 'Başarılı!' : 'Hata'}</h3>
-                   <p className="text-gray-500 mb-6">{modal.message}</p>
-                   <button onClick={() => setModal({ ...modal, show: false })} className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition">Tamam</button>
+                   <h3 className="text-sm font-bold text-slate-900 mb-1">{modal.type === 'success' ? 'Başarılı!' : 'Hata'}</h3>
+                   <p className="text-xs leading-5 text-gray-500">{modal.message}</p>
+                   
                </div>
             </div>
         )}
