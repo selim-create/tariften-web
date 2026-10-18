@@ -263,7 +263,7 @@ export default function RecipeTextImportPage() {
 
           <div className="mt-3 shrink-0 border-t border-slate-100 pt-3">
             <button type="button" onClick={() => void requestPreview()}
-              disabled={busy !== null || quotas.loading || !!quotas.error || !quotas.data || quotaReached(quotas.data, "recipe_ai_day") || !!validateRecipeSource(source)}
+              disabled={busy !== null || quotas.loading || !!quotas.error || !quotas.data || !!validateRecipeSource(source)}
               className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
               {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> Tarifin düzenleniyor…</> : <><WandSparkles className="h-5 w-5" /> {preview ? "Önizlemeyi yeniden oluştur" : "Tarifimi güzelleştir"} <ArrowRight className="h-4 w-4" /></>}
             </button>
@@ -465,7 +465,7 @@ export default function RecipeTextImportPage() {
                     <span className="text-xs font-medium leading-6 text-slate-700">Tarifimin <strong>herkese açık yayımlanacağını</strong> biliyorum. Malzeme miktarlarını, hazırlanış adımlarını ve belirsiz alanları yayından önce kontrol edebilirim. Yayımlamak için ayrıca “Onayla ve yayımla” düğmesine basmalıyım.</span>
                   </label>
                   <button type="button" onClick={() => void publish()}
-                    disabled={!accepted || busy !== null || quotas.loading || !!quotas.error || !quotas.data || quotaReached(quotas.data, "recipe_day") || !!publishValidation(editor)}
+                    disabled={!accepted || busy !== null || quotas.loading || !!quotas.error || !quotas.data || !!publishValidation(editor)}
                     className="flex min-h-[54px] w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-3.5 text-sm font-black text-white transition hover:bg-[#c34236] disabled:cursor-not-allowed disabled:bg-slate-300">
                     {busy === "publish" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> Tarifin yayımlanıyor…</> : <><CheckCircle2 className="h-5 w-5" /> Onayla ve yayımla</>}
                   </button>
