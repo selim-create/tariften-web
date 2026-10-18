@@ -7,6 +7,7 @@ import RecipeDetailClient from "@/components/recipe/RecipeDetailClient";
 import PilotEntryButton from "@/components/pilot/PilotEntryButton";
 import RecipeActions from "@/components/recipe/RecipeActions"; 
 import EditButton from "@/components/recipe/EditButton";
+import RecipeReviewNotice from "@/components/recipe/RecipeReviewNotice";
 import AuthorCard from "@/components/AuthorCard";
 import { Metadata } from 'next';
 import RecipeJsonLd from '@/components/RecipeJsonLd';
@@ -100,6 +101,7 @@ export default async function RecipeDetailPage({
       </div>
 
       <div className="container mx-auto max-w-6xl px-4 py-6">
+        <RecipeReviewNotice recipeId={recipe.id} authorId={recipe.author?.id ?? 0} />
         <RejindeBanner recipeId={recipe.id} />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mb-12 items-start">
