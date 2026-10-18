@@ -120,9 +120,9 @@ export default function GlobalCreateMenu() {
             </button>
           ))}
         </div>
-        <p className="mt-5 text-center text-[11px] leading-5 text-[#a09288]">
-          {!user?.token ? "Devam etmek için hesabına giriş yapabilirsin." : "Fikirlerini mutfağına ekle."}
-        </p>
+        {!user?.token && <p className="mt-5 text-center text-[11px] leading-5 text-[#a09288]">
+          Devam etmek için hesabına giriş yapabilirsin.
+        </p>}
       </div>
     </div>
   ) : null;
