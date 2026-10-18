@@ -7,12 +7,10 @@ import { FaPen } from "react-icons/fa6";
 export default function EditButton({ authorId, recipeId }: { authorId: number, recipeId: number }) {
   const { user } = useAuth();
   
-  // Kullanıcı yoksa butonu gösterme
-  if (!user) return null;
-  
-  // Not: Gerçek uygulamada burada (user.id === authorId) kontrolü yapılmalı.
-  // Şu anki MVP'de giriş yapan herkesin (admin gibi) düzenleme butonunu görmesini sağlıyoruz.
-  
+  // An authenticated account must not see another member's edit CTA.
+  // Core independently enforces ownership/admin capability for every write.
+  if (!user || Number(user.id) !== Number(authorId)) return null;
+
   return (
     <Link 
       href={`/recipe/edit/${recipeId}`}

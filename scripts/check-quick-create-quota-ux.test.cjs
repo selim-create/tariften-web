@@ -43,7 +43,7 @@ test('web quick AI validates rights before billing and ignores repeated taps',()
  assert.match(flow,/quickCreateInFlightRef\.current = true/);
  assert.match(flow,/await fetchAccountQuotas\(token\)/);
  assert.match(flow,/catch \{\s*showModalMessage\("error", "Kullanım hakların şu anda kontrol edilemiyor/);
- assert.ok(flow.indexOf('await fetchAccountQuotas(token)') < flow.indexOf('await generateAIRecipe(token, searchTerm)'));
+ assert.ok(flow.indexOf('await fetchAccountQuotas(token)') < flow.indexOf('await generateRecipeClient(token, searchTerm)'));
  assert.match(flow,/finally \{\s*quickCreateInFlightRef\.current = false/);
  assert.doesNotMatch(flow,/fetchAccountQuotas\(token\)\.catch\(\(\) => null\)/);
  assert.doesNotMatch(flow,/setQuery\(aiPromptInput\)/);

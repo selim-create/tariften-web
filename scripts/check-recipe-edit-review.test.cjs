@@ -16,7 +16,8 @@ test('recipe edit review uses JWT-only owner status endpoint', () => {
 test('editor explains pending approvals and never claims that the unchanged published page was updated', () => {
   const page = read('src/app/recipe/edit/[id]/page.tsx');
   assert.match(page, /result\.pending_review \|\| result\.status === "pending_review"/);
-  assert.match(page, /Değişikliklerin yönetici onayına gönderildi/);
+  assert.match(page, /edit_review=submitted/);
+  assert.match(read('src/components/recipe/RecipeReviewNotice.tsx'), /Değişikliklerin yönetici onayına gönderildi/);
   assert.match(page, /Yayındaki tarifin eski hâli korunuyor/);
   assert.match(page, /reviewStatus\?\.status === 'rejected'/);
   assert.match(page, /reviewStatus\.note/);
@@ -29,6 +30,6 @@ test('Web recipe update stays on authenticated Core route; no fake moderation cl
   const api = read('src/lib/api.ts');
   const page = read('src/app/recipe/edit/[id]/page.tsx');
   assert.match(api, /tariften\/v1\/recipes\/update/);
-  assert.match(page, /updateRecipe\(user\.token, dataToSend\)/);
+  assert.match(page, /updateRecipeClient\(user\.token, dataToSend\)/);
   assert.doesNotMatch(page, /auto_approve|is_ai\s*:/);
 });

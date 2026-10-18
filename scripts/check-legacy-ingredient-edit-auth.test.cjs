@@ -39,12 +39,12 @@ test('progressively typed semantic amounts are accepted, arbitrary text rejected
 });
 test('nonowners cannot see or submit the Web edit form, even though recipe search is public',()=>{
  const page=read('src/app/recipe/edit/[id]/page.tsx');
- assert.match(page,/await getRecipeEditReviewStatus\(token, recipeId\)/);
+ assert.match(page,/await getRecipeReviewStatusClient\(token, recipeId\)/);
  assert.match(page,/setAuthorizedToken\(token\)/);
  assert.match(page,/setPermissionError\(/);
  assert.match(page,/permissionError \|\| !authorizedToken \|\| authorizedToken !== user\?\.token/);
  assert.match(page,/!authorizedToken \|\| authorizedToken !== user\?\.token/);
- assert.ok(page.indexOf('await getRecipeEditReviewStatus(token, recipeId)') < page.indexOf('await getRecipeById(recipeId)'));
+ assert.ok(page.indexOf('await getRecipeReviewStatusClient(token, recipeId)') < page.indexOf('await getRecipeById(recipeId)'));
  assert.match(page,/permissionError \|\| !authorizedToken/);
  assert.match(page,/Yalnızca kendi tariflerini düzenleyebilirsin/);
  const row=read('src/components/recipes/RecipeIngredientRow.tsx');
