@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getRecipeById, updateRecipe, getTerms } from "@/lib/api";
+import { getRecipeById, updateRecipe, getTerms, getRecipeEditReviewStatus, type RecipeEditReviewStatus } from "@/lib/api";
 import { uploadRecipeImage } from "@/lib/recipe-media-upload"; 
 import { 
   FaArrowRight, FaArrowLeft, FaCheck, FaPlus, FaTrash, 
@@ -23,6 +23,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaType, setMediaType] = useState<'upload' | 'url' | 'video'>('url');
   const [previewUrl, setPreviewUrl] = useState("");
+  const [reviewStatus, setReviewStatus] = useState<RecipeEditReviewStatus | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'error' | 'input'>('success');
@@ -69,6 +70,10 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
             });
         }
 
+        if (user?.token) {
+            void getRecipeEditReviewStatus(user.token, recipeId)
+              .then(setReviewStatus).catch(() => { /* Server will validate the submitted edit. */ });
+        }
         const recipe = await getRecipeById(recipeId);
         if (recipe) {
              setFormData({
@@ -193,8 +198,13 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
       
       const result = await updateRecipe(user.token, dataToSend);
       if (result.success) {
-        showSuccess("Tarif başarıyla güncellendi! 🎉");
-        setTimeout(() => router.push(`/recipe/${result.slug || recipeId}`), 2000);
+        if (result.pending_review || result.status === "pending_review") {
+          setReviewStatus({ status: 'pending', updated_at: new Date().toISOString(), note: '' });
+          showSuccess("Değişikliklerin yönetici onayına gönderildi. Yayındaki tarifin bu sırada değişmeyecek.");
+        } else {
+          showSuccess("Tarif başarıyla güncellendi!");
+          setTimeout(() => router.push(`/recipe/${result.slug || recipeId}`), 2000);
+        }
       } else {
         showError(result.message || "Güncelleme başarısız.");
       }
@@ -215,6 +225,24 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           <div className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold mb-2">Düzenleme Modu</div>
           <h1 className="text-3xl font-bold text-slate-900 font-heading">Tarifi Düzenle</h1>
           <p className="text-gray-500">Adım {step} / 3</p>
+          {reviewStatus?.status === 'pending' && (
+            <div role="status" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-900">
+              <strong>Değişikliklerin onay bekliyor.</strong> Yayındaki tarifin eski hâli korunuyor.
+              Yönetici incelemesinden sonra yeni düzenleme gönderebilirsin.
+            </div>
+          )}
+          {reviewStatus?.status === 'rejected' && (
+            <div role="status" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-left text-sm text-red-900">
+              <strong>Son düzenleme isteğin onaylanmadı.</strong>
+              {reviewStatus.note && <span className="block mt-1">Yönetici notu: {reviewStatus.note}</span>}
+              <span className="block mt-1">Dilersen tarifini yeniden düzenleyip gönderebilirsin.</span>
+            </div>
+          )}
+          {reviewStatus?.status === 'approved' && (
+            <div role="status" className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-left text-sm text-emerald-900">
+              Son düzenleme isteğin onaylandı ve yayımlandı.
+            </div>
+          )}
           <div className="w-full bg-gray-200 h-1.5 rounded-full mt-4 overflow-hidden">
             <div className="bg-brand h-full transition-all duration-500" style={{ width: step === 1 ? '33%' : step === 2 ? '66%' : '100%' }} />
           </div>
@@ -354,8 +382,8 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           {step < 3 ? (
             <button onClick={() => setStep(s => s + 1)} className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold">Devam Et <FaArrowRight /></button>
           ) : (
-            <button onClick={handleUpdate} disabled={saving} className="px-8 py-3 bg-brand text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-brand/20 disabled:opacity-70">
-              {saving ? <><FaSpinner className="animate-spin" /> Kaydediliyor</> : <><FaCheck /> Güncelle</>}
+            <button onClick={handleUpdate} disabled={saving || reviewStatus?.status === 'pending'} className="px-8 py-3 bg-brand text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-brand/20 disabled:opacity-70">
+              {saving ? <><FaSpinner className="animate-spin" /> Gönderiliyor</> : reviewStatus?.status === 'pending' ? <><FaCheck /> Onay bekleniyor</> : <><FaCheck /> Yönetici onayına gönder</>}
             </button>
           )}
         </div>
