@@ -33,6 +33,8 @@ jobs:
         run: node --test scripts/check-quick-ai-review.test.cjs
       - name: Guard shared recipe editor UX, curated units and numeric ranges
         run: node --test scripts/check-recipe-editor-parity-ux.test.cjs
+      - name: Protect recipe edits and support existing Turkish ingredient amounts
+        run: node --test scripts/check-legacy-ingredient-edit-auth.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build

@@ -28,8 +28,11 @@ test('manual create and edit are visually and behaviorally aligned',()=>{
  const edit=read('src/app/recipe/edit/[id]/page.tsx');
  const picker=read('src/components/recipes/RecipeSelect.tsx');
  assert.match(picker,/RecipePicker|RecipeSelect/);
- assert.match(create,/RECIPE_UNITS/);
- assert.match(edit,/RECIPE_UNITS/);
+ const row=read('src/components/recipes/RecipeIngredientRow.tsx');
+ assert.match(create,/RecipeIngredientRow/);
+ assert.match(edit,/RecipeIngredientRow/);
+ assert.match(row,/RECIPE_UNITS/);
+ assert.match(row,/sm:items-end/);
  assert.match(create,/validateManual/);
  assert.match(edit,/validateManual/);
  

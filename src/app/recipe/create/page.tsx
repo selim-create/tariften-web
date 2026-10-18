@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import RecipeSelect from "@/components/recipes/RecipeSelect";
-import { RECIPE_UNITS, validateRecipeAmount } from "@/lib/recipe-measurements";
+import RecipeIngredientRow from "@/components/recipes/RecipeIngredientRow";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -346,19 +346,9 @@ export default function CreateRecipePage() {
                   <h2 className="border-b border-[#efe7df] pb-4 font-heading text-2xl font-extrabold text-[#23333a]">Malzemeler</h2>
                  <div className="space-y-3">
                      {formData.ingredients.map((ing, idx) => (
-                         <div key={idx} className="relative grid grid-cols-2 gap-2 rounded-2xl border border-[#eee2d7] bg-[#fffcf8] p-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center">
-                               <input type="text" aria-label={`${idx + 1}. malzemenin adı`} placeholder="Malzeme adı" value={ing.name} onChange={(e) => { setFormError(""); updateIngredient(idx, 'name', e.target.value); }} className="col-span-2 rounded-xl border border-[#e9dbcf] bg-white px-4 py-3 pr-12 text-sm outline-none focus:border-[#db4c3f] sm:col-span-1 sm:pr-4" />
-                               <input type="text" aria-label={`${idx + 1}. malzemenin miktarı`} placeholder="Miktar" value={ing.amount} onChange={(e) => {
-                                 const value = e.target.value;
-                                 if (/[a-zA-ZğüşıöçĞÜŞİÖÇ]/.test(value)
-                                   && !["yarım", "çeyrek"].some(word => word.startsWith(value.toLocaleLowerCase("tr-TR")))) return;
-                                 setFormError("");
-                                 updateIngredient(idx, 'amount', value);
-                               }} className="min-w-0 rounded-xl border border-[#e9dbcf] bg-white px-3 py-3 text-sm outline-none focus:border-[#db4c3f]" />
-                               <RecipeSelect label="Ölçü birimi" value={ing.unit} options={RECIPE_UNITS}
-                               onChange={value => { setFormError(""); updateIngredient(idx, "unit", value); }} placeholder="Birim seç" />
-                               <button type="button" aria-label={`${idx + 1}. malzemeyi kaldır`} onClick={() => { setFormError(""); removeIngredient(idx); }} className="absolute right-4 top-4 rounded-lg p-2 text-[#a58f80] transition hover:bg-[#fee9e6] hover:text-[#bb4639] sm:static"><FaTrash /></button>
-                           </div>
+                         <RecipeIngredientRow key={idx} index={idx} ingredient={ing}
+                            onChange={(field, value) => { setFormError(""); updateIngredient(idx, field, value); }}
+                            onRemove={() => { setFormError(""); removeIngredient(idx); }} />
                      ))}
                      <button type="button" onClick={() => { setFormError(""); addIngredient(); }} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Malzeme Ekle</button>
                  </div>
