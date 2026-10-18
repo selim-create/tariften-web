@@ -165,6 +165,7 @@ export default function CreateRecipePage() {
     if (problem) {
       setStep(problem.stage);
       setFormError(problem.message);
+      setTimeout(() => editorTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 40);
       return;
     }
     setFormError("");
@@ -317,9 +318,9 @@ export default function CreateRecipePage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Hazırlama (dk)</label><input type="number" value={formData.prep_time} onChange={(e) => handleInputChange("prep_time", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Pişirme (dk)</label><input type="number" value={formData.cook_time} onChange={(e) => handleInputChange("cook_time", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Kalori</label><input type="number" value={formData.calories} onChange={(e) => handleInputChange("calories", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Hazırlama (dk)</label><input type="number" min={0} max={720} step={1} value={formData.prep_time} onChange={(e) => handleInputChange("prep_time", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Pişirme (dk)</label><input type="number" min={0} max={720} step={1} value={formData.cook_time} onChange={(e) => handleInputChange("cook_time", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Kalori</label><input type="number" min={0} max={3000} step={1} value={formData.calories} onChange={(e) => handleInputChange("calories", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
                     <div><label className="text-xs font-bold text-gray-500 mb-1">Kaç kişilik? *</label><input type="number" min={1} max={36} aria-label="Tarifin kaç kişilik olduğu" value={formData.servings} onChange={(e) => handleInputChange("servings", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
                 </div>
 
