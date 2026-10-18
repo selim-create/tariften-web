@@ -7,7 +7,8 @@ import RecipeIngredientRow from "@/components/recipes/RecipeIngredientRow";
 import { validateManualRecipeStage, type ManualRecipeStage } from "@/lib/manual-recipe-validation";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getRecipeById, getTerms, getRecipeEditReviewStatus, type RecipeEditReviewStatus } from "@/lib/api";
+import { getRecipeById, getTerms } from "@/lib/api";
+import { getRecipeReviewStatusClient, type RecipeReviewStatus } from "@/lib/recipe-write-client";
 import { updateRecipeClient } from "@/lib/recipe-write-client";
 import { uploadRecipeImage } from "@/lib/recipe-media-upload"; 
 import { 
@@ -40,7 +41,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaType, setMediaType] = useState<'upload' | 'url' | 'video'>('url');
   const [previewUrl, setPreviewUrl] = useState("");
-  const [reviewStatus, setReviewStatus] = useState<RecipeEditReviewStatus | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<RecipeReviewStatus | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'error' | 'input'>('success');
@@ -101,7 +102,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     (async () => {
       try {
         // Must finish successfully BEFORE fetching/populating editable fields.
-        const status = await getRecipeEditReviewStatus(token, recipeId);
+        const status = await getRecipeReviewStatusClient(token, recipeId);
         if (cancelled) return;
         setReviewStatus(status);
         const recipe = await getRecipeById(recipeId);
