@@ -33,3 +33,5 @@ jobs:
         run: npm run build
       - name: Verify Web owner-only Tariflerim Sofralarım and global create parity
         run: node --test scripts/check-web-my-kitchen.test.cjs
+      - name: Quick recipe/pantry UX and profile-only quota displays
+        run: node --test scripts/check-quick-create-quota-ux.test.cjs
