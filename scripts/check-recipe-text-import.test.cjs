@@ -71,6 +71,26 @@ test('verified preview parsed and editable recipe faithfully copies user data', 
   assert.equal(Object.hasOwn(payload, 'requires_approval'), false);
 });
 
+test('AI metadata suggestions are optional, editable and only published after user review', () => {
+  const candidate = fixture();
+  candidate.recipe.suggestions = {
+    servings: 4, calories_per_serving: 230, cuisine: 'Türk Mutfağı', meal_type: 'Akşam Yemeği',
+  };
+  const preview = lib.parseImportPreview(candidate);
+  const editor = lib.editorFromPreview(preview);
+  assert.equal(editor.servings, '4');
+  assert.equal(editor.calories, '230');
+  assert.equal(editor.cuisine, 'Türk Mutfağı');
+  assert.equal(editor.mealType, 'Akşam Yemeği');
+  editor.calories = '250';
+  const payload = lib.buildApprovedRecipe(editor);
+  assert.equal(payload.calories, 250);
+  assert.deepEqual(payload.cuisine, ['Türk Mutfağı']);
+  assert.deepEqual(payload.meal_type, ['Akşam Yemeği']);
+  editor.calories = '5000';
+  assert.match(lib.publishValidation(editor), /kalori/);
+});
+
 test('untrusted or ungrounded AI preview response rejected before showing it', () => {
   const a = fakePreview();
   a.requires_approval = false;
@@ -261,7 +281,7 @@ test('import uses a warm, accessible editor workspace with compact source eviden
   assert.match(page, /aria-expanded=\{activeStep === i\}/);
   assert.match(page, /Miktar belirtilmemiş/);
   assert.match(page, /<details className="group/);
-  assert.match(page, /CompactQuota/);
+  assert.doesNotMatch(page, /CompactQuota|<QuotaPanel /);
   assert.match(page, /lg:overflow-y-auto/, 'sticky source panel can scroll if taller than the viewport');
   assert.doesNotMatch(page, /<QuotaPanel /);
   assert.match(footer, /pathname === '\/recipe\/import'/);
