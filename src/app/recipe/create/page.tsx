@@ -200,26 +200,30 @@ export default function CreateRecipePage() {
   if (!user) return <div className="p-10 text-center text-gray-500 min-h-screen flex items-center justify-center">Bu sayfayı görmek için giriş yapmalısınız.</div>;
 
   return (
-    <main className="min-h-screen bg-[#fcfcfc] py-10 px-4 relative">
-      <div className="container mx-auto max-w-3xl">
+    <main className="min-h-screen bg-[#fffaf5] px-4 py-8 sm:py-12 relative">
+      <div className="mx-auto max-w-4xl">
         
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-slate-900 font-heading">Yeni Tarif Oluştur</h1>
-          <Link href="/recipe/import" className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-[#db4c3f]/20 bg-[#fdf0ed] p-4 text-left transition hover:border-[#db4c3f]/50">
-            <span className="min-w-0">
-              <span className="block text-sm font-extrabold text-[#ac4037]">✨ Akıllı Tarif Aktarımı <span className="ml-1 text-[10px] font-bold tracking-widest">BETA</span></span>
-              <span className="mt-1 block text-xs leading-5 text-slate-600">El yazısından kopyaladığın veya not aldığın tarif metnini malzeme ve adımlara ayır. Önce sen kontrol et.</span>
-            </span>
-            <FaArrowRight className="shrink-0 text-[#db4c3f]" />
-          </Link>
-          <p className="text-gray-500">Adım {step} / 3</p>
-          <div className="w-full bg-gray-200 h-1.5 rounded-full mt-4 overflow-hidden">
-            <div className="bg-brand h-full transition-all duration-500" style={{ width: step === 1 ? '33%' : step === 2 ? '66%' : '100%' }} />
-          </div>
-        </div>
+        <header className="mb-8 rounded-[30px] border border-[#f0e2d7] bg-white px-5 py-7 shadow-[0_16px_45px_-30px_rgba(79,46,35,0.3)] sm:px-9 sm:py-9">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#b35744]">TARİFTEN · MUTFAK STÜDYOSU</p>
+          <h1 className="mt-2 font-heading text-[30px] font-extrabold leading-tight tracking-tight text-[#203038] sm:text-[38px]">Tarifini kendi kelimelerinle anlat.</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#82776e]">Malzemeleri ve hazırlanışını adım adım ekle. Tarifin içeriği ve yayımlama kararı senin elinde.</p>
+          <nav aria-label="Tarif oluşturma yöntemleri" className="mt-5 flex flex-wrap gap-2 text-xs font-bold">
+            <span aria-current="page" className="rounded-full bg-[#fce9e3] px-4 py-2 text-[#9e4136]">Tarifimi kendim yazacağım</span>
+            <Link href="/recipes?quick=1" className="rounded-full border border-[#ecdccf] px-4 py-2 text-[#584b43] transition hover:border-[#db4c3f] hover:text-[#b34336]">AI ile hızlı oluştur</Link>
+            <Link href="/recipe/import" className="rounded-full border border-[#ecdccf] px-4 py-2 text-[#584b43] transition hover:border-[#db4c3f] hover:text-[#b34336]">Tarif notlarımı aktar</Link>
+          </nav>
+          <ol aria-label="Tarif oluşturma adımları" className="mt-7 grid grid-cols-3 gap-2">
+            {(["Tarif bilgileri", "Malzemeler", "Hazırlanış"] as const).map((label, index) => (
+              <li key={label} aria-current={step === index + 1 ? "step" : undefined}
+                className={`rounded-xl border px-2 py-3 text-center text-[11px] font-bold sm:px-3 sm:text-xs ${step === index + 1 ? "border-[#db4c3f] bg-[#fcece7] text-[#a43b32]" : step > index + 1 ? "border-[#b5d2c0] bg-[#edf7ef] text-[#37634a]" : "border-[#eee4da] bg-[#fcfaf8] text-[#9c9188]"}`}>
+                <span className="block text-sm font-black">{index + 1}</span>{label}
+              </li>
+            ))}
+          </ol>
+        </header>
 
         {formError && <div role="alert" className="mb-5 rounded-2xl border border-[#efc6b7] bg-[#fff0e9] px-5 py-4 text-sm font-semibold leading-6 text-[#a33d35]">{formError}</div>}
-         <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl">
+         <div className="rounded-[28px] border border-[#efe3d9] bg-white p-5 shadow-[0_20px_55px_-36px_rgba(65,46,36,0.35)] sm:p-9">
            
            {step === 1 && (
              <div className="space-y-6 animate-fade-in">
