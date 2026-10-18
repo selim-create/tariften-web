@@ -9,7 +9,14 @@ const read = p => fs.readFileSync(path.join(root,p),'utf8');
 const helpers = read('src/lib/manual-recipe-validation.ts');
 const js = ts.transpileModule(helpers, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 const local = { exports: {} };
-new Function('module','exports',js)(local,local.exports);
+const measureSource = read('src/lib/recipe-measurements.ts');
+const measureJs = ts.transpileModule(measureSource,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+const measures = {exports:{}};
+new Function('module','exports',measureJs)(measures,measures.exports);
+new Function('module','exports','require',js)(local,local.exports,id => {
+ assert.equal(id,'./recipe-measurements');
+ return measures.exports;
+});
 const { validateManualRecipeStage } = local.exports;
 const good = () => ({ title:'Çıtır sebze yemeği', servings:'4', prep_time:'15', cook_time:'30', calories:'250', ingredients:[{name:'Domates', amount:'2', unit:'adet'}],steps:['Domatesleri iyice yıka.'] });
 
