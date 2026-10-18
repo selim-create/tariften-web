@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -69,6 +69,7 @@ function RecipesContent() {
   // AI Modal
   const [showAIModal, setShowAIModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const quickCreateInFlightRef = useRef(false);
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
 
   // Filtreler
@@ -190,71 +191,77 @@ function RecipesContent() {
   const toggleSection = (section: string) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   const showModalMessage = (type: 'success' | 'error', message: string) => setModal({ show: true, type, message });
 
-  // AI OLUŞTURMA
+  // AI OLUŞTURMA — one request at a time, with a mandatory fresh quota check.
   const handleGenerateRecipe = async () => {
-    if (!user || !user.token) { 
-      showModalMessage('error', "AI Şef'i kullanmak için lütfen giriş yapın."); 
-      return; 
+    // The ref is set before the first await: repeated taps cannot create two
+    // paid AI jobs even before React has rendered the loading state.
+    if (quickCreateInFlightRef.current) return;
+    const token = user?.token;
+    if (!token) {
+      showModalMessage("error", "Tarif oluşturmak için giriş yapmalısın.");
+      return;
     }
-    
-    // Eğer query boşsa ve aiPromptInput da boşsa, prompt modal'ını aç
-    if (!query.trim() && !aiPromptInput.trim()) {
+
+    const searchTerm = aiPromptInput.trim() || query.trim();
+    if (!searchTerm) {
       setShowPromptModal(true);
       return;
     }
-    
-    // Kullanılacak arama terimi
-    const searchTerm = aiPromptInput.trim() || query.trim();
-    
-    const fresh = await fetchAccountQuotas(user.token).catch(() => null);
-    if (quotaReached(fresh, "recipe_day") || quotaReached(fresh, "recipe_ai_day")) {
-      const key = quotaReached(fresh, "recipe_day") ? "recipe_day" : "recipe_ai_day";
-      showModalMessage("error", "Günlük tarif oluşturma hakkın doldu. Yeni hak: " + quotaReset(fresh, key));
-      return;
-    }
 
+    quickCreateInFlightRef.current = true;
     setIsGenerating(true);
     setLoadingMsgIndex(0);
-    
     try {
-      const aiResponse = await generateAIRecipe(user.token, searchTerm);
+      // If account rights cannot be verified, do not start a billable request.
+      let fresh;
+      try {
+        fresh = await fetchAccountQuotas(token);
+      } catch {
+        showModalMessage("error", "Kullanım hakların şu anda kontrol edilemiyor. Lütfen tekrar dene.");
+        return;
+      }
+      if (quotaReached(fresh, "recipe_day") || quotaReached(fresh, "recipe_ai_day")) {
+        const key = quotaReached(fresh, "recipe_day") ? "recipe_day" : "recipe_ai_day";
+        showModalMessage("error", "Günlük tarif oluşturma hakkın doldu. Yeni hak: " + quotaReset(fresh, key));
+        return;
+      }
+
+      const aiResponse = await generateAIRecipe(token, searchTerm);
       void quotas.reload();
       setUsageNotice("AI tarif oluşturma denemen kullanıldı. Güncel hakların Profil'de.");
-      if (aiResponse.success && aiResponse.recipe) {
-        const saveResponse = await createRecipe(user.token, aiResponse.recipe);
-        void quotas.reload();
-        if (saveResponse.success) {
-          const redirectTarget = saveResponse.slug || saveResponse.id;
-          router.push(`/recipe/${redirectTarget}`); 
-        } else {
-          showModalMessage('error', saveResponse.message || "Tarif kaydedilemedi.");
-        }
-      } else {
-        showModalMessage('error', "Yapay zeka yanıt veremedi.");
+      if (!aiResponse.success || !aiResponse.recipe) {
+        showModalMessage("error", "Yapay zekâ yanıt veremedi.");
+        return;
       }
-    } catch (error: any) {
-      const errorMsg = error.message?.toLowerCase() || "";
-      if (errorMsg.includes("billing")) {
-        showModalMessage('error', "AI bütçe sınırına ulaşıldı. Lütfen sonra tekrar deneyin.");
-      } else {
-        showModalMessage('error', error?.message || "Tarif oluşturulamadı.");
+
+      const saveResponse = await createRecipe(token, aiResponse.recipe);
+      void quotas.reload();
+      if (!saveResponse.success) {
+        showModalMessage("error", saveResponse.message || "Tarif kaydedilemedi.");
+        return;
       }
-    } finally { 
+
+      // Clear only after a confirmed save, so a temporary failure does not
+      // erase a carefully written ingredient list.
+      setAiPromptInput("");
+      const redirectTarget = saveResponse.slug || saveResponse.id;
+      router.push(`/recipe/${redirectTarget}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Tarif oluşturulamadı.";
+      showModalMessage("error", message.toLowerCase().includes("billing")
+        ? "AI bütçe sınırına ulaşıldı. Lütfen sonra tekrar deneyin."
+        : message);
+    } finally {
+      quickCreateInFlightRef.current = false;
       setIsGenerating(false);
-      setAiPromptInput(""); // Input'u temizle
     }
   };
 
-  // Prompt Modal'dan tarif oluştur
+  // The prompt is kept for retries; the catalogue search remains independent.
   const handlePromptModalSubmit = () => {
-    if (!aiPromptInput.trim()) return;
-    
+    if (!aiPromptInput.trim() || quickCreateInFlightRef.current) return;
     setShowPromptModal(false);
-    setQuery(aiPromptInput); // Arama kutusuna da yaz
-    
-    // aiPromptInput zaten dolu olduğu için handleGenerateRecipe doğrudan çalışacak
-    // Query state güncellemesi async olsa da aiPromptInput kullanılacak
-    handleGenerateRecipe();
+    void handleGenerateRecipe();
   };
 
   const renderFilterGroup = (title: string, icon: React.ReactNode, items: string[], current: string[], setFn: (val: string[]) => void, sectionKey: string) => {
@@ -299,7 +306,7 @@ function RecipesContent() {
         <button
           type="button"
           onClick={handleGenerateRecipe}
-          disabled={isGenerating || quotaReached(quotas.data, "recipe_ai_day") || quotaReached(quotas.data, "recipe_day")}
+          disabled={isGenerating}
           className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-[#db4c3f]/20 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
         >
            {isGenerating ? "Hazırlanıyor..." : <><FaWandMagicSparkles /> AI ile Oluştur</>}
