@@ -262,8 +262,6 @@ export default function RecipeTextImportPage() {
           </button>}
 
           <div className="mt-3 shrink-0 border-t border-slate-100 pt-3">
-            <p className="mb-3 mt-2 text-[10px] leading-4 text-slate-500">
-            </p>
             <button type="button" onClick={() => void requestPreview()}
               disabled={busy !== null || quotas.loading || !!quotas.error || !quotas.data || quotaReached(quotas.data, "recipe_ai_day") || !!validateRecipeSource(source)}
               className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
