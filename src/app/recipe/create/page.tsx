@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import QuotaPanel from "@/components/account/QuotaPanel";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 import { createRecipe, getTerms } from "@/lib/api";
 import { uploadRecipeImage } from "@/lib/recipe-media-upload";
@@ -184,7 +183,6 @@ export default function CreateRecipePage() {
             </span>
             <FaArrowRight className="shrink-0 text-[#db4c3f]" />
           </Link>
-          <div className="mt-5 text-left"><QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} kinds={["recipe_day"]} /></div>
           <p className="text-gray-500">Adım {step} / 3</p>
           <div className="w-full bg-gray-200 h-1.5 rounded-full mt-4 overflow-hidden">
             <div className="bg-brand h-full transition-all duration-500" style={{ width: step === 1 ? '33%' : step === 2 ? '66%' : '100%' }} />
