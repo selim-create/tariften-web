@@ -39,7 +39,7 @@ test('web quick AI validates rights before billing and ignores repeated taps',()
  const end=screen.indexOf('const renderFilterGroup =',start);
  assert.ok(start>=0 && end>start);
  const flow=screen.slice(start,end);
- assert.match(flow,/if \(quickCreateInFlightRef\.current\) return/);
+ assert.match(flow,/if \(quickCreateInFlightRef\.current \|\| quickPublishInFlightRef\.current/);
  assert.match(flow,/quickCreateInFlightRef\.current = true/);
  assert.match(flow,/await fetchAccountQuotas\(token\)/);
  assert.match(flow,/catch \{\s*showModalMessage\("error", "Kullanım hakların şu anda kontrol edilemiyor/);
