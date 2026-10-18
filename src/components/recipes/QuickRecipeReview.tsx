@@ -10,6 +10,8 @@ type Props = {
   draft: QuickRecipeDraft;
   setDraft: Dispatch<SetStateAction<QuickRecipeDraft | null>>;
   existingRecipeId: number | null;
+  cuisineOptions: string[];
+  mealOptions: string[];
   saving: boolean;
   uncertain: boolean;
   error: string;
@@ -22,7 +24,7 @@ const inputClass = "w-full rounded-xl border border-[#ebded2] bg-[#fffdfa] px-3 
 const labelClass = "mb-1.5 block text-xs font-extrabold text-[#76685e]";
 
 export default function QuickRecipeReview({
-  draft, setDraft, existingRecipeId, saving, uncertain, error, onPublish, onClose, onNew,
+  draft, setDraft, existingRecipeId, cuisineOptions, mealOptions, saving, uncertain, error, onPublish, onClose, onNew,
 }: Props) {
   const patch = (fields: Partial<QuickRecipeDraft>) => setDraft(old => old ? { ...old, ...fields } : old);
   const problem = validateQuickRecipe(draft);
@@ -63,8 +65,8 @@ export default function QuickRecipeReview({
               <input className={inputClass} aria-label="Kişi başına yaklaşık kalori" type="number" min={1} max={3000}
                 value={draft.calories} onChange={e => patch({ calories: e.target.value })} placeholder="Bilinmiyor" />
             </label>
-            <RecipeSelect label="Mutfak" value={draft.cuisine[0] || ""} options={[...new Set([...draft.cuisine, "Türk Mutfağı", "İtalyan Mutfağı", "Fransız Mutfağı", "Akdeniz Mutfağı"])]} onChange={v => patch({ cuisine: v ? [v] : [] })} />
-            <RecipeSelect label="Öğün türü" value={draft.meal_type[0] || ""} options={[...new Set([...draft.meal_type, "Kahvaltı", "Öğle Yemeği", "Akşam Yemeği", "Ara Öğün", "Tatlı"])]} onChange={v => patch({ meal_type: v ? [v] : [] })} />
+            <RecipeSelect label="Mutfak" value={draft.cuisine[0] || ""} options={[...new Set([...draft.cuisine, ...cuisineOptions])]} onChange={v => patch({ cuisine: v ? [v] : [] })} />
+            <RecipeSelect label="Öğün türü" value={draft.meal_type[0] || ""} options={[...new Set([...draft.meal_type, ...mealOptions])]} onChange={v => patch({ meal_type: v ? [v] : [] })} />
             <label><span className={labelClass}>Hazırlama · dakika</span>
               <input className={inputClass} type="number" min={0} max={720} value={draft.prep_time} onChange={e => patch({ prep_time: e.target.value })} />
             </label>
