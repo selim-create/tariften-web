@@ -3,6 +3,8 @@
  * Mirrors the Mobile manual editor's field requirements without calling AI.
  * Server-side authentication and quota checks remain authoritative.
  */
+import { validateRecipeAmount, validateRecipeUnit } from './recipe-measurements';
+
 export type ManualRecipeIngredient = { name: string; amount: string; unit: string };
 export type ManualRecipeDraft = {
   title: string;
@@ -28,8 +30,10 @@ export function validateManualRecipeStage(
     return { stage: 1, message: "Tarifin kaç kişilik olduğunu belirt (1–36)." };
   }
   for (const field of ["prep_time", "cook_time", "calories"] as const) {
-    if (draft[field].trim() && (!/^\d+$/.test(draft[field].trim()) || Number(draft[field]) > 9999)) {
-      return { stage: 1, message: "Süre ve kalori alanlarında 0–9999 arasında bir sayı kullan." };
+    const max = field === "calories" ? 3000 : 720;
+    if (draft[field].trim() && (!/^\d+$/.test(draft[field].trim()) || Number(draft[field]) > max)) {
+      return { stage: 1, message: field === "calories"
+        ? "Kişi başına kalori 0–3000 arasında olmalı." : "Hazırlama ve pişirme süresi 0–720 dakika arasında olmalı." };
     }
   }
   if (through === 1) return null;
@@ -39,6 +43,10 @@ export function validateManualRecipeStage(
   }
   if (draft.ingredients.length > 40) {
     return { stage: 2, message: "Tarifine en fazla 40 malzeme ekleyebilirsin." };
+  }
+  for (const [index, row] of draft.ingredients.entries()) {
+    const issue = validateRecipeAmount(row.amount) || validateRecipeUnit(row.unit);
+    if (issue) return { stage: 2, message: `${index + 1}. malzeme: ${issue}` };
   }
   if (through === 2) return null;
 
