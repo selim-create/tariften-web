@@ -282,7 +282,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         // The destination displays a short, dismissible notice and owner-only review status.
         router.replace(target + (result.pending_review || result.status === "pending_review"
           ? "?edit_review=submitted" : "?edit_review=updated"));
-        router.refresh();
+
       } else {
         showError(result.message || "Güncelleme başarısız.");
       }
