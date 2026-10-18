@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
-import type { Quotas, QuotaKind } from "@/lib/account-quotas-client";
 import { createRecipe, getTerms } from "@/lib/api";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import { capitalizeIngredientTr } from "@/lib/ingredient-display";
@@ -44,19 +43,6 @@ function Input({ label, value, onChange, placeholder, extraClass = "" }: {
       className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10" />
   </label>;
 }
-function CompactQuota({ data, error, loading, kind }: {
-  data: Quotas | null; error?: string; loading?: boolean; kind: QuotaKind;
-}) {
-  const q = data?.quotas?.[kind];
-  const label = kind === "recipe_ai_day" ? "Bugünkü tarif düzenleme hakkın" : "Bugünkü paylaşım hakkın";
-  return <div role="status" className="flex min-h-9 items-center justify-between gap-2 rounded-lg border border-[#e8e8e8] bg-white px-3 py-2 text-[11px]">
-    <span className="flex items-center gap-1.5 font-semibold text-slate-600"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {label}</span>
-    <span className="shrink-0 font-extrabold text-[#db4c3f]">
-      {loading && !q ? "Kontrol ediliyor…" : error ? "Kontrol edilemedi" : !q ? "—" : q.remaining === null ? "Sınırsız" : `${q.remaining} / ${q.limit} kaldı`}
-    </span>
-  </div>;
-}
-
 function Notice({ children, warning = false }: { children: React.ReactNode; warning?: boolean }) {
   return <div className={`flex gap-3 rounded-2xl border px-4 py-3.5 text-sm leading-6 ${warning ? "border-amber-200 bg-amber-50 text-amber-900" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
     {warning ? <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" /> : <Info className="mt-0.5 h-4 w-4 shrink-0" />}
