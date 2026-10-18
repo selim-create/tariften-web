@@ -378,10 +378,9 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {Object.keys(options).map((catKey) => (
                         <div key={catKey}>
-                            <label className="block text-xs font-bold text-gray-500 mb-1">{({ cuisine: "Mutfak", meal_type: "Öğün türü", difficulty: "Zorluk", diet: "Beslenme tercihi" } as Record<string, string>)[catKey]}</label>
                             <RecipeSelect
                                label={({ cuisine: "Mutfak", meal_type: "Öğün türü", difficulty: "Zorluk", diet: "Beslenme tercihi" } as Record<string, string>)[catKey]}
-                               value={(formData as Record<string, unknown>)[catKey] && Array.isArray((formData as Record<string, unknown>)[catKey]) ? ((formData as Record<string, string[]>)[catKey][0] || "") : ""}
+                               value={formData[catKey as keyof typeof options][0] || ""}
                                options={(options as Record<string, string[]>)[catKey]}
                                onChange={value => handleCategoryChange(catKey as keyof typeof options, value)}
                                onCreateOption={() => handleCategoryChange(catKey as keyof typeof options, "new")}
