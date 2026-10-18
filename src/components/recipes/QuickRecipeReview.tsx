@@ -3,6 +3,8 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { QuickRecipeDraft } from "@/lib/quick-recipe-review";
 import { validateQuickRecipe } from "@/lib/quick-recipe-review";
+import RecipeSelect from "@/components/recipes/RecipeSelect";
+import { RECIPE_UNITS } from "@/lib/recipe-measurements";
 
 type Props = {
   draft: QuickRecipeDraft;
@@ -61,12 +63,8 @@ export default function QuickRecipeReview({
               <input className={inputClass} aria-label="Kişi başına yaklaşık kalori" type="number" min={1} max={3000}
                 value={draft.calories} onChange={e => patch({ calories: e.target.value })} placeholder="Bilinmiyor" />
             </label>
-            <label><span className={labelClass}>Mutfak</span>
-              <input className={inputClass} value={draft.cuisine[0] || ""} onChange={e => patch({ cuisine: e.target.value ? [e.target.value] : [] })} />
-            </label>
-            <label><span className={labelClass}>Öğün türü</span>
-              <input className={inputClass} value={draft.meal_type[0] || ""} onChange={e => patch({ meal_type: e.target.value ? [e.target.value] : [] })} />
-            </label>
+            <RecipeSelect label="Mutfak" value={draft.cuisine[0] || ""} options={[...new Set([...draft.cuisine, "Türk Mutfağı", "İtalyan Mutfağı", "Fransız Mutfağı", "Akdeniz Mutfağı"])]} onChange={v => patch({ cuisine: v ? [v] : [] })} />
+            <RecipeSelect label="Öğün türü" value={draft.meal_type[0] || ""} options={[...new Set([...draft.meal_type, "Kahvaltı", "Öğle Yemeği", "Akşam Yemeği", "Ara Öğün", "Tatlı"])]} onChange={v => patch({ meal_type: v ? [v] : [] })} />
             <label><span className={labelClass}>Hazırlama · dakika</span>
               <input className={inputClass} type="number" min={0} max={720} value={draft.prep_time} onChange={e => patch({ prep_time: e.target.value })} />
             </label>
@@ -85,9 +83,13 @@ export default function QuickRecipeReview({
                 <input className={inputClass + " col-span-2 sm:col-span-1"} aria-label={`${i + 1}. malzemenin adı`} placeholder="Malzeme"
                   value={row.name} onChange={e => patch({ ingredients: draft.ingredients.map((v, index) => index === i ? { ...v, name: e.target.value } : v) })} />
                 <input className={inputClass} aria-label={`${i + 1}. malzemenin miktarı`} placeholder="Miktar" value={row.amount}
-                  onChange={e => patch({ ingredients: draft.ingredients.map((v, index) => index === i ? { ...v, amount: e.target.value } : v) })} />
-                <input className={inputClass} aria-label={`${i + 1}. malzemenin birimi`} placeholder="Birim" value={row.unit}
-                  onChange={e => patch({ ingredients: draft.ingredients.map((v, index) => index === i ? { ...v, unit: e.target.value } : v) })} />
+                  onChange={e => {
+                    const value = e.target.value;
+                    if (/[a-zA-ZğüşıöçĞÜŞİÖÇ]/.test(value)
+                      && !["yarım", "çeyrek"].some(word => word.startsWith(value.toLocaleLowerCase("tr-TR")))) return;
+                    patch({ ingredients: draft.ingredients.map((v, index) => index === i ? { ...v, amount: value } : v) });
+                  }} />
+                <RecipeSelect label="Ölçü birimi" value={row.unit} options={RECIPE_UNITS} onChange={unit => patch({ ingredients: draft.ingredients.map((v, index) => index === i ? { ...v, unit } : v) })} />
                 <button type="button" aria-label={`${i + 1}. malzemeyi kaldır`} className="col-span-2 rounded-xl border border-[#f1d6cd] px-3 text-xs font-bold text-[#b94c40] sm:col-span-1"
                   onClick={() => patch({ ingredients: draft.ingredients.filter((_, index) => index !== i) })}>Sil</button>
               </div>
