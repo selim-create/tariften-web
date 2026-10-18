@@ -44,9 +44,9 @@ export function validateManualRecipeStage(
   if (draft.ingredients.length > 40) {
     return { stage: 2, message: "Tarifine en fazla 40 malzeme ekleyebilirsin." };
   }
-  for (const row of draft.ingredients) {
+  for (const [index, row] of draft.ingredients.entries()) {
     const issue = validateRecipeAmount(row.amount) || validateRecipeUnit(row.unit);
-    if (issue) return { stage: 2, message: issue };
+    if (issue) return { stage: 2, message: `${index + 1}. malzeme: ${issue}` };
   }
   if (through === 2) return null;
 
