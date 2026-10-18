@@ -30,6 +30,7 @@ export default function MyKitchenLibrary({
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
+  const [retryPage, setRetryPage] = useState(1);
   const sequence = useRef(0);
   const controller = useRef<AbortController | null>(null);
 
@@ -53,8 +54,10 @@ export default function MyKitchenLibrary({
       setPage(result.page);
       setPages(result.pages);
       setTotal(result.total);
+      setRetryPage(1);
     } catch (reason) {
       if (version !== sequence.current || current.signal.aborted) return;
+      setRetryPage(nextPage);
       setError(reason instanceof Error ? reason.message : "İçerikler yüklenemedi.");
     } finally {
       if (version === sequence.current) {
@@ -129,7 +132,7 @@ export default function MyKitchenLibrary({
       {error && (
         <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
           <p>{error}</p>
-          <button onClick={() => void load(page > 0 && !loading ? page : 1)}
+          <button onClick={() => void load(retryPage)}
             type="button" className="mt-2 font-extrabold text-[#b45337] underline underline-offset-4">
             Tekrar dene
           </button>
@@ -171,7 +174,7 @@ export default function MyKitchenLibrary({
               <div className="flex gap-3 p-3">
                 <Link href={href} aria-label={item.title}
                   className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#fff3e9]">
-                  {isPlaceholderImage(item.image) || !item.image
+                  {!item.image || isPlaceholderImage(item.image)
                     ? <ImagePlaceholder title={item.title} variant="card" />
                     : <Image src={item.image} alt={item.title} fill sizes="96px"
                         className="object-cover" unoptimized={item.image.includes("unsplash.com") || item.image.includes("pexels.com")} />}
