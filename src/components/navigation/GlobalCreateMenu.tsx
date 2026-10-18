@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
-import { FaBookOpen, FaPen, FaPlus, FaUtensils, FaXmark, FaArrowRight } from "react-icons/fa6";
+import { FaBookOpen, FaPen, FaPlus, FaUtensils, FaXmark, FaArrowRight, FaVideo } from "react-icons/fa6";
 import { useAuth } from "@/context/AuthContext";
 
 const ACTIONS = [
@@ -23,7 +23,12 @@ const ACTIONS = [
     icon: FaPen,
   },
   {
-    href: "/recipe/import", title: "Mutfak notlarından aktar",
+    href: "/recipe/social", title: "Sosyal medyadan tarif ekle",
+    description: "Reels, TikTok ve Shorts bağlantısını Tariften'e aktar.",
+    icon: FaVideo,
+  },
+  {
+    href: "/recipe/import", title: "Tarif metninden aktar",
     description: "Tarifini anlat; birlikte düzenleyelim.",
     icon: FaBookOpen,
   },
