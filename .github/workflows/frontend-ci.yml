@@ -25,6 +25,8 @@ jobs:
         run: node --test scripts/check-lokma-emoji.test.cjs
       - name: Verified image upload filenames and JWT media routing
         run: node --test scripts/check-recipe-media-upload.test.cjs
+      - name: Owner recipe edit moderation status and pending review UX
+        run: node --test scripts/check-recipe-edit-review.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build
