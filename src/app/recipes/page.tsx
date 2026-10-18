@@ -278,8 +278,9 @@ function RecipesContent() {
       // user-triggered review action may send it to /recipes/create.
       const candidate = quickRecipeFromAI(aiResponse.recipe);
       setReviewDraft(candidate);
-      setSimilarRecipeId(Number.isSafeInteger(aiResponse.existing_recipe_id) && aiResponse.existing_recipe_id > 0
-        ? aiResponse.existing_recipe_id : null);
+      const existingRecipe = aiResponse.existing_recipe_id;
+      setSimilarRecipeId(typeof existingRecipe === "number"
+        && Number.isSafeInteger(existingRecipe) && existingRecipe > 0 ? existingRecipe : null);
       setPublishError("");
       setPublishUncertain(false);
       setReviewOpen(true);
