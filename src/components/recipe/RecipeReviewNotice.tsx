@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { getRecipeEditReviewStatus, type RecipeEditReviewStatus } from "@/lib/api";
+import { getRecipeReviewStatusClient, type RecipeReviewStatus } from "@/lib/recipe-write-client";
 
 /** Private review status for recipe owner, not included in public recipe HTML. */
 export default function RecipeReviewNotice({ recipeId, authorId }: { recipeId: number; authorId: number }) {
   const { user, loading } = useAuth();
   const token = user?.token;
   const isOwner = !!user && Number(user.id) === Number(authorId);
-  const [review, setReview] = useState<RecipeEditReviewStatus | null>(null);
+  const [review, setReview] = useState<RecipeReviewStatus | null>(null);
   const [toast, setToast] = useState("");
   useEffect(() => {
     const flag = new URLSearchParams(window.location.search).get("edit_review");
@@ -33,7 +33,7 @@ export default function RecipeReviewNotice({ recipeId, authorId }: { recipeId: n
       return;
     }
     let active = true;
-    getRecipeEditReviewStatus(token, recipeId)
+    getRecipeReviewStatusClient(token, recipeId)
       .then(result => { if (active) setReview(result); })
       .catch(() => { if (active) setReview(null); });
     return () => { active = false; };
