@@ -72,7 +72,7 @@ test('verified preview parsed and editable recipe faithfully copies user data', 
 });
 
 test('AI metadata suggestions are optional, editable and only published after user review', () => {
-  const candidate = fixture();
+  const candidate = fakePreview();
   candidate.recipe.suggestions = {
     servings: 4, calories_per_serving: 230, cuisine: 'Türk Mutfağı', meal_type: 'Akşam Yemeği',
   };
