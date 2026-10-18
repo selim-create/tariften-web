@@ -16,13 +16,15 @@ import {
 
 export default function EditRecipePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const { id } = use(params);
   const recipeId = parseInt(id);
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [authorizedToken, setAuthorizedToken] = useState<string | null>(null);
+  const [permissionError, setPermissionError] = useState("");
   const [saving, setSaving] = useState(false);
   const saveInFlightRef = useRef(false);
   const editorTopRef = useRef<HTMLElement>(null);
@@ -70,26 +72,37 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     diet: [] as string[]
   });
 
-  // VERİLERİ ÇEK
+  // Fail closed: the authenticated Core status endpoint verifies recipe ownership
+  // (or WordPress administrator privileges). Public recipe search is NOT authorization.
   useEffect(() => {
-    async function initData() {
-        if (!user) return;
-        const terms = await getTerms();
-        if (terms) {
-            setOptions({
-                cuisine: terms.cuisine || ["Türk Mutfağı"],
-                meal_type: terms.meal_type || ["Akşam Yemeği"],
-                difficulty: terms.difficulty || ["Kolay"],
-                diet: terms.diet || ["Vegan"]
-            });
-        }
-
-        if (user?.token) {
-            void getRecipeEditReviewStatus(user.token, recipeId)
-              .then(setReviewStatus).catch(() => { /* Server will validate the submitted edit. */ });
-        }
+    if (authLoading) return;
+    let cancelled = false;
+    setAuthorizedToken(null);
+    setPermissionError("");
+    setLoading(true);
+    const token = user?.token;
+    if (!token) {
+      setPermissionError("Bu tarifi düzenlemek için giriş yapmalısın.");
+      setLoading(false);
+      return;
+    }
+    if (!Number.isSafeInteger(recipeId) || recipeId <= 0) {
+      setPermissionError("Tarif bağlantısı geçersiz.");
+      setLoading(false);
+      return;
+    }
+    (async () => {
+      try {
+        // Must finish successfully BEFORE fetching/populating editable fields.
+        const status = await getRecipeEditReviewStatus(token, recipeId);
+        if (cancelled) return;
+        setReviewStatus(status);
         const recipe = await getRecipeById(recipeId);
-        if (recipe) {
+        if (cancelled) return;
+        if (!recipe) {
+          setPermissionError("Tarif bulunamadı.");
+          return;
+        }
              setFormData({
                  title: recipe.title || "",
                  excerpt: recipe.excerpt || "",
@@ -124,14 +137,27 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                  setPreviewUrl(img);
              }
              
-             setLoading(false);
-        } else {
-            showError("Tarif bulunamadı.");
-            setTimeout(() => router.push("/recipes"), 2000);
-        }
-    }
-    initData();
-  }, [recipeId, user, router]);
+
+        setAuthorizedToken(token);
+        // Taxonomy discovery does not decide whether editing is allowed.
+        void getTerms().then(terms => {
+          if (!cancelled && terms) setOptions({
+            cuisine: terms.cuisine || [],
+            meal_type: terms.meal_type || [],
+            difficulty: terms.difficulty || [],
+            diet: terms.diet || [],
+          });
+        }).catch(() => {});
+      } catch {
+        if (!cancelled) setPermissionError(
+          "Bu tarifi düzenleme yetkin doğrulanamadı. Yalnızca kendi tariflerini düzenleyebilirsin."
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [authLoading, recipeId, user?.token]);
 
   const handleInputChange = (field: string, value: string | number | string[]) => {
     if (typeof value === "string" && ["servings", "calories", "prep_time", "cook_time"].includes(field)) {
@@ -222,6 +248,10 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
 
   const handleUpdate = async () => {
     if (saveInFlightRef.current || saving || mediaUploading || reviewStatus?.status === 'pending') return;
+    if (!authorizedToken || authorizedToken !== user?.token) {
+      setPermissionError("Düzenleme iznin doğrulanamadı. Tarifini yeniden açmalısın.");
+      return;
+    }
     if (!user || !user.token) return showError("Lütfen giriş yapın.");
     const issue = validateManualRecipeStage(formData);
     if (issue) { setStep(issue.stage); setFormError(issue.message); return; }
@@ -256,7 +286,18 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500"><FaSpinner className="animate-spin text-3xl mr-2"/> Tarif yükleniyor...</div>;
+  if (authLoading || loading) return <div className="min-h-screen flex items-center justify-center text-gray-500"><FaSpinner className="animate-spin text-3xl mr-2"/> Düzenleme yetkisi kontrol ediliyor...</div>;
+  if (permissionError || !authorizedToken || authorizedToken !== user?.token) return (
+    <main className="min-h-[65vh] bg-[#fffaf5] px-4 py-20">
+      <div role="alert" className="mx-auto max-w-xl rounded-[28px] border border-[#f2ded1] bg-white p-8 text-center shadow-sm">
+        <h1 className="font-heading text-2xl font-extrabold text-[#263640]">Bu tarifi düzenleyemezsin</h1>
+        <p className="mt-3 text-sm leading-6 text-[#786c64]">{permissionError || "Yalnızca kendi tariflerini düzenleyebilirsin."}</p>
+        <Link href={user ? "/profile" : "/login"} className="mt-6 inline-flex rounded-xl bg-[#db4c3f] px-5 py-3 text-sm font-bold text-white">
+          {user ? "Profilime dön" : "Giriş yap"}
+        </Link>
+      </div>
+    </main>
+  );
 
   return (
     <main className="min-h-screen bg-[#fffaf5] px-4 py-8 sm:py-12 relative">
