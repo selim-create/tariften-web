@@ -58,7 +58,8 @@ test('manual web UI is premium, accessible, quota fail-closed and single-flight'
   assert.match(page,/\/recipes\?quick=1/);
   assert.match(page,/\/recipe\/import/);
   assert.match(page,/aria-label="Tarif oluşturma adımları"/);
-  assert.match(page,/aria-label=\{`\$\{idx \+ 1\}\. malzemenin adı`\}/);
+  assert.match(page,/RecipeIngredientRow/);
+  assert.match(read('src/components/recipes/RecipeIngredientRow.tsx'),/aria-label=\{\`\$\{index \+ 1\}\. malzemenin adı\`\}/);
   assert.match(page,/role="alert"/);
   assert.match(page,/const goNext = \(\) => \{/);
   assert.match(page,/validateManualRecipeStage\(formData, step as ManualRecipeStage\)/);
