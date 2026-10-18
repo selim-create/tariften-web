@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   FaArrowRight, FaBookOpen, FaCheck, FaChevronDown, FaClock,
-  FaPen, FaPlus, FaRotate, FaSearch, FaXmark,
+  FaPen, FaPlus, FaRotate, FaMagnifyingGlass, FaXmark,
 } from "react-icons/fa6";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
@@ -109,7 +109,7 @@ export default function MyKitchenLibrary({
 
       <div className="flex flex-col gap-3 rounded-2xl border border-[#efe2d7] bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <label className="flex flex-1 items-center gap-3 rounded-xl bg-[#fbf8f5] px-4">
-          <FaSearch aria-hidden className="text-[#a99081]" size={13} />
+          <FaMagnifyingGlass aria-hidden className="text-[#a99081]" size={13} />
           <input className="min-h-11 w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-[#b4a59c]"
             type="search" autoComplete="off" value={query}
             onChange={event => setQuery(event.target.value)}
