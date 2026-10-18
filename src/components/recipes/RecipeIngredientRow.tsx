@@ -38,15 +38,9 @@ export default function RecipeIngredientRow({
         placeholder="Seç (isteğe bağlı)"
         onChange={value => onChange("unit", value)} />
       <button type="button" onClick={onRemove} aria-label={`${index + 1}. malzemeyi kaldır`}
-        className="absolute right-4 top-4 hidden h-12 w-11 items-center justify-center rounded-xl text-[#a58f80] transition hover:bg-[#fee9e6] hover:text-[#bb4639] sm:flex">
-        <FaTrash aria-hidden="true" />
+        className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#eedbd2] text-xs font-bold text-[#ac695a] transition hover:bg-[#fee9e6] hover:text-[#bb4639] sm:col-span-1 sm:border-transparent">
+        <FaTrash aria-hidden="true" /><span className="sm:sr-only">Kaldır</span>
       </button>
-      <div className="col-span-2 flex items-center justify-end sm:hidden">
-        <button type="button" aria-label={`${index + 1}. malzemeyi kaldır`} onClick={onRemove}
-          className="inline-flex gap-2 rounded-xl border border-[#eedbd2] px-3 py-2 text-xs font-bold text-[#ad6254]">
-          <FaTrash aria-hidden="true" /> Kaldır
-        </button>
-      </div>
       {(amountError || unitError) && <p role="alert" className="col-span-2 text-xs font-semibold text-[#b34236] sm:col-span-4">
         {index + 1}. malzeme: {amountError || unitError}
       </p>}
