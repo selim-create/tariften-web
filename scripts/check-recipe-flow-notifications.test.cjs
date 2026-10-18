@@ -13,7 +13,6 @@ test('quick AI generation no longer uses opaque RSC server actions or blinking a
   assert.match(screen,/await createRecipeClient\(token, approved\)/);
   assert.doesNotMatch(screen,/setShowAIModal|showAIModal|<AICard/);
   assert.match(screen,/function RecipeAICard\(/);
-  assert.match(screen,/if \(!isLoadMore\)/); // guarded manually below: no opening based on zero search results
   assert.doesNotMatch(screen,/newRecipes\.length === 0 && query\.trim\(\) !==/);
   assert.match(screen,/setShowPromptModal\(true\)/);
   assert.match(client,/fetch\("\/api\/recipes\/write"/);
@@ -34,7 +33,13 @@ test('edit submit routes to published recipe for both pending approval and direc
   assert.doesNotMatch(edit,/showSuccess\(/);
   assert.match(edit,/setNotice\(msg\)/);
   const banner = read('src/components/recipe/RecipeReviewNotice.tsx');
-  assert.match(banner,/setTimeout\(\(\) => setToast\("”?,?/, 'not a valid fixture'); // replaced below
+  assert.ok(banner.includes('window.setTimeout(() => setToast(""), 4500)'));
+  assert.match(banner,/window\.history\.replaceState/);
+  assert.match(banner,/review\?\.status === "rejected"/);
+  assert.match(banner,/Yönetici notu:/);
+  assert.match(banner,/review\?\.status === "pending"/);
+  assert.match(banner,/getRecipeReviewStatusClient\(token, recipeId\)/);
+  assert.match(read('src/app/recipe/[slug]/page.tsx'),/<RecipeReviewNotice/);
 });
 
 test('only owners see edit CTA and Core review note proxy requires valid JWT', () => {
