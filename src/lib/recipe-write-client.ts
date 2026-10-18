@@ -51,3 +51,30 @@ export async function createRecipeClient(token: string, payload: Record<string, 
 export async function updateRecipeClient(token: string, payload: Record<string, unknown>) {
   return writeRecipe(token, "update", payload);
 }
+
+export type RecipeReviewStatus = {
+  status: "none" | "pending" | "approved" | "rejected";
+  note: string;
+  updated_at: string;
+};
+
+/** Never cache review notes or pass JWTs through a React Server Action. */
+export async function getRecipeReviewStatusClient(token: string, recipeId: number): Promise<RecipeReviewStatus> {
+  const res = await fetch(`/api/recipes/review-status/${recipeId}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Düzenleme durumu alınamadı.");
+  const data: unknown = await res.json();
+  if (!data || typeof data !== "object" || Array.isArray(data)
+    || !("status" in data) || !["none", "pending", "approved", "rejected"].includes(String(data.status))) {
+    throw new Error("Düzenleme durumu geçersiz.");
+  }
+  const item = data as { status: RecipeReviewStatus["status"]; note?: unknown; updated_at?: unknown };
+  return {
+    status: item.status,
+    note: typeof item.note === "string" ? item.note : "",
+    updated_at: typeof item.updated_at === "string" ? item.updated_at : "",
+  };
+}
