@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 import { createRecipe, getTerms } from "@/lib/api";
 import { uploadRecipeImage } from "@/lib/recipe-media-upload";
+import { validateManualRecipeStage, type ManualRecipeStage } from "@/lib/manual-recipe-validation";
 import { 
   FaArrowRight, FaArrowLeft, FaCheck, FaPlus, FaTrash, 
   FaClock, FaFire, FaImage, FaVideo, FaCloudArrowUp, FaLink, FaXmark, FaSpinner
@@ -18,6 +19,8 @@ export default function CreateRecipePage() {
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const saveInFlightRef = useRef(false);
+  const [formError, setFormError] = useState("");
   const quotas = useAccountQuotas(user?.token);
   const [mediaUploading, setMediaUploading] = useState(false); // Medya yükleniyor mu?
   const [mediaType, setMediaType] = useState<'upload' | 'url' | 'video'>('upload');
@@ -71,7 +74,10 @@ export default function CreateRecipePage() {
     fetchTerms();
   }, []);
 
-  const handleInputChange = (field: string, value: any) => setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (field: string, value: string | number | string[]) => {
+    setFormError("");
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   // --- YENİ DOSYA YÜKLEME MANTIĞI ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,33 +143,56 @@ export default function CreateRecipePage() {
   const addStep = () => setFormData(prev => ({ ...prev, steps: [...prev.steps, ""] }));
   const removeStep = (index: number) => setFormData(prev => ({ ...prev, steps: prev.steps.filter((_, i) => i !== index) }));
 
+  const goNext = () => {
+    const problem = validateManualRecipeStage(formData, step as ManualRecipeStage);
+    if (problem) {
+      setStep(problem.stage);
+      setFormError(problem.message);
+      return;
+    }
+    setFormError("");
+    setStep(prev => Math.min(3, prev + 1));
+  };
+
   const handleSubmit = async () => {
-    if (!user || !user.token) return showError("Lütfen giriş yapın."); // Token kontrolü eklendi
-    if (!formData.title.trim()) return showError("Lütfen bir tarif başlığı girin.");
-    
+    if (saveInFlightRef.current || loading || mediaUploading) return;
+    if (!user?.token) { showError("Tarifini yayımlamak için giriş yapmalısın."); return; }
+    const validation = validateManualRecipeStage(formData);
+    if (validation) {
+      setStep(validation.stage);
+      setFormError(validation.message);
+      return;
+    }
+    saveInFlightRef.current = true;
     setLoading(true);
+    setFormError("");
+    let publishStarted = false;
     try {
-      const fresh = await fetchAccountQuotas(user.token).catch(() => null);
-      if (quotaReached(fresh, "recipe_day")) {
-        showError("Bugünkü tarif ekleme hakkın doldu. Yeni hak: " + quotaReset(fresh, "recipe_day"));
+      let fresh;
+      try {
+        fresh = await fetchAccountQuotas(user.token);
+      } catch {
+        setFormError("Kullanım hakların doğrulanamadı. Tarifin korunuyor; bağlantını kontrol edip tekrar dene.");
         return;
       }
-      const result = await createRecipe(user.token, formData);
-      
-      if (result.success) {
-        void quotas.reload();
-        showSuccess("Tarif başarıyla oluşturuldu! 🎉");
-        
-        // DÜZELTME: Slug ile yönlendirme
-        const redirectTarget = result.slug || result.id;
-        setTimeout(() => router.push(`/recipe/${redirectTarget}`), 2000);
-        
-      } else {
-        showError(result.message || "Bir hata oluştu.");
+      if (quotaReached(fresh, "recipe_day")) {
+        setFormError("Bugünkü tarif ekleme hakkın doldu. Yeni hak: " + quotaReset(fresh, "recipe_day"));
+        return;
       }
-    } catch (error: any) {
-      showError(error.message || "Bağlantı hatası.");
+      publishStarted = true;
+      const result = await createRecipe(user.token, formData);
+      if (result?.success) {
+        void quotas.reload();
+        router.push(`/recipe/${result.slug || result.id}`);
+      } else {
+        setFormError(result?.message || "Tarif kaydedilemedi. Lütfen bilgilerini kontrol et.");
+      }
+    } catch (error: unknown) {
+      setFormError(publishStarted
+        ? "Tarifin yayımlanmış olabilir. Yeniden göndermeden önce Profil > Tariflerim bölümünü kontrol et."
+        : error instanceof Error ? error.message : "Bağlantı hatası.");
     } finally {
+      saveInFlightRef.current = false;
       setLoading(false);
     }
   };
@@ -171,55 +200,60 @@ export default function CreateRecipePage() {
   if (!user) return <div className="p-10 text-center text-gray-500 min-h-screen flex items-center justify-center">Bu sayfayı görmek için giriş yapmalısınız.</div>;
 
   return (
-    <main className="min-h-screen bg-[#fcfcfc] py-10 px-4 relative">
-      <div className="container mx-auto max-w-3xl">
+    <main className="min-h-screen bg-[#fffaf5] px-4 py-8 sm:py-12 relative">
+      <div className="mx-auto max-w-4xl">
         
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-slate-900 font-heading">Yeni Tarif Oluştur</h1>
-          <Link href="/recipe/import" className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-[#db4c3f]/20 bg-[#fdf0ed] p-4 text-left transition hover:border-[#db4c3f]/50">
-            <span className="min-w-0">
-              <span className="block text-sm font-extrabold text-[#ac4037]">✨ Akıllı Tarif Aktarımı <span className="ml-1 text-[10px] font-bold tracking-widest">BETA</span></span>
-              <span className="mt-1 block text-xs leading-5 text-slate-600">El yazısından kopyaladığın veya not aldığın tarif metnini malzeme ve adımlara ayır. Önce sen kontrol et.</span>
-            </span>
-            <FaArrowRight className="shrink-0 text-[#db4c3f]" />
-          </Link>
-          <p className="text-gray-500">Adım {step} / 3</p>
-          <div className="w-full bg-gray-200 h-1.5 rounded-full mt-4 overflow-hidden">
-            <div className="bg-brand h-full transition-all duration-500" style={{ width: step === 1 ? '33%' : step === 2 ? '66%' : '100%' }} />
-          </div>
-        </div>
+        <header className="mb-8 rounded-[30px] border border-[#f0e2d7] bg-white px-5 py-7 shadow-[0_16px_45px_-30px_rgba(79,46,35,0.3)] sm:px-9 sm:py-9">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#b35744]">TARİFTEN · MUTFAK STÜDYOSU</p>
+          <h1 className="mt-2 font-heading text-[30px] font-extrabold leading-tight tracking-tight text-[#203038] sm:text-[38px]">Tarifini kendi kelimelerinle anlat.</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#82776e]">Malzemeleri ve hazırlanışını adım adım ekle. Tarifin içeriği ve yayımlama kararı senin elinde.</p>
+          <nav aria-label="Tarif oluşturma yöntemleri" className="mt-5 flex flex-wrap gap-2 text-xs font-bold">
+            <span aria-current="page" className="rounded-full bg-[#fce9e3] px-4 py-2 text-[#9e4136]">Tarifimi kendim yazacağım</span>
+            <Link href="/recipes?quick=1" className="rounded-full border border-[#ecdccf] px-4 py-2 text-[#584b43] transition hover:border-[#db4c3f] hover:text-[#b34336]">AI ile hızlı oluştur</Link>
+            <Link href="/recipe/import" className="rounded-full border border-[#ecdccf] px-4 py-2 text-[#584b43] transition hover:border-[#db4c3f] hover:text-[#b34336]">Tarif notlarımı aktar</Link>
+          </nav>
+          <ol aria-label="Tarif oluşturma adımları" className="mt-7 grid grid-cols-3 gap-2">
+            {(["Tarif bilgileri", "Malzemeler", "Hazırlanış"] as const).map((label, index) => (
+              <li key={label} aria-current={step === index + 1 ? "step" : undefined}
+                className={`rounded-xl border px-2 py-3 text-center text-[11px] font-bold sm:px-3 sm:text-xs ${step === index + 1 ? "border-[#db4c3f] bg-[#fcece7] text-[#a43b32]" : step > index + 1 ? "border-[#b5d2c0] bg-[#edf7ef] text-[#37634a]" : "border-[#eee4da] bg-[#fcfaf8] text-[#9c9188]"}`}>
+                <span className="block text-sm font-black">{index + 1}</span>{label}
+              </li>
+            ))}
+          </ol>
+        </header>
 
-        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl">
+        {formError && <div role="alert" className="mb-5 rounded-2xl border border-[#efc6b7] bg-[#fff0e9] px-5 py-4 text-sm font-semibold leading-6 text-[#a33d35]">{formError}</div>}
+         <div className="rounded-[28px] border border-[#efe3d9] bg-white p-5 shadow-[0_20px_55px_-36px_rgba(65,46,36,0.35)] sm:p-9">
            
            {step === 1 && (
              <div className="space-y-6 animate-fade-in">
                 
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Tarif Başlığı</label>
-                    <input type="text" value={formData.title} onChange={(e) => handleInputChange("title", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-bold text-lg focus:outline-none focus:border-brand" placeholder="Örn: Avokado Tost" />
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Tarifinin adı *</label>
+                    <input type="text" value={formData.title} onChange={(e) => handleInputChange("title", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 font-bold text-lg focus:outline-none focus:border-[#db4c3f]" placeholder="Örn: Avokado Tost" />
                 </div>
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Kısa Açıklama (Spot)</label>
-                    <textarea value={formData.excerpt} onChange={(e) => handleInputChange("excerpt", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-24 resize-none" placeholder="Tarifiniz hakkında kısa ve iştah açıcı bir özet..." />
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Tarifinin kısa tanıtımı · Spot</label>
+                    <textarea value={formData.excerpt} onChange={(e) => handleInputChange("excerpt", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-24 resize-none" placeholder="Tarifiniz hakkında kısa ve iştah açıcı bir özet..." />
                 </div>
                 
                 <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Şefin İpucu (Opsiyonel)</label>
-                    <textarea value={formData.chef_tip} onChange={(e) => handleInputChange("chef_tip", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-20 resize-none" placeholder="Bu tarife özel bir ipucu... (Boş bırakılırsa otomatik oluşturulur)" />
+                    <textarea value={formData.chef_tip} onChange={(e) => handleInputChange("chef_tip", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-20 resize-none" placeholder="Bu tarife özel bir ipucu... (Boş bırakılırsa otomatik oluşturulur)" />
                 </div>
                 
                 <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2">Görsel / Video</label>
-                    <div className="flex gap-2 mb-3">
+                    <div className="flex flex-wrap gap-2 mb-3">
                         <button onClick={() => setMediaType('upload')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${mediaType === 'upload' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'}`}><FaCloudArrowUp className="inline mr-1"/> Dosya</button>
                         <button onClick={() => setMediaType('url')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${mediaType === 'url' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'}`}><FaLink className="inline mr-1"/> URL</button>
                         <button onClick={() => setMediaType('video')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${mediaType === 'video' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'}`}><FaVideo className="inline mr-1"/> Video</button>
                     </div>
                     
-                    <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-brand/50 transition bg-gray-50 relative overflow-hidden">
+                    <div className="border-2 border-dashed border-[#e9dbcf] rounded-xl p-6 text-center hover:border-brand/50 transition bg-[#fffcf8] relative overflow-hidden">
                         {(previewUrl || (typeof formData.image === 'string' && formData.image)) ? (
                             <div className="relative h-48 w-full group">
-                                <img src={previewUrl || (typeof formData.image === 'string' ? formData.image : '')} alt="Preview" className="h-full w-full object-contain rounded-lg" />
+                                <img src={previewUrl || (typeof formData.image === 'string' ? formData.image : '')} alt="Tarif fotoğrafı önizlemesi" className="h-full w-full object-contain rounded-lg" />
                                 <button onClick={() => { handleInputChange("image", ""); setPreviewUrl(""); }} className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg hover:scale-110 transition"><FaTrash /></button>
                                 {mediaUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold rounded-lg">Yükleniyor...</div>}
                             </div>
@@ -229,7 +263,7 @@ export default function CreateRecipePage() {
                                     <div className="flex flex-col items-center py-4 cursor-pointer relative">
                                         <FaCloudArrowUp className="text-4xl text-gray-300 mb-2" />
                                         <p className="text-sm text-gray-500">Görseli buraya sürükleyin veya tıklayın</p>
-                                        <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                                     </div>
                                 )}
                                 {mediaType === 'url' && (
@@ -237,7 +271,7 @@ export default function CreateRecipePage() {
                                       type="text" 
                                       value={typeof formData.image === 'string' ? formData.image : ''}
                                       onChange={(e) => { handleInputChange("image", e.target.value); setPreviewUrl(e.target.value); }} 
-                                      className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand" 
+                                      className="w-full bg-white border border-[#e9dbcf] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#db4c3f]" 
                                       placeholder="https://ornek.com/resim.jpg" 
                                     />
                                 )}
@@ -256,7 +290,7 @@ export default function CreateRecipePage() {
                                               setPreviewUrl(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
                                            }
                                         }} 
-                                        className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand" 
+                                        className="w-full bg-white border border-[#e9dbcf] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#db4c3f]" 
                                         placeholder="Youtube linki..." 
                                     />
                                 )}
@@ -265,21 +299,21 @@ export default function CreateRecipePage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Hazırlama (dk)</label><input type="number" value={formData.prep_time} onChange={(e) => handleInputChange("prep_time", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Pişirme (dk)</label><input type="number" value={formData.cook_time} onChange={(e) => handleInputChange("cook_time", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Kalori</label><input type="number" value={formData.calories} onChange={(e) => handleInputChange("calories", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Porsiyon</label><input type="number" value={formData.servings} onChange={(e) => handleInputChange("servings", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" /></div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Hazırlama (dk)</label><input type="number" value={formData.prep_time} onChange={(e) => handleInputChange("prep_time", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Pişirme (dk)</label><input type="number" value={formData.cook_time} onChange={(e) => handleInputChange("cook_time", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Kalori</label><input type="number" value={formData.calories} onChange={(e) => handleInputChange("calories", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Kaç kişilik? *</label><input type="number" min={1} max={36} aria-label="Tarifin kaç kişilik olduğu" value={formData.servings} onChange={(e) => handleInputChange("servings", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {Object.keys(options).map((catKey) => (
                         <div key={catKey}>
-                            <label className="block text-xs font-bold text-gray-500 mb-1 capitalize">{catKey.replace('_', ' ')}</label>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">{({ cuisine: "Mutfak", meal_type: "Öğün türü", difficulty: "Zorluk", diet: "Beslenme tercihi" } as Record<string, string>)[catKey]}</label>
                             <select 
                                 value={ (formData as any)[catKey]?.[0] || "" }
                                 onChange={(e) => handleCategoryChange(catKey as any, e.target.value)} 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand cursor-pointer appearance-none"
+                                className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] cursor-pointer appearance-none"
                             >
                                 <option value="">Seçiniz...</option>
                                 {(options as any)[catKey].map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
@@ -293,47 +327,49 @@ export default function CreateRecipePage() {
 
            {step === 2 && (
              <div className="space-y-6 animate-fade-in">
-                 <h2 className="text-xl font-bold text-slate-800 border-b border-gray-100 pb-2">Malzemeler</h2>
+                 <p className="text-[11px] font-black uppercase tracking-widest text-[#b35744]">2 · TARİFİN İÇİNDEKİLER</p>
+                  <h2 className="border-b border-[#efe7df] pb-4 font-heading text-2xl font-extrabold text-[#23333a]">Malzemeler</h2>
                  <div className="space-y-3">
                      {formData.ingredients.map((ing, idx) => (
-                         <div key={idx} className="flex gap-2 items-center">
-                             <input type="text" placeholder="Malzeme" value={ing.name} onChange={(e) => updateIngredient(idx, 'name', e.target.value)} className="flex-[2] bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" />
-                             <input type="text" placeholder="Miktar" value={ing.amount} onChange={(e) => updateIngredient(idx, 'amount', e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" />
-                             <input type="text" placeholder="Birim" value={ing.unit} onChange={(e) => updateIngredient(idx, 'unit', e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" />
-                             <button onClick={() => removeIngredient(idx)} className="text-gray-400 hover:text-red-500 p-2"><FaTrash /></button>
-                         </div>
+                         <div key={idx} className="relative grid grid-cols-2 gap-2 rounded-2xl border border-[#eee2d7] bg-[#fffcf8] p-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center">
+                               <input type="text" aria-label={`${idx + 1}. malzemenin adı`} placeholder="Malzeme adı" value={ing.name} onChange={(e) => { setFormError(""); updateIngredient(idx, 'name', e.target.value); }} className="col-span-2 rounded-xl border border-[#e9dbcf] bg-white px-4 py-3 pr-12 text-sm outline-none focus:border-[#db4c3f] sm:col-span-1 sm:pr-4" />
+                               <input type="text" aria-label={`${idx + 1}. malzemenin miktarı`} placeholder="Miktar" value={ing.amount} onChange={(e) => updateIngredient(idx, 'amount', e.target.value)} className="min-w-0 rounded-xl border border-[#e9dbcf] bg-white px-3 py-3 text-sm outline-none focus:border-[#db4c3f]" />
+                               <input type="text" aria-label={`${idx + 1}. malzemenin birimi`} placeholder="Birim" value={ing.unit} onChange={(e) => updateIngredient(idx, 'unit', e.target.value)} className="min-w-0 rounded-xl border border-[#e9dbcf] bg-white px-3 py-3 text-sm outline-none focus:border-[#db4c3f]" />
+                               <button type="button" aria-label={`${idx + 1}. malzemeyi kaldır`} onClick={() => { setFormError(""); removeIngredient(idx); }} className="absolute right-4 top-4 rounded-lg p-2 text-[#a58f80] transition hover:bg-[#fee9e6] hover:text-[#bb4639] sm:static"><FaTrash /></button>
+                           </div>
                      ))}
-                     <button onClick={addIngredient} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Malzeme Ekle</button>
+                     <button type="button" onClick={() => { setFormError(""); addIngredient(); }} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Malzeme Ekle</button>
                  </div>
              </div>
            )}
 
            {step === 3 && (
              <div className="space-y-6 animate-fade-in">
-                 <h2 className="text-xl font-bold text-slate-800 border-b border-gray-100 pb-2">Nasıl Yapılır?</h2>
+                 <p className="text-[11px] font-black uppercase tracking-widest text-[#b35744]">3 · MUTFAKTA ADIM ADIM</p>
+                  <h2 className="border-b border-[#efe7df] pb-4 font-heading text-2xl font-extrabold text-[#23333a]">Nasıl yapılır?</h2>
                  <div className="space-y-4">
                      {formData.steps.map((st, idx) => (
-                         <div key={idx} className="flex gap-4">
-                             <div className="flex-shrink-0 w-8 h-8 bg-brand text-white rounded-full flex items-center justify-center font-bold text-sm mt-1">{idx + 1}</div>
+                         <div key={idx} className="flex gap-3 sm:gap-4">
+                             <div className="flex-shrink-0 w-8 h-8 bg-[#db4c3f] text-white rounded-full flex items-center justify-center font-bold text-sm mt-1">{idx + 1}</div>
                              <div className="flex-grow">
-                                 <textarea value={st} onChange={(e) => updateStep(idx, e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-24 resize-none" placeholder="Bu adımda ne yapılıyor?" />
+                                 <textarea aria-label={`${idx + 1}. hazırlanış adımı`} value={st} onChange={(e) => { setFormError(""); updateStep(idx, e.target.value); }} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-24 resize-none" placeholder="Bu adımda ne yapılıyor?" />
                              </div>
-                             <button onClick={() => removeStep(idx)} className="text-gray-400 hover:text-red-500 self-center"><FaTrash /></button>
+                             <button type="button" aria-label={`${idx + 1}. adımı kaldır`} onClick={() => { setFormError(""); removeStep(idx); }} className="text-gray-400 hover:text-red-500 self-center"><FaTrash /></button>
                          </div>
                      ))}
-                     <button onClick={addStep} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Adım Ekle</button>
+                     <button type="button" onClick={() => { setFormError(""); addStep(); }} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Adım Ekle</button>
                  </div>
              </div>
            )}
 
         </div>
 
-        <div className="flex justify-between mt-8">
-          <button onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1} className="px-6 py-3 border rounded-xl font-bold disabled:opacity-50"><FaArrowLeft /> Geri</button>
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <button type="button" onClick={() => { setFormError(""); setStep(s => Math.max(1, s - 1)); }} disabled={step === 1 || loading} className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-[#eaded2] bg-white px-5 py-3 text-sm font-bold text-[#5d5149] transition hover:border-[#db4c3f] disabled:opacity-50"><FaArrowLeft /> Geri</button>
           {step < 3 ? (
-            <button onClick={() => setStep(s => s + 1)} className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold">Devam Et <FaArrowRight /></button>
+            <button type="button" onClick={goNext} disabled={loading || mediaUploading} className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[#db4c3f] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#db4c3f]/15 transition hover:bg-[#b74135] disabled:opacity-50">Devam Et <FaArrowRight /></button>
           ) : (
-            <button onClick={handleSubmit} disabled={loading || quotaReached(quotas.data, "recipe_day")} className="px-8 py-3 bg-brand text-white rounded-xl font-bold flex items-center gap-2 hover:bg-brand-dark shadow-lg shadow-brand/20 disabled:opacity-70">
+            <button type="button" onClick={() => void handleSubmit()} disabled={loading || mediaUploading} className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[#db4c3f] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#db4c3f]/15 transition hover:bg-[#b74135] disabled:opacity-70">
               {loading ? <><FaSpinner className="animate-spin" /> Kaydediliyor</> : <><FaCheck /> Yayınla</>}
             </button>
           )}

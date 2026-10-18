@@ -27,6 +27,8 @@ jobs:
         run: node --test scripts/check-recipe-media-upload.test.cjs
       - name: Owner recipe edit moderation status and pending review UX
         run: node --test scripts/check-recipe-edit-review.test.cjs
+      - name: Verify complete, accessible and guarded manual recipe creation
+        run: node --test scripts/check-web-manual-recipe-studio.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build
