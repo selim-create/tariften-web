@@ -29,6 +29,6 @@ test('Web recipe update stays on authenticated Core route; no fake moderation cl
   const api = read('src/lib/api.ts');
   const page = read('src/app/recipe/edit/[id]/page.tsx');
   assert.match(api, /tariften\/v1\/recipes\/update/);
-  assert.match(page, /updateRecipe\(user\.token, dataToSend\)/);
+  assert.match(page, /updateRecipeClient\(user\.token, dataToSend\)/);
   assert.doesNotMatch(page, /auto_approve|is_ai\s*:/);
 });
