@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
-import type { Quotas, QuotaKind } from "@/lib/account-quotas-client";
 import { createRecipe } from "@/lib/api";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import { capitalizeIngredientTr } from "@/lib/ingredient-display";
@@ -44,19 +43,6 @@ function Input({ label, value, onChange, placeholder, extraClass = "" }: {
       className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10" />
   </label>;
 }
-function CompactQuota({ data, error, loading, kind }: {
-  data: Quotas | null; error?: string; loading?: boolean; kind: QuotaKind;
-}) {
-  const q = data?.quotas?.[kind];
-  const label = kind === "recipe_ai_day" ? "Bugünkü tarif düzenleme hakkın" : "Bugünkü paylaşım hakkın";
-  return <div role="status" className="flex min-h-9 items-center justify-between gap-2 rounded-lg border border-[#e8e8e8] bg-white px-3 py-2 text-[11px]">
-    <span className="flex items-center gap-1.5 font-semibold text-slate-600"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {label}</span>
-    <span className="shrink-0 font-extrabold text-[#db4c3f]">
-      {loading && !q ? "Kontrol ediliyor…" : error ? "Kontrol edilemedi" : !q ? "—" : q.remaining === null ? "Sınırsız" : `${q.remaining} / ${q.limit} kaldı`}
-    </span>
-  </div>;
-}
-
 function Notice({ children, warning = false }: { children: React.ReactNode; warning?: boolean }) {
   return <div className={`flex gap-3 rounded-2xl border px-4 py-3.5 text-sm leading-6 ${warning ? "border-amber-200 bg-amber-50 text-amber-900" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
     {warning ? <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" /> : <Info className="mt-0.5 h-4 w-4 shrink-0" />}
@@ -76,10 +62,17 @@ export default function RecipeTextImportPage() {
   const [accepted, setAccepted] = useState(true);
   const [busy, setBusy] = useState<"preview" | "publish" | null>(null);
   const [error, setError] = useState("");
+  const [usageNotice, setUsageNotice] = useState("");
   const [betaUnavailable, setBetaUnavailable] = useState(false);
   const [routeMissing, setRouteMissing] = useState(false);
   const [activeIngredient, setActiveIngredient] = useState<number | null>(null);
   const [activeStep, setActiveStep] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!usageNotice) return;
+    const timer = window.setTimeout(() => setUsageNotice(""), 4600);
+    return () => window.clearTimeout(timer);
+  }, [usageNotice]);
 
   const updateSource = (text: string) => {
     setSource(text);
@@ -139,6 +132,7 @@ export default function RecipeTextImportPage() {
       const checked = parseImportPreview(payload);
       setPreview(checked);
       setEditor(editorFromPreview(checked));
+      setUsageNotice("Tarif notların düzenlendi · 1 AI denemesi kullanıldı.");
       setActiveIngredient(null);
       setActiveStep(null);
       setAccepted(true);
@@ -236,6 +230,12 @@ export default function RecipeTextImportPage() {
           <ShieldCheck className="h-4 w-4" /> Onayın olmadan yayımlanmaz
         </span>
       </header>
+      {usageNotice && (
+        <div role="status" className="fixed bottom-6 right-6 z-[90] rounded-2xl border border-[#edd5c3] bg-[#fffaf3] px-4 py-3 text-xs font-semibold text-[#a7644c] shadow-lg">
+          {usageNotice}
+          <button className="ml-3 underline" type="button" onClick={() => setUsageNotice("")}>Kapat</button>
+        </div>
+      )}
       {/* Independent editorial panels; the source remains accessible while the recipe grows. */}
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
         <section className="flex min-w-0 flex-col rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
@@ -262,16 +262,13 @@ export default function RecipeTextImportPage() {
           </button>}
 
           <div className="mt-3 shrink-0 border-t border-slate-100 pt-3">
-            <CompactQuota data={quotas.data} error={quotas.error} loading={quotas.loading} kind="recipe_ai_day" />
             <p className="mb-3 mt-2 text-[10px] leading-4 text-slate-500">
-              Her deneme günlük hakkından bir kullanım alır. Tarifin sen paylaşana kadar yayımlanmaz.
             </p>
             <button type="button" onClick={() => void requestPreview()}
               disabled={busy !== null || quotas.loading || !!quotas.error || !quotas.data || quotaReached(quotas.data, "recipe_ai_day") || !!validateRecipeSource(source)}
               className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
               {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> Tarifin düzenleniyor…</> : <><WandSparkles className="h-5 w-5" /> {preview ? "Önizlemeyi yeniden oluştur" : "Tarifimi güzelleştir"} <ArrowRight className="h-4 w-4" /></>}
             </button>
-            {quotaReached(quotas.data, "recipe_ai_day") && <p className="mt-3 text-xs text-amber-700">Bugünkü AI aktarım hakkın doldu. Sonraki hak: {quotaReset(quotas.data, "recipe_ai_day")}</p>}
             <p className="mt-2 text-center text-[10px] text-slate-400">Yalnızca istersen başlar. Görsel üretimi yapılmaz.</p>
           </div>
         </section>
@@ -337,9 +334,21 @@ export default function RecipeTextImportPage() {
                       value={editor.servings} onChange={e => updateEditor(old => ({ ...old, servings: e.target.value }))}
                       placeholder="Örn. 4" aria-required="true"
                       className="h-12 w-32 rounded-xl border border-[#ddc8b7] bg-white px-4 text-base font-bold text-slate-800 outline-none focus:border-[#db4c3f]" />
-                    <span className="text-xs leading-5 text-[#7c6f62]">Tarifindeki miktarlara göre kaç kişilik olduğunu sen belirle.</span>
+                    <span className="text-xs leading-5 text-[#7c6f62]">AI önerisini kontrol et veya kendin seç.</span>
                   </div>
-                  <p className="mt-2 text-[11px] leading-5 text-[#8d7563]">Kaynak tarifte porsiyon belirtilmediğinde yapay zekâ tahmin üretmez. Örneğin 1 kg fasulye için 4 kişi veya daha fazlasını seçebilirsin.</p>
+                  <p className="mt-2 text-[11px] leading-5 text-[#8d7563]">Yapay zekâ yaklaşık kişi sayısı önerebilir. Kesin bilgi değildir; kontrol edip değiştirebilirsin.</p>
+                </div>
+                <div className="grid gap-3 rounded-2xl border border-[#efdfd2] bg-white p-4 sm:grid-cols-3">
+                  <Input label="Tahmini kalori · kcal/kişi" value={editor.calories}
+                    onChange={v => updateEditor(old => ({ ...old, calories: v }))} placeholder="Belirlenemedi" />
+                  <Input label="Mutfak · AI önerisi" value={editor.cuisine}
+                    onChange={v => updateEditor(old => ({ ...old, cuisine: v }))} placeholder="Örn. Türk Mutfağı" />
+                  <Input label="Öğün tipi · AI önerisi" value={editor.mealType}
+                    onChange={v => updateEditor(old => ({ ...old, mealType: v }))} placeholder="Örn. Akşam Yemeği" />
+                  <p className="col-span-full text-xs leading-5 text-[#8c8178]">
+                    Kalori değeri kesin değildir; malzeme miktarları ve porsiyona göre değişebilir.
+                    Dilersen tüm önerileri değiştirebilir veya kalori alanını boş bırakabilirsin.
+                  </p>
                 </div>
                 <div>
                   <FormLabel>Editoryal spot · Kaynaktaki bilgilere dayalı öneri</FormLabel>
@@ -452,7 +461,6 @@ export default function RecipeTextImportPage() {
                 <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-[#f9faf9] p-4">
                   <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900"><ShieldCheck className="h-5 w-5 text-emerald-700" /> Son kontrol ve yayımlama</div>
                   <p className="text-xs leading-6 text-slate-600">Kaynakla karşılaştır, özellikle eksik miktarları ve gıda güvenliğini kontrol et. “Onayla ve yayımla” tarifini herkese açık şekilde yayımlar. Otomatik görsel üretimi yapılmaz.</p>
-                  <CompactQuota data={quotas.data} error={quotas.error} loading={quotas.loading} kind="recipe_day" />
                   <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
                     <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)}
                       className="mt-1 h-4 w-4 shrink-0 accent-[#db4c3f]" />
