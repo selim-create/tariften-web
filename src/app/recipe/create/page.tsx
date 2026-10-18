@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import RecipeSelect from "@/components/recipes/RecipeSelect";
+import { RECIPE_UNITS, validateRecipeAmount } from "@/lib/recipe-measurements";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -20,6 +22,14 @@ export default function CreateRecipePage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const saveInFlightRef = useRef(false);
+  const editorTopRef = useRef<HTMLElement>(null);
+  const lastStepRef = useRef(step);
+  useEffect(() => {
+    if (lastStepRef.current === step) return;
+    lastStepRef.current = step;
+    const timer = setTimeout(() => editorTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    return () => clearTimeout(timer);
+  }, [step]);
   const [formError, setFormError] = useState("");
   const quotas = useAccountQuotas(user?.token);
   const [mediaUploading, setMediaUploading] = useState(false); // Medya yükleniyor mu?
@@ -75,6 +85,13 @@ export default function CreateRecipePage() {
   }, []);
 
   const handleInputChange = (field: string, value: string | number | string[]) => {
+    if (typeof value === "string" && ["servings", "calories", "prep_time", "cook_time"].includes(field)) {
+      const max = field === "servings" ? 36 : field === "calories" ? 3000 : 720;
+      if (Number(value) > max) {
+        setFormError(field === "servings" ? "Kaç kişilik? En fazla 36 kişi seçebilirsin." : "Bu değer için üst sınır " + max + ".");
+        return;
+      }
+    }
     setFormError("");
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -203,7 +220,7 @@ export default function CreateRecipePage() {
     <main className="min-h-screen bg-[#fffaf5] px-4 py-8 sm:py-12 relative">
       <div className="mx-auto max-w-4xl">
         
-        <header className="mb-8 rounded-[30px] border border-[#f0e2d7] bg-white px-5 py-7 shadow-[0_16px_45px_-30px_rgba(79,46,35,0.3)] sm:px-9 sm:py-9">
+        <header ref={editorTopRef} className="scroll-mt-6 mb-8 rounded-[30px] border border-[#f0e2d7] bg-white px-5 py-7 shadow-[0_16px_45px_-30px_rgba(79,46,35,0.3)] sm:px-9 sm:py-9">
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#b35744]">TARİFTEN · MUTFAK STÜDYOSU</p>
           <h1 className="mt-2 font-heading text-[30px] font-extrabold leading-tight tracking-tight text-[#203038] sm:text-[38px]">Tarifini kendi kelimelerinle anlat.</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[#82776e]">Malzemeleri ve hazırlanışını adım adım ekle. Tarifin içeriği ve yayımlama kararı senin elinde.</p>
@@ -310,15 +327,13 @@ export default function CreateRecipePage() {
                     {Object.keys(options).map((catKey) => (
                         <div key={catKey}>
                             <label className="block text-xs font-bold text-gray-500 mb-1">{({ cuisine: "Mutfak", meal_type: "Öğün türü", difficulty: "Zorluk", diet: "Beslenme tercihi" } as Record<string, string>)[catKey]}</label>
-                            <select 
-                                value={ (formData as any)[catKey]?.[0] || "" }
-                                onChange={(e) => handleCategoryChange(catKey as any, e.target.value)} 
-                                className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] cursor-pointer appearance-none"
-                            >
-                                <option value="">Seçiniz...</option>
-                                {(options as any)[catKey].map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                                <option value="new" className="text-brand font-bold">+ Yeni Ekle</option>
-                            </select>
+                            <RecipeSelect
+                               label={({ cuisine: "Mutfak", meal_type: "Öğün türü", difficulty: "Zorluk", diet: "Beslenme tercihi" } as Record<string, string>)[catKey]}
+                               value={(formData as Record<string, unknown>)[catKey] && Array.isArray((formData as Record<string, unknown>)[catKey]) ? ((formData as Record<string, string[]>)[catKey][0] || "") : ""}
+                               options={(options as Record<string, string[]>)[catKey]}
+                               onChange={value => handleCategoryChange(catKey as keyof typeof options, value)}
+                               onCreateOption={() => handleCategoryChange(catKey as keyof typeof options, "new")}
+                             />
                         </div>
                     ))}
                 </div>
@@ -333,8 +348,15 @@ export default function CreateRecipePage() {
                      {formData.ingredients.map((ing, idx) => (
                          <div key={idx} className="relative grid grid-cols-2 gap-2 rounded-2xl border border-[#eee2d7] bg-[#fffcf8] p-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center">
                                <input type="text" aria-label={`${idx + 1}. malzemenin adı`} placeholder="Malzeme adı" value={ing.name} onChange={(e) => { setFormError(""); updateIngredient(idx, 'name', e.target.value); }} className="col-span-2 rounded-xl border border-[#e9dbcf] bg-white px-4 py-3 pr-12 text-sm outline-none focus:border-[#db4c3f] sm:col-span-1 sm:pr-4" />
-                               <input type="text" aria-label={`${idx + 1}. malzemenin miktarı`} placeholder="Miktar" value={ing.amount} onChange={(e) => updateIngredient(idx, 'amount', e.target.value)} className="min-w-0 rounded-xl border border-[#e9dbcf] bg-white px-3 py-3 text-sm outline-none focus:border-[#db4c3f]" />
-                               <input type="text" aria-label={`${idx + 1}. malzemenin birimi`} placeholder="Birim" value={ing.unit} onChange={(e) => updateIngredient(idx, 'unit', e.target.value)} className="min-w-0 rounded-xl border border-[#e9dbcf] bg-white px-3 py-3 text-sm outline-none focus:border-[#db4c3f]" />
+                               <input type="text" aria-label={`${idx + 1}. malzemenin miktarı`} placeholder="Miktar" value={ing.amount} onChange={(e) => {
+                                 const value = e.target.value;
+                                 if (/[a-zA-ZğüşıöçĞÜŞİÖÇ]/.test(value)
+                                   && !["yarım", "çeyrek"].some(word => word.startsWith(value.toLocaleLowerCase("tr-TR")))) return;
+                                 setFormError("");
+                                 updateIngredient(idx, 'amount', value);
+                               }} className="min-w-0 rounded-xl border border-[#e9dbcf] bg-white px-3 py-3 text-sm outline-none focus:border-[#db4c3f]" />
+                               <RecipeSelect label="Ölçü birimi" value={ing.unit} options={RECIPE_UNITS}
+                               onChange={value => { setFormError(""); updateIngredient(idx, "unit", value); }} placeholder="Birim seç" />
                                <button type="button" aria-label={`${idx + 1}. malzemeyi kaldır`} onClick={() => { setFormError(""); removeIngredient(idx); }} className="absolute right-4 top-4 rounded-lg p-2 text-[#a58f80] transition hover:bg-[#fee9e6] hover:text-[#bb4639] sm:static"><FaTrash /></button>
                            </div>
                      ))}
@@ -364,7 +386,9 @@ export default function CreateRecipePage() {
 
         </div>
 
-        <div className="mt-6 flex items-center justify-between gap-3">
+        <div className="mt-6 flex flex-col gap-3">
+          {formError && <p role="alert" className="rounded-xl border border-[#f1c9b8] bg-[#fff0e9] p-3 text-sm font-bold text-[#a83f35]">{formError}</p>}
+          <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={() => { setFormError(""); setStep(s => Math.max(1, s - 1)); }} disabled={step === 1 || loading} className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-[#eaded2] bg-white px-5 py-3 text-sm font-bold text-[#5d5149] transition hover:border-[#db4c3f] disabled:opacity-50"><FaArrowLeft /> Geri</button>
           {step < 3 ? (
             <button type="button" onClick={goNext} disabled={loading || mediaUploading} className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[#db4c3f] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#db4c3f]/15 transition hover:bg-[#b74135] disabled:opacity-50">Devam Et <FaArrowRight /></button>
@@ -375,6 +399,7 @@ export default function CreateRecipePage() {
           )}
         </div>
 
+          </div>
         {/* Modal */}
         {showModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
