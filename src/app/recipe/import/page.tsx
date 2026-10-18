@@ -209,6 +209,7 @@ export default function RecipeTextImportPage() {
   const warnings = preview ? importReviewNotes(preview.warnings, preview.needs_confirmation) : [];
 
   return <main className="min-h-[calc(100dvh-4rem)] bg-[#fffbf7] text-slate-800">
+    {usageNotice && <div role="status" className="fixed bottom-5 right-5 z-[110] max-w-sm rounded-2xl bg-[#253b30] px-4 py-3 text-xs font-bold text-white shadow-xl">{usageNotice}</div>}
     <div className="mx-auto max-w-[1460px] px-3 pb-12 pt-5 sm:px-6 lg:px-8">
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[#f0e6dc] bg-white px-4 py-4 text-slate-900 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:px-6">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
