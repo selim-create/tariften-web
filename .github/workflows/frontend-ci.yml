@@ -31,6 +31,8 @@ jobs:
         run: node --test scripts/check-web-manual-recipe-studio.test.cjs
       - name: Quick AI candidate review and explicit publish contract
         run: node --test scripts/check-quick-ai-review.test.cjs
+      - name: Guard shared recipe editor UX, curated units and numeric ranges
+        run: node --test scripts/check-recipe-editor-parity-ux.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build
