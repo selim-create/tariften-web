@@ -31,14 +31,14 @@ test('AI generation returns a draft only; not a published recipe or a second pai
  const generate=flow.slice(flow.indexOf('const handleGenerateRecipe = async ()'),flow.indexOf('const handlePublishQuickRecipe ='));
  const native=flow.slice(flow.indexOf('const handleGenerateAI = useCallback('),flow.indexOf('const handlePublishQuickRecipe ='));
  const body=generate;
- assert.match(body,/await generateAIRecipe\(/);
+ assert.match(body,/await generateRecipeClient\(/);
  assert.match(body,/quickRecipeFromAI\(aiResponse\.recipe\)/);
- assert.doesNotMatch(body,/await createRecipe\(/);
+ assert.doesNotMatch(body,/await createRecipeClient\(/);
  const publish=flow.slice(flow.indexOf('const handlePublishQuickRecipe ='),flow.indexOf('const handleNewQuickRecipe',flow.indexOf('const handlePublishQuickRecipe =')));
  assert.match(publish,/approvedQuickRecipe\(reviewDraft\)/);
  assert.match(publish,/fetchAccountQuotas\(token\)/);
- assert.match(publish,/await createRecipe\(token,/);
- assert.ok(publish.indexOf('await fetchAccountQuotas(token)')<publish.indexOf('await createRecipe(token,'));
+ assert.match(publish,/await createRecipeClient\(token,/);
+ assert.ok(publish.indexOf('await fetchAccountQuotas(token)')<publish.indexOf('await createRecipeClient(token,'));
  assert.match(flow,/quickPublishInFlightRef\.current/);
  assert.match(flow,/setReviewUncertain\(true\)|setPublishUncertain\(true\)/);
  assert.match(flow,/setUsageNotice\(/);
