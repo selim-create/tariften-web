@@ -331,14 +331,14 @@ export default function CreateRecipePage() {
                   <h2 className="border-b border-[#efe7df] pb-4 font-heading text-2xl font-extrabold text-[#23333a]">Malzemeler</h2>
                  <div className="space-y-3">
                      {formData.ingredients.map((ing, idx) => (
-                         <div key={idx} className="flex gap-2 items-center">
-                             <input type="text" placeholder="Malzeme" value={ing.name} onChange={(e) => updateIngredient(idx, 'name', e.target.value)} className="flex-[2] bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" />
-                             <input type="text" placeholder="Miktar" value={ing.amount} onChange={(e) => updateIngredient(idx, 'amount', e.target.value)} className="flex-1 bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" />
-                             <input type="text" placeholder="Birim" value={ing.unit} onChange={(e) => updateIngredient(idx, 'unit', e.target.value)} className="flex-1 bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" />
-                             <button onClick={() => removeIngredient(idx)} className="text-gray-400 hover:text-red-500 p-2"><FaTrash /></button>
-                         </div>
+                         <div key={idx} className="relative grid grid-cols-2 gap-2 rounded-2xl border border-[#eee2d7] bg-[#fffcf8] p-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center">
+                               <input type="text" aria-label={`${idx + 1}. malzemenin adı`} placeholder="Malzeme adı" value={ing.name} onChange={(e) => { setFormError(""); updateIngredient(idx, 'name', e.target.value); }} className="col-span-2 rounded-xl border border-[#e9dbcf] bg-white px-4 py-3 pr-12 text-sm outline-none focus:border-[#db4c3f] sm:col-span-1 sm:pr-4" />
+                               <input type="text" aria-label={`${idx + 1}. malzemenin miktarı`} placeholder="Miktar" value={ing.amount} onChange={(e) => updateIngredient(idx, 'amount', e.target.value)} className="min-w-0 rounded-xl border border-[#e9dbcf] bg-white px-3 py-3 text-sm outline-none focus:border-[#db4c3f]" />
+                               <input type="text" aria-label={`${idx + 1}. malzemenin birimi`} placeholder="Birim" value={ing.unit} onChange={(e) => updateIngredient(idx, 'unit', e.target.value)} className="min-w-0 rounded-xl border border-[#e9dbcf] bg-white px-3 py-3 text-sm outline-none focus:border-[#db4c3f]" />
+                               <button type="button" aria-label={`${idx + 1}. malzemeyi kaldır`} onClick={() => { setFormError(""); removeIngredient(idx); }} className="absolute right-4 top-4 rounded-lg p-2 text-[#a58f80] transition hover:bg-[#fee9e6] hover:text-[#bb4639] sm:static"><FaTrash /></button>
+                           </div>
                      ))}
-                     <button onClick={addIngredient} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Malzeme Ekle</button>
+                     <button type="button" onClick={() => { setFormError(""); addIngredient(); }} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Malzeme Ekle</button>
                  </div>
              </div>
            )}
@@ -349,15 +349,15 @@ export default function CreateRecipePage() {
                   <h2 className="border-b border-[#efe7df] pb-4 font-heading text-2xl font-extrabold text-[#23333a]">Nasıl yapılır?</h2>
                  <div className="space-y-4">
                      {formData.steps.map((st, idx) => (
-                         <div key={idx} className="flex gap-4">
-                             <div className="flex-shrink-0 w-8 h-8 bg-brand text-white rounded-full flex items-center justify-center font-bold text-sm mt-1">{idx + 1}</div>
+                         <div key={idx} className="flex gap-3 sm:gap-4">
+                             <div className="flex-shrink-0 w-8 h-8 bg-[#db4c3f] text-white rounded-full flex items-center justify-center font-bold text-sm mt-1">{idx + 1}</div>
                              <div className="flex-grow">
-                                 <textarea value={st} onChange={(e) => updateStep(idx, e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-24 resize-none" placeholder="Bu adımda ne yapılıyor?" />
+                                 <textarea aria-label={`${idx + 1}. hazırlanış adımı`} value={st} onChange={(e) => { setFormError(""); updateStep(idx, e.target.value); }} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-24 resize-none" placeholder="Bu adımda ne yapılıyor?" />
                              </div>
-                             <button onClick={() => removeStep(idx)} className="text-gray-400 hover:text-red-500 self-center"><FaTrash /></button>
+                             <button type="button" aria-label={`${idx + 1}. adımı kaldır`} onClick={() => { setFormError(""); removeStep(idx); }} className="text-gray-400 hover:text-red-500 self-center"><FaTrash /></button>
                          </div>
                      ))}
-                     <button onClick={addStep} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Adım Ekle</button>
+                     <button type="button" onClick={() => { setFormError(""); addStep(); }} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Adım Ekle</button>
                  </div>
              </div>
            )}
