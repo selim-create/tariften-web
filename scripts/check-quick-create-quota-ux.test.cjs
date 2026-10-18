@@ -16,7 +16,7 @@ test('AI recipe search keeps name-ingredient prompt, reads usage quotas only at 
  assert.match(screen,/searchParams\.get\("quick"\) === "1"/);
  assert.match(screen,/setShowPromptModal\(true\)/);
  assert.match(screen,/Bir tarif adı yaz veya elindeki malzemeleri listele/);
- assert.match(screen,/fetchAccountQuotas\(user\.token\)/);
+ assert.match(screen,/fetchAccountQuotas\(token\)/);
  assert.match(screen,/setUsageNotice\(/);
  assert.doesNotMatch(screen,/<QuotaPanel/);
 });
@@ -32,4 +32,20 @@ test('profile retains account rights, creation pages avoid persistent rights pan
  const imp=read('src/app/recipe/import/page.tsx');
  for(const label of ['Kişi başına tahmini kalori','Tarifin mutfağı','Tarifin öğün tipi'])assert.ok(imp.includes(label));
  assert.match(imp,/setUsageNotice/);
+});
+test('web quick AI validates rights before billing and ignores repeated taps',()=>{
+ const screen=read('src/app/recipes/page.tsx');
+ const start=screen.indexOf('const handleGenerateRecipe = async () =>');
+ const end=screen.indexOf('const renderFilterGroup =',start);
+ assert.ok(start>=0 && end>start);
+ const flow=screen.slice(start,end);
+ assert.match(flow,/if \(quickCreateInFlightRef\.current\) return/);
+ assert.match(flow,/quickCreateInFlightRef\.current = true/);
+ assert.match(flow,/await fetchAccountQuotas\(token\)/);
+ assert.match(flow,/catch \{\s*showModalMessage\("error", "Kullanım hakların şu anda kontrol edilemiyor/);
+ assert.ok(flow.indexOf('await fetchAccountQuotas(token)') < flow.indexOf('await generateAIRecipe(token, searchTerm)'));
+ assert.match(flow,/finally \{\s*quickCreateInFlightRef\.current = false/);
+ assert.doesNotMatch(flow,/fetchAccountQuotas\(token\)\.catch\(\(\) => null\)/);
+ assert.doesNotMatch(flow,/setQuery\(aiPromptInput\)/);
+ assert.match(flow,/setAiPromptInput\(""\);/);
 });
