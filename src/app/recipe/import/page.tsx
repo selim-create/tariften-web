@@ -50,14 +50,14 @@ function Notice({ children, warning = false }: { children: React.ReactNode; warn
   </div>;
 }
 
-export default function RecipeTextImportPage() {
+export default function RecipeTextImportPage({ initialMethod = "text" }: { initialMethod?: "social" | "text" } = {}) {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const token = user?.token;
   const quotas = useAccountQuotas(token);
 
   const [source, setSource] = useState("");
-  const [importMethod, setImportMethod] = useState<"social" | "text">("social");
+  const [importMethod, setImportMethod] = useState<"social" | "text">(initialMethod);
   const [socialUrl, setSocialUrl] = useState("");
   const [preview, setPreview] = useState<GroundedImportPreview | null>(null);
   const [editor, setEditor] = useState<ImportEditor | null>(null);
@@ -267,14 +267,14 @@ export default function RecipeTextImportPage() {
           </Link>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-heading text-[20px] font-extrabold tracking-tight sm:text-[23px]">Tarifin, en güzel hâline geliyor.</h1>
+              <h1 className="font-heading text-[20px] font-extrabold tracking-tight sm:text-[23px]">{importMethod === "social" ? "Sosyal medyadan tarif ekle" : "Tarifin, en güzel hâline geliyor."}</h1>
               <span className="rounded-full border border-[#f0d6ca] bg-[#fdf0e9] px-2 py-0.5 text-[9px] font-black tracking-wide text-[#ba6251]">BETA</span>
             </div>
-            <p className="mt-1 text-xs leading-5 text-[#847a70]">Tarifini sen anlat, düzenlemesini Tariften’e bırak. Son söz her zaman senin.</p>
+            <p className="mt-1 text-xs leading-5 text-[#847a70]">{importMethod === "social" ? "Beğendiğin paylaşımı Tariften tarifine dönüştür. Kaynağı ve belirsizlikleri şeffafça gösteriyoruz." : "Tarifini sen anlat, düzenlemesini Tariften’e bırak. Son söz her zaman senin."}</p>
           </div>
         </div>
         <nav aria-label="Tarif aktarım adımları" className="hidden items-center gap-2 text-[11px] font-semibold text-[#9a8170] md:flex">
-          <span className="rounded-full bg-[#fce9df] px-3 py-1.5 font-bold text-[#b24e40]">01 · Metin</span>
+          <span className="rounded-full bg-[#fce9df] px-3 py-1.5 font-bold text-[#b24e40]">01 · {importMethod === "social" ? "Bağlantı" : "Metin"}</span>
           <ArrowRight className="h-3 w-3 opacity-50" />
           <span className={`rounded-lg px-2.5 py-1.5 ${preview ? "bg-[#fce9df] text-[#b24e40]" : ""}`}>02 · Kontrol</span>
           <ArrowRight className="h-3 w-3 opacity-50" />
@@ -290,7 +290,7 @@ export default function RecipeTextImportPage() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-[14px] bg-[#ffede3] text-[#be5c49]"><span aria-hidden="true" className="text-2xl">📖</span></div>
-              <div><h2 className="font-heading text-lg font-extrabold">Senin mutfak notların</h2><p className="text-xs text-[#93887a]">Anneanneden kalma, elinin alıştığı, sana özel…</p></div>
+              <div><h2 className="font-heading text-lg font-extrabold">{importMethod === "social" ? "Sosyal medya paylaşımı" : "Senin mutfak notların"}</h2><p className="text-xs text-[#93887a]">{importMethod === "social" ? "İzlediğin tarif artık mutfağında." : "Anneanneden kalma, elinin alıştığı, sana özel…"}</p></div>
             </div>
           </div>
 
