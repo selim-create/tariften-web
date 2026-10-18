@@ -570,6 +570,8 @@ function RecipesContent() {
             draft={reviewDraft}
             setDraft={setReviewDraft}
             existingRecipeId={similarRecipeId}
+            cuisineOptions={availableFilters.cuisine}
+            mealOptions={availableFilters.mealType}
             saving={isPublishing}
             uncertain={publishUncertain}
             error={publishError}
