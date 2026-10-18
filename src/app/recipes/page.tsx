@@ -7,7 +7,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { getRecipes, generateAIRecipe, createRecipe, getTerms } from "@/lib/api"; 
 import { Recipe } from "@/types";
 import { useAuth } from "@/context/AuthContext";
-import QuotaPanel from "@/components/account/QuotaPanel";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 // İkonlar - Standart ve Yeni Paket Ayrımı (Hata Önleyici)
 import { FaSortAmountDown } from "react-icons/fa";
@@ -101,6 +100,10 @@ function RecipesContent() {
       });
     });
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("quick") === "1") setShowPromptModal(true);
+  }, [searchParams]);
 
   // 2. URL Parametrelerini Oku
   useEffect(() => {
@@ -275,20 +278,20 @@ function RecipesContent() {
 
   // --- AI KARTI BİLEŞENİ ---
   const AICard = () => (
-    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[300px] border border-slate-700 shadow-xl group hover:scale-[1.02] transition-transform duration-300">
+    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[230px] border border-slate-700 shadow-xl group hover:scale-[1.02] transition-transform duration-300">
         <div className="absolute top-0 right-0 w-40 h-40 bg-[#db4c3f] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
         <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4 text-3xl text-[#db4c3f] border border-white/10 animate-pulse">
             {isGenerating ? <FaSpinner className="animate-spin" /> : <FaRobot />}
         </div>
-        <h3 className="text-xl font-bold text-white mb-2 font-heading">Aradığın Burada Yok mu?</h3>
+        <h3 className="text-xl font-bold text-white mb-2 font-heading">Bir tarif fikrin mi var?</h3>
         <p className="text-slate-400 text-sm mb-6 font-light">
-           {isGenerating ? LOADING_MESSAGES[loadingMsgIndex] : `"${query || 'Özel'}" tarifini senin için sıfırdan yaratabilirim.`}
+           {isGenerating ? LOADING_MESSAGES[loadingMsgIndex] : `Tarifin adını veya malzemelerini yaz, sana özel yeni bir tarif hazırlayayım.`}
         </p>
-        {user?.token && <div className="w-full mb-4 text-left"><QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} kinds={["recipe_ai_day", "recipe_day"]} /></div>}
+
         <button
           type="button"
           onClick={handleGenerateRecipe}
-          disabled={isGenerating || quotaReached(quotas.data, "recipe_ai_day") || quotaReached(quotas.data, "recipe_day")}
+          disabled={isGenerating}
           className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-[#db4c3f]/20 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
         >
            {isGenerating ? "Hazırlanıyor..." : <><FaWandMagicSparkles /> AI ile Oluştur</>}
@@ -306,6 +309,10 @@ function RecipesContent() {
                 <h1 className="text-3xl font-bold text-slate-900 font-heading">Tarif Kütüphanesi</h1>
                 <p className="text-gray-500 text-sm mt-1">Toplam <strong className="text-[#db4c3f]">{recipes.length}</strong> tarif listeleniyor.</p>
             </div>
+            <button type="button" onClick={() => setShowPromptModal(true)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#db4c3f] px-5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#c64337]">
+              <FaWandMagicSparkles size={14} /> Hızlı tarif oluştur
+            </button>
             <button onClick={() => setShowMobileFilters(!showMobileFilters)} className="md:hidden w-full bg-white border border-gray-200 text-slate-700 font-bold py-3 rounded-xl shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50"><FaFilter className="text-[#db4c3f]" /> Filtrele</button>
         </div>
 
@@ -431,7 +438,7 @@ function RecipesContent() {
                   <FaWandMagicSparkles className="text-4xl text-[#db4c3f]" />
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-2 font-heading">AI Şef&apos;e Sor!</h3>
-                <p className="text-gray-500">Bir tarif adı yaz veya elindeki malzemeleri listele</p>
+                <p className="text-gray-500">Tarif adı veya malzeme listesiyle hemen başla</p>
               </div>
               
               <div className="space-y-4">
@@ -462,6 +469,10 @@ function RecipesContent() {
                   ))}
                 </div>
                 
+                <Link href="/pantry" onClick={() => setShowPromptModal(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-[#eed6c9] bg-[#fff8f3] px-4 py-3 text-xs font-bold text-[#ad6651] hover:bg-[#ffefe5]">
+                  <FaUtensils /> Dolabımdaki malzemeleri kullan
+                </Link>
                 <button 
                   onClick={handlePromptModalSubmit}
                   disabled={!aiPromptInput.trim() || isGenerating}
