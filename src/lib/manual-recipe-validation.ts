@@ -30,8 +30,10 @@ export function validateManualRecipeStage(
     return { stage: 1, message: "Tarifin kaç kişilik olduğunu belirt (1–36)." };
   }
   for (const field of ["prep_time", "cook_time", "calories"] as const) {
-    if (draft[field].trim() && (!/^\d+$/.test(draft[field].trim()) || Number(draft[field]) > 9999)) {
-      return { stage: 1, message: "Süre ve kalori alanlarında 0–9999 arasında bir sayı kullan." };
+    const max = field === "calories" ? 3000 : 720;
+    if (draft[field].trim() && (!/^\d+$/.test(draft[field].trim()) || Number(draft[field]) > max)) {
+      return { stage: 1, message: field === "calories"
+        ? "Kişi başına kalori 0–3000 arasında olmalı." : "Hazırlama ve pişirme süresi 0–720 dakika arasında olmalı." };
     }
   }
   if (through === 1) return null;
