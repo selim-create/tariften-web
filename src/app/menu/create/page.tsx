@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import QuotaPanel from "@/components/account/QuotaPanel";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 import { generateAIMenu, advanceMenuJob, retryMenuJob, fetchMenuJob, findMenuJob, type MenuJob } from "@/lib/menu-jobs-client";
 import { FaWandMagicSparkles, FaArrowRight, FaArrowLeft, FaCheck, FaUtensils, FaUserGroup, FaChampagneGlasses } from "react-icons/fa6";
@@ -404,7 +403,6 @@ export default function CreateMenuPage() {
                      </div>
                  </div>
 
-                 <div className="mb-5"><QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} kinds={["menu_month"]} /></div>
                  {job && (
                     <div className="mb-5 rounded-2xl border border-green-100 bg-green-50 p-4 text-left text-sm text-green-900">
                       <strong>Kaydedilmiş menü bulundu.</strong>

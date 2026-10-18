@@ -7,7 +7,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { getRecipes, generateAIRecipe, createRecipe, getTerms } from "@/lib/api"; 
 import { Recipe } from "@/types";
 import { useAuth } from "@/context/AuthContext";
-import QuotaPanel from "@/components/account/QuotaPanel";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 // İkonlar - Standart ve Yeni Paket Ayrımı (Hata Önleyici)
 import { FaSortAmountDown } from "react-icons/fa";
@@ -89,6 +88,18 @@ function RecipesContent() {
   // AI Prompt Modal için
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [aiPromptInput, setAiPromptInput] = useState("");
+  const [usageNotice, setUsageNotice] = useState("");
+  useEffect(() => {
+    if (searchParams.get("quick") === "1") {
+      setShowPromptModal(true);
+      router.replace("/recipes", { scroll: false });
+    }
+  }, [searchParams, router]);
+  useEffect(() => {
+    if (!usageNotice) return;
+    const timer = setTimeout(() => setUsageNotice(""), 3500);
+    return () => clearTimeout(timer);
+  }, [usageNotice]);
 
   // 1. Kategorileri Çek
   useEffect(() => {
@@ -208,6 +219,7 @@ function RecipesContent() {
     try {
       const aiResponse = await generateAIRecipe(user.token, searchTerm);
       void quotas.reload();
+      setUsageNotice("AI tarif oluşturma denemen kullanıldı. Güncel hakların Profil'de.");
       if (aiResponse.success && aiResponse.recipe) {
         const saveResponse = await createRecipe(user.token, aiResponse.recipe);
         void quotas.reload();
@@ -284,7 +296,6 @@ function RecipesContent() {
         <p className="text-slate-400 text-sm mb-6 font-light">
            {isGenerating ? LOADING_MESSAGES[loadingMsgIndex] : `"${query || 'Özel'}" tarifini senin için sıfırdan yaratabilirim.`}
         </p>
-        {user?.token && <div className="w-full mb-4 text-left"><QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} kinds={["recipe_ai_day", "recipe_day"]} /></div>}
         <button
           type="button"
           onClick={handleGenerateRecipe}
@@ -298,6 +309,7 @@ function RecipesContent() {
 
   return (
     <div className="container mx-auto px-4 py-8 relative">
+      {usageNotice && <div role="status" className="fixed bottom-6 right-6 z-[210] max-w-sm rounded-2xl bg-[#253b30] px-5 py-3 text-xs font-bold text-white shadow-xl">{usageNotice}</div>}
         {/* HEADER */}
         {/* MOBİL DÜZELTME: items-end yerine items-start */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-gray-100 pb-6">
