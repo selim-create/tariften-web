@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 import { createRecipe, getTerms } from "@/lib/api";
 import { uploadRecipeImage } from "@/lib/recipe-media-upload";
+import { validateManualRecipeStage, type ManualRecipeStage } from "@/lib/manual-recipe-validation";
 import { 
   FaArrowRight, FaArrowLeft, FaCheck, FaPlus, FaTrash, 
   FaClock, FaFire, FaImage, FaVideo, FaCloudArrowUp, FaLink, FaXmark, FaSpinner
@@ -18,6 +19,8 @@ export default function CreateRecipePage() {
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const saveInFlightRef = useRef(false);
+  const [formError, setFormError] = useState("");
   const quotas = useAccountQuotas(user?.token);
   const [mediaUploading, setMediaUploading] = useState(false); // Medya yükleniyor mu?
   const [mediaType, setMediaType] = useState<'upload' | 'url' | 'video'>('upload');
@@ -71,7 +74,10 @@ export default function CreateRecipePage() {
     fetchTerms();
   }, []);
 
-  const handleInputChange = (field: string, value: any) => setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (field: string, value: string | number | string[]) => {
+    setFormError("");
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   // --- YENİ DOSYA YÜKLEME MANTIĞI ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,33 +143,56 @@ export default function CreateRecipePage() {
   const addStep = () => setFormData(prev => ({ ...prev, steps: [...prev.steps, ""] }));
   const removeStep = (index: number) => setFormData(prev => ({ ...prev, steps: prev.steps.filter((_, i) => i !== index) }));
 
+  const goNext = () => {
+    const problem = validateManualRecipeStage(formData, step as ManualRecipeStage);
+    if (problem) {
+      setStep(problem.stage);
+      setFormError(problem.message);
+      return;
+    }
+    setFormError("");
+    setStep(prev => Math.min(3, prev + 1));
+  };
+
   const handleSubmit = async () => {
-    if (!user || !user.token) return showError("Lütfen giriş yapın."); // Token kontrolü eklendi
-    if (!formData.title.trim()) return showError("Lütfen bir tarif başlığı girin.");
-    
+    if (saveInFlightRef.current || loading || mediaUploading) return;
+    if (!user?.token) { showError("Tarifini yayımlamak için giriş yapmalısın."); return; }
+    const validation = validateManualRecipeStage(formData);
+    if (validation) {
+      setStep(validation.stage);
+      setFormError(validation.message);
+      return;
+    }
+    saveInFlightRef.current = true;
     setLoading(true);
+    setFormError("");
+    let publishStarted = false;
     try {
-      const fresh = await fetchAccountQuotas(user.token).catch(() => null);
-      if (quotaReached(fresh, "recipe_day")) {
-        showError("Bugünkü tarif ekleme hakkın doldu. Yeni hak: " + quotaReset(fresh, "recipe_day"));
+      let fresh;
+      try {
+        fresh = await fetchAccountQuotas(user.token);
+      } catch {
+        setFormError("Kullanım hakların doğrulanamadı. Tarifin korunuyor; bağlantını kontrol edip tekrar dene.");
         return;
       }
-      const result = await createRecipe(user.token, formData);
-      
-      if (result.success) {
-        void quotas.reload();
-        showSuccess("Tarif başarıyla oluşturuldu! 🎉");
-        
-        // DÜZELTME: Slug ile yönlendirme
-        const redirectTarget = result.slug || result.id;
-        setTimeout(() => router.push(`/recipe/${redirectTarget}`), 2000);
-        
-      } else {
-        showError(result.message || "Bir hata oluştu.");
+      if (quotaReached(fresh, "recipe_day")) {
+        setFormError("Bugünkü tarif ekleme hakkın doldu. Yeni hak: " + quotaReset(fresh, "recipe_day"));
+        return;
       }
-    } catch (error: any) {
-      showError(error.message || "Bağlantı hatası.");
+      publishStarted = true;
+      const result = await createRecipe(user.token, formData);
+      if (result?.success) {
+        void quotas.reload();
+        router.push(`/recipe/${result.slug || result.id}`);
+      } else {
+        setFormError(result?.message || "Tarif kaydedilemedi. Lütfen bilgilerini kontrol et.");
+      }
+    } catch (error: unknown) {
+      setFormError(publishStarted
+        ? "Tarifin yayımlanmış olabilir. Yeniden göndermeden önce Profil > Tariflerim bölümünü kontrol et."
+        : error instanceof Error ? error.message : "Bağlantı hatası.");
     } finally {
+      saveInFlightRef.current = false;
       setLoading(false);
     }
   };
@@ -189,7 +218,8 @@ export default function CreateRecipePage() {
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl">
+        {formError && <div role="alert" className="mb-5 rounded-2xl border border-[#efc6b7] bg-[#fff0e9] px-5 py-4 text-sm font-semibold leading-6 text-[#a33d35]">{formError}</div>}
+         <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl">
            
            {step === 1 && (
              <div className="space-y-6 animate-fade-in">
@@ -331,9 +361,9 @@ export default function CreateRecipePage() {
         <div className="flex justify-between mt-8">
           <button onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1} className="px-6 py-3 border rounded-xl font-bold disabled:opacity-50"><FaArrowLeft /> Geri</button>
           {step < 3 ? (
-            <button onClick={() => setStep(s => s + 1)} className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold">Devam Et <FaArrowRight /></button>
+            <button onClick={goNext} className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold">Devam Et <FaArrowRight /></button>
           ) : (
-            <button onClick={handleSubmit} disabled={loading || quotaReached(quotas.data, "recipe_day")} className="px-8 py-3 bg-brand text-white rounded-xl font-bold flex items-center gap-2 hover:bg-brand-dark shadow-lg shadow-brand/20 disabled:opacity-70">
+            <button onClick={() => void handleSubmit()} disabled={loading || mediaUploading} className="px-8 py-3 bg-brand text-white rounded-xl font-bold flex items-center gap-2 hover:bg-brand-dark shadow-lg shadow-brand/20 disabled:opacity-70">
               {loading ? <><FaSpinner className="animate-spin" /> Kaydediliyor</> : <><FaCheck /> Yayınla</>}
             </button>
           )}
