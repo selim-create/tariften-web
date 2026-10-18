@@ -9,6 +9,7 @@ export type RecipeWriteResult = {
   slug?: string;
   recipe?: unknown;
   existing_recipe_id?: number;
+  existing_recipe_slug?: string | null;
 };
 
 async function writeRecipe(
