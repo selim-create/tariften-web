@@ -4,7 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { QuickRecipeDraft } from "@/lib/quick-recipe-review";
 import { validateQuickRecipe } from "@/lib/quick-recipe-review";
 import RecipeSelect from "@/components/recipes/RecipeSelect";
-import { RECIPE_UNITS } from "@/lib/recipe-measurements";
+import { RECIPE_UNITS, canTypeRecipeAmount } from "@/lib/recipe-measurements";
 
 type Props = {
   draft: QuickRecipeDraft;
@@ -87,8 +87,7 @@ export default function QuickRecipeReview({
                 <input className={inputClass} aria-label={`${i + 1}. malzemenin miktarı`} placeholder="Miktar" value={row.amount}
                   onChange={e => {
                     const value = e.target.value;
-                    if (/[a-zA-ZğüşıöçĞÜŞİÖÇ]/.test(value)
-                      && !["yarım", "çeyrek"].some(word => word.startsWith(value.toLocaleLowerCase("tr-TR")))) return;
+                    if (!canTypeRecipeAmount(value)) return;
                     patch({ ingredients: draft.ingredients.map((v, index) => index === i ? { ...v, amount: value } : v) });
                   }} />
                 <RecipeSelect label="Ölçü birimi" value={row.unit} options={RECIPE_UNITS} onChange={unit => patch({ ingredients: draft.ingredients.map((v, index) => index === i ? { ...v, unit } : v) })} />
