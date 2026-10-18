@@ -229,31 +229,31 @@ export default function CreateRecipePage() {
              <div className="space-y-6 animate-fade-in">
                 
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Tarif Başlığı</label>
-                    <input type="text" value={formData.title} onChange={(e) => handleInputChange("title", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-bold text-lg focus:outline-none focus:border-brand" placeholder="Örn: Avokado Tost" />
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Tarifinin adı *</label>
+                    <input type="text" value={formData.title} onChange={(e) => handleInputChange("title", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 font-bold text-lg focus:outline-none focus:border-[#db4c3f]" placeholder="Örn: Avokado Tost" />
                 </div>
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Kısa Açıklama (Spot)</label>
-                    <textarea value={formData.excerpt} onChange={(e) => handleInputChange("excerpt", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-24 resize-none" placeholder="Tarifiniz hakkında kısa ve iştah açıcı bir özet..." />
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Tarifinin kısa tanıtımı · Spot</label>
+                    <textarea value={formData.excerpt} onChange={(e) => handleInputChange("excerpt", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-24 resize-none" placeholder="Tarifiniz hakkında kısa ve iştah açıcı bir özet..." />
                 </div>
                 
                 <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Şefin İpucu (Opsiyonel)</label>
-                    <textarea value={formData.chef_tip} onChange={(e) => handleInputChange("chef_tip", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-20 resize-none" placeholder="Bu tarife özel bir ipucu... (Boş bırakılırsa otomatik oluşturulur)" />
+                    <textarea value={formData.chef_tip} onChange={(e) => handleInputChange("chef_tip", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-20 resize-none" placeholder="Bu tarife özel bir ipucu... (Boş bırakılırsa otomatik oluşturulur)" />
                 </div>
                 
                 <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2">Görsel / Video</label>
-                    <div className="flex gap-2 mb-3">
+                    <div className="flex flex-wrap gap-2 mb-3">
                         <button onClick={() => setMediaType('upload')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${mediaType === 'upload' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'}`}><FaCloudArrowUp className="inline mr-1"/> Dosya</button>
                         <button onClick={() => setMediaType('url')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${mediaType === 'url' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'}`}><FaLink className="inline mr-1"/> URL</button>
                         <button onClick={() => setMediaType('video')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${mediaType === 'video' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'}`}><FaVideo className="inline mr-1"/> Video</button>
                     </div>
                     
-                    <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-brand/50 transition bg-gray-50 relative overflow-hidden">
+                    <div className="border-2 border-dashed border-[#e9dbcf] rounded-xl p-6 text-center hover:border-brand/50 transition bg-[#fffcf8] relative overflow-hidden">
                         {(previewUrl || (typeof formData.image === 'string' && formData.image)) ? (
                             <div className="relative h-48 w-full group">
-                                <img src={previewUrl || (typeof formData.image === 'string' ? formData.image : '')} alt="Preview" className="h-full w-full object-contain rounded-lg" />
+                                <img src={previewUrl || (typeof formData.image === 'string' ? formData.image : '')} alt="Tarif fotoğrafı önizlemesi" className="h-full w-full object-contain rounded-lg" />
                                 <button onClick={() => { handleInputChange("image", ""); setPreviewUrl(""); }} className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg hover:scale-110 transition"><FaTrash /></button>
                                 {mediaUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold rounded-lg">Yükleniyor...</div>}
                             </div>
@@ -263,7 +263,7 @@ export default function CreateRecipePage() {
                                     <div className="flex flex-col items-center py-4 cursor-pointer relative">
                                         <FaCloudArrowUp className="text-4xl text-gray-300 mb-2" />
                                         <p className="text-sm text-gray-500">Görseli buraya sürükleyin veya tıklayın</p>
-                                        <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                                     </div>
                                 )}
                                 {mediaType === 'url' && (
@@ -271,7 +271,7 @@ export default function CreateRecipePage() {
                                       type="text" 
                                       value={typeof formData.image === 'string' ? formData.image : ''}
                                       onChange={(e) => { handleInputChange("image", e.target.value); setPreviewUrl(e.target.value); }} 
-                                      className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand" 
+                                      className="w-full bg-white border border-[#e9dbcf] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#db4c3f]" 
                                       placeholder="https://ornek.com/resim.jpg" 
                                     />
                                 )}
@@ -290,7 +290,7 @@ export default function CreateRecipePage() {
                                               setPreviewUrl(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
                                            }
                                         }} 
-                                        className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand" 
+                                        className="w-full bg-white border border-[#e9dbcf] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#db4c3f]" 
                                         placeholder="Youtube linki..." 
                                     />
                                 )}
@@ -299,21 +299,21 @@ export default function CreateRecipePage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Hazırlama (dk)</label><input type="number" value={formData.prep_time} onChange={(e) => handleInputChange("prep_time", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Pişirme (dk)</label><input type="number" value={formData.cook_time} onChange={(e) => handleInputChange("cook_time", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Kalori</label><input type="number" value={formData.calories} onChange={(e) => handleInputChange("calories", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Porsiyon</label><input type="number" value={formData.servings} onChange={(e) => handleInputChange("servings", e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" /></div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Hazırlama (dk)</label><input type="number" value={formData.prep_time} onChange={(e) => handleInputChange("prep_time", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Pişirme (dk)</label><input type="number" value={formData.cook_time} onChange={(e) => handleInputChange("cook_time", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Kalori</label><input type="number" value={formData.calories} onChange={(e) => handleInputChange("calories", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 mb-1">Kaç kişilik? *</label><input type="number" min={1} max={36} aria-label="Tarifin kaç kişilik olduğu" value={formData.servings} onChange={(e) => handleInputChange("servings", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {Object.keys(options).map((catKey) => (
                         <div key={catKey}>
-                            <label className="block text-xs font-bold text-gray-500 mb-1 capitalize">{catKey.replace('_', ' ')}</label>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">{({ cuisine: "Mutfak", meal_type: "Öğün türü", difficulty: "Zorluk", diet: "Beslenme tercihi" } as Record<string, string>)[catKey]}</label>
                             <select 
                                 value={ (formData as any)[catKey]?.[0] || "" }
                                 onChange={(e) => handleCategoryChange(catKey as any, e.target.value)} 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand cursor-pointer appearance-none"
+                                className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] cursor-pointer appearance-none"
                             >
                                 <option value="">Seçiniz...</option>
                                 {(options as any)[catKey].map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
@@ -327,47 +327,49 @@ export default function CreateRecipePage() {
 
            {step === 2 && (
              <div className="space-y-6 animate-fade-in">
-                 <h2 className="text-xl font-bold text-slate-800 border-b border-gray-100 pb-2">Malzemeler</h2>
+                 <p className="text-[11px] font-black uppercase tracking-widest text-[#b35744]">2 · TARİFİN İÇİNDEKİLER</p>
+                  <h2 className="border-b border-[#efe7df] pb-4 font-heading text-2xl font-extrabold text-[#23333a]">Malzemeler</h2>
                  <div className="space-y-3">
                      {formData.ingredients.map((ing, idx) => (
                          <div key={idx} className="flex gap-2 items-center">
-                             <input type="text" placeholder="Malzeme" value={ing.name} onChange={(e) => updateIngredient(idx, 'name', e.target.value)} className="flex-[2] bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" />
-                             <input type="text" placeholder="Miktar" value={ing.amount} onChange={(e) => updateIngredient(idx, 'amount', e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" />
-                             <input type="text" placeholder="Birim" value={ing.unit} onChange={(e) => updateIngredient(idx, 'unit', e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand" />
+                             <input type="text" placeholder="Malzeme" value={ing.name} onChange={(e) => updateIngredient(idx, 'name', e.target.value)} className="flex-[2] bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" />
+                             <input type="text" placeholder="Miktar" value={ing.amount} onChange={(e) => updateIngredient(idx, 'amount', e.target.value)} className="flex-1 bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" />
+                             <input type="text" placeholder="Birim" value={ing.unit} onChange={(e) => updateIngredient(idx, 'unit', e.target.value)} className="flex-1 bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" />
                              <button onClick={() => removeIngredient(idx)} className="text-gray-400 hover:text-red-500 p-2"><FaTrash /></button>
                          </div>
                      ))}
-                     <button onClick={addIngredient} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Malzeme Ekle</button>
+                     <button onClick={addIngredient} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Malzeme Ekle</button>
                  </div>
              </div>
            )}
 
            {step === 3 && (
              <div className="space-y-6 animate-fade-in">
-                 <h2 className="text-xl font-bold text-slate-800 border-b border-gray-100 pb-2">Nasıl Yapılır?</h2>
+                 <p className="text-[11px] font-black uppercase tracking-widest text-[#b35744]">3 · MUTFAKTA ADIM ADIM</p>
+                  <h2 className="border-b border-[#efe7df] pb-4 font-heading text-2xl font-extrabold text-[#23333a]">Nasıl yapılır?</h2>
                  <div className="space-y-4">
                      {formData.steps.map((st, idx) => (
                          <div key={idx} className="flex gap-4">
                              <div className="flex-shrink-0 w-8 h-8 bg-brand text-white rounded-full flex items-center justify-center font-bold text-sm mt-1">{idx + 1}</div>
                              <div className="flex-grow">
-                                 <textarea value={st} onChange={(e) => updateStep(idx, e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand h-24 resize-none" placeholder="Bu adımda ne yapılıyor?" />
+                                 <textarea value={st} onChange={(e) => updateStep(idx, e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-24 resize-none" placeholder="Bu adımda ne yapılıyor?" />
                              </div>
                              <button onClick={() => removeStep(idx)} className="text-gray-400 hover:text-red-500 self-center"><FaTrash /></button>
                          </div>
                      ))}
-                     <button onClick={addStep} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Adım Ekle</button>
+                     <button onClick={addStep} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Adım Ekle</button>
                  </div>
              </div>
            )}
 
         </div>
 
-        <div className="flex justify-between mt-8">
-          <button onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1} className="px-6 py-3 border rounded-xl font-bold disabled:opacity-50"><FaArrowLeft /> Geri</button>
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <button type="button" onClick={() => { setFormError(""); setStep(s => Math.max(1, s - 1)); }} disabled={step === 1 || loading} className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-[#eaded2] bg-white px-5 py-3 text-sm font-bold text-[#5d5149] transition hover:border-[#db4c3f] disabled:opacity-50"><FaArrowLeft /> Geri</button>
           {step < 3 ? (
-            <button onClick={goNext} className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold">Devam Et <FaArrowRight /></button>
+            <button type="button" onClick={goNext} disabled={loading || mediaUploading} className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[#db4c3f] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#db4c3f]/15 transition hover:bg-[#b74135] disabled:opacity-50">Devam Et <FaArrowRight /></button>
           ) : (
-            <button onClick={() => void handleSubmit()} disabled={loading || mediaUploading} className="px-8 py-3 bg-brand text-white rounded-xl font-bold flex items-center gap-2 hover:bg-brand-dark shadow-lg shadow-brand/20 disabled:opacity-70">
+            <button type="button" onClick={() => void handleSubmit()} disabled={loading || mediaUploading} className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[#db4c3f] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#db4c3f]/15 transition hover:bg-[#b74135] disabled:opacity-70">
               {loading ? <><FaSpinner className="animate-spin" /> Kaydediliyor</> : <><FaCheck /> Yayınla</>}
             </button>
           )}
