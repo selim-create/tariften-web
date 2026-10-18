@@ -29,6 +29,8 @@ jobs:
         run: node --test scripts/check-recipe-edit-review.test.cjs
       - name: Verify complete, accessible and guarded manual recipe creation
         run: node --test scripts/check-web-manual-recipe-studio.test.cjs
+      - name: Quick AI candidate review and explicit publish contract
+        run: node --test scripts/check-quick-ai-review.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build
