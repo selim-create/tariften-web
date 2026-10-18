@@ -4,251 +4,177 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { FaBookOpen, FaFire, FaHeart, FaPen, FaUtensils } from "react-icons/fa6";
 import { useAuth } from "@/context/AuthContext";
-import QuotaPanel from "@/components/account/QuotaPanel";
+import { getUserInteractions } from "@/lib/api";
 import { useAccountQuotas } from "@/lib/account-quotas-client";
-import { FaGear, FaFire, FaPen, FaHeart, FaBowlFood, FaClock, FaCheck } from "react-icons/fa6";
-import { getUserInteractions, getUserRecipes } from "@/lib/api";
+import QuotaPanel from "@/components/account/QuotaPanel";
+import MyKitchenLibrary from "@/components/account/MyKitchenLibrary";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
+import type { Recipe } from "@/types";
+
+type Tab = "recipes" | "menus" | "favorite" | "cooked";
+
+const TABS = [
+  { key: "recipes", label: "Tariflerim", icon: FaPen },
+  { key: "menus", label: "Sofralarım", icon: FaUtensils },
+  { key: "favorite", label: "Favoriler", icon: FaHeart },
+  { key: "cooked", label: "Pişirdiklerim", icon: FaFire },
+] as const;
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const quotas = useAccountQuotas(user?.token);
-  
-  const [stats, setStats] = useState({
-    cookedCount: 0,
-    favoriteCount: 0,
-    recipeCount: 0 
-  });
-  
-  const [activeTab, setActiveTab] = useState<'cooked' | 'favorite' | 'recipes'>('cooked');
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [userRecipes, setUserRecipes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<Tab>("recipes");
+  const [recentActivity, setRecentActivity] = useState<Recipe[]>([]);
+  const [favorites, setFavorites] = useState<Recipe[]>([]);
+  const [interactionsLoading, setInteractionsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-        router.push("/login");
-        return;
-    }
+    if (!authLoading && !user) router.replace("/login");
+  }, [authLoading, user, router]);
 
-    async function fetchStats() {
-      const token = localStorage.getItem('tariften_token');
-      if (!token) return;
-
+  useEffect(() => {
+    const token = user?.token;
+    if (!token) return;
+    let cancelled = false;
+    const refresh = async () => {
+      setInteractionsLoading(true);
       try {
-        setLoading(true);
-        const [cookedData, favoritesData, recipesData] = await Promise.all([
-          getUserInteractions(token, 'cooked'),
-          getUserInteractions(token, 'favorite'),
-          getUserRecipes(token)
+        const [cooked, loved] = await Promise.all([
+          getUserInteractions(token, "cooked"),
+          getUserInteractions(token, "favorite"),
         ]);
-        
-        setStats({
-          cookedCount: cookedData?.length || 0,
-          favoriteCount: favoritesData?.length || 0,
-          recipeCount: recipesData?.length || 0
-        });
-
-        setRecentActivity(cookedData || []);
-        setFavorites(favoritesData || []);
-        setUserRecipes(recipesData || []); // YENİ
-
-      } catch (error) {
-        console.error("Stats error", error);
+        if (!cancelled) {
+          setRecentActivity(Array.isArray(cooked) ? cooked : []);
+          setFavorites(Array.isArray(loved) ? loved : []);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setInteractionsLoading(false);
       }
-    }
+    };
+    void refresh();
+    return () => { cancelled = true; };
+  }, [user?.token]);
 
-    fetchStats();
-  }, [user, router]);
+  if (authLoading || !user || !user.token) {
+    return <main className="grid min-h-[50vh] place-items-center text-sm text-[#97867b]">
+      {authLoading ? "Profilin yükleniyor…" : "Giriş sayfasına yönlendiriliyorsun…"}
+    </main>;
+  }
 
-  if (!user) return null;
-
-  const avatarUrl = user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.user_display_name || "User")}&background=random&color=fff`;
+  const avatarUrl = user.avatar_url
+    || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.user_display_name || "Tariften")}&background=fcf1e9&color=d64b3f`;
+  const interactions = activeTab === "cooked" ? recentActivity : favorites;
+  const interactionLabel = activeTab === "cooked" ? "Pişirdiklerim" : "Favoriler";
 
   return (
-    <main className="min-h-screen bg-[#fcfcfc] pb-24">
-      
-      {/* Üst Profil Kartı */}
-      <div className="bg-white border-b border-gray-100 pt-12 pb-8 px-6">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center md:items-start gap-6">
-          
-          {/* Avatar */}
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 relative">
-               <Image 
-                 src={avatarUrl}
-                 alt={user.user_display_name}
-                 fill
-                 className="object-cover"
-                 unoptimized={avatarUrl.includes('ui-avatars.com')}
-               />
-            </div>
-            <Link 
-              href="/profile/edit"
-              className="absolute bottom-0 right-0 bg-white border border-gray-200 p-2 rounded-full text-slate-600 shadow-sm hover:text-brand transition"
-            >
-              <FaGear className="text-sm" />
-            </Link>
+    <main className="min-h-screen bg-[#fffbf7] pb-20">
+      <div className="border-b border-[#f0e6de] bg-white">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-5 px-5 py-9 text-center sm:flex-row sm:text-left">
+          <div className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-[26px] border-[4px] border-[#fff5ed] bg-[#fff0e8] shadow-md">
+            <Image src={avatarUrl} alt={user.user_display_name || "Profil"}
+              fill sizes="84px" className="object-cover" unoptimized={avatarUrl.includes("ui-avatars.com")} />
           </div>
-
-          {/* Bilgiler */}
-          <div className="flex-1 text-center md:text-left">
-            <h1 className="text-2xl font-bold text-slate-900 font-heading mb-1">{user.user_display_name}</h1>
-            <p className="text-slate-500 text-sm mb-4">@{user.user_nicename || "kullanici"}</p>
-            
-            <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                {user.experience && (
-                  <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-xs font-bold border border-orange-100">
-                    {user.experience === 'pro' ? 'Usta Şef' : user.experience === 'intermediate' ? 'Hevesli Aşçı' : 'Çırak'}
-                  </span>
-                )}
-                {user.diet && user.diet !== 'none' && (
-                  <span className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100 capitalize">
-                    {user.diet.replace('_', ' ')}
-                  </span>
-                )}
-            </div>
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d26956]">TARİFTEN · MUTFAĞIM</span>
+            <h1 className="mt-1 font-heading text-[29px] font-extrabold tracking-tight text-slate-900">
+              {user.user_display_name || "Tariften Şef"}
+            </h1>
+            <p className="mt-1 text-sm text-[#94847a]">Tariflerin, sofraların ve mutfağındaki güzel fikirler.</p>
+            {user.experience && (
+              <span className="mt-3 inline-flex rounded-full border border-[#f2dacd] bg-[#fff3eb] px-3 py-1 text-xs font-bold text-[#ba6a52]">
+                {user.experience === "pro" ? "Usta Şef" : user.experience === "intermediate" ? "Hevesli Aşçı" : "Çırak"}
+              </span>
+            )}
           </div>
-
+          <Link href="/profile/edit"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#e9ded4] bg-white px-4 text-xs font-extrabold text-slate-700 transition hover:border-[#da5546] hover:text-[#d74c3e]">
+            Hesap ayarları <span aria-hidden="true">↗</span>
+          </Link>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 mt-8 space-y-8">
-        <QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} />
-        
-        {/* Tıklanabilir İstatistik Kartları */}
-        <div className="grid grid-cols-3 gap-4">
-          <button 
-            onClick={() => setActiveTab('cooked')}
-            className={`bg-white p-4 rounded-2xl shadow-sm border text-center transition ${activeTab === 'cooked' ? 'border-brand ring-2 ring-brand/20' : 'border-gray-100 hover:border-gray-200'}`}
-          >
-            <div className="w-10 h-10 mx-auto bg-red-50 text-brand rounded-full flex items-center justify-center mb-2">
-              <FaFire />
-            </div>
-            <div className="text-2xl font-bold text-slate-800">{stats.cookedCount}</div>
-            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Pişirilen</div>
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('favorite')}
-            className={`bg-white p-4 rounded-2xl shadow-sm border text-center transition ${activeTab === 'favorite' ? 'border-pink-500 ring-2 ring-pink-500/20' : 'border-gray-100 hover:border-gray-200'}`}
-          >
-            <div className="w-10 h-10 mx-auto bg-pink-50 text-pink-500 rounded-full flex items-center justify-center mb-2">
-              <FaHeart />
-            </div>
-            <div className="text-2xl font-bold text-slate-800">{stats.favoriteCount}</div>
-            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Favori</div>
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('recipes')}
-            className={`bg-white p-4 rounded-2xl shadow-sm border text-center transition ${activeTab === 'recipes' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-100 hover:border-gray-200'}`}
-          >
-            <div className="w-10 h-10 mx-auto bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-2">
-              <FaPen />
-            </div>
-            <div className="text-2xl font-bold text-slate-800">{stats.recipeCount}</div>
-            <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tariflerim</div>
-          </button>
+      <div className="mx-auto max-w-5xl space-y-7 px-4 pt-7 sm:px-6">
+        <div className="rounded-[26px] border border-[#efe0d5] bg-white p-3 shadow-[0_16px_44px_rgba(75,44,26,0.045)] sm:p-4">
+          <div role="tablist" aria-label="Mutfak kütüphanem"
+            className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {TABS.map(({ key, label, icon: Icon }) => (
+              <button key={key} type="button" role="tab"
+                aria-selected={activeTab === key}
+                onClick={() => setActiveTab(key)}
+                className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-extrabold transition sm:text-sm ${activeTab === key
+                  ? "bg-[#fff0e9] text-[#c94f40] shadow-sm ring-1 ring-[#efcabe]"
+                  : "text-[#8c807a] hover:bg-[#fff8f3] hover:text-slate-800"}`}>
+                <Icon size={14} aria-hidden="true" />{label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Tarif Listesi */}
-        <div className="min-h-[200px]">
-          {loading ? (
-            <div className="flex justify-center py-10 text-gray-300"><FaClock className="animate-spin text-2xl" /></div>
-          ) : (
-            <>
-              {activeTab === 'cooked' && (
-                recentActivity.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {recentActivity.map((recipe) => (
-                      <RecipeCard key={recipe.id} recipe={recipe} type="cooked" />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState message="Henüz hiç yemek pişirmedin." link="/pantry" linkText="Dolabını Yönet" />
-                )
+        <div role="tabpanel" className="min-h-[250px]">
+          {activeTab === "recipes" && (
+            <MyKitchenLibrary key="recipes" kind="recipes" token={user.token} userId={Number(user.id)} />
+          )}
+          {activeTab === "menus" && (
+            <MyKitchenLibrary key="menus" kind="menus" token={user.token} userId={Number(user.id)} />
+          )}
+          {(activeTab === "favorite" || activeTab === "cooked") && (
+            <section className="space-y-5">
+              <div>
+                <span className="text-[10px] font-extrabold tracking-[0.18em] text-[#cb6654]">MUTFAK HATIRALARIN</span>
+                <h2 className="mt-1 font-heading text-2xl font-extrabold text-slate-900">{interactionLabel}</h2>
+                <p className="mt-1 text-sm text-[#94847a]">
+                  {activeTab === "favorite" ? "Sevdiğin ve yeniden denemek istediğin tarifler."
+                    : "Pişirdiğin ve yeniden yapabileceğin lezzetler."}
+                </p>
+              </div>
+              {interactionsLoading ? (
+                <p role="status" className="rounded-2xl border border-[#f0e4da] bg-white p-9 text-center text-sm text-[#94847a]">Tariflerin yükleniyor…</p>
+              ) : interactions.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {interactions.map(recipe => (
+                    <Link key={recipe.id} href={`/recipe/${recipe.slug}`}
+                      className="group flex gap-3 rounded-[20px] border border-[#f0e4da] bg-white p-3 shadow-sm transition hover:border-[#e8cabb] hover:shadow-md">
+                      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#fff3eb]">
+                        {!recipe.image || isPlaceholderImage(recipe.image)
+                          ? <ImagePlaceholder title={recipe.title} variant="card" />
+                          : <Image src={recipe.image} alt={recipe.title} fill sizes="96px"
+                              className="object-cover" unoptimized={recipe.image.includes("unsplash.com") || recipe.image.includes("pexels.com")} />}
+                      </div>
+                      <div className="min-w-0 flex-1 py-1">
+                        <h3 className="line-clamp-2 text-sm font-extrabold text-slate-900 group-hover:text-[#cf5745]">{recipe.title}</h3>
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#95877d]">{recipe.excerpt}</p>
+                        <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#c45d4a]">
+                          {activeTab === "favorite" ? <FaHeart size={12} /> : <FaFire size={12} />}
+                          {activeTab === "favorite" ? "Favorilerinde" : "Pişirildi"}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center rounded-[24px] border border-[#f0e4da] bg-white px-5 py-11 text-center">
+                  <FaBookOpen className="text-[#d6b9a6]" size={25} />
+                  <h3 className="mt-3 font-heading font-extrabold text-slate-900">
+                    {activeTab === "favorite" ? "Henüz favori tarifin yok." : "Henüz pişirdiğin bir tarif yok."}
+                  </h3>
+                  <Link href="/recipes" className="mt-4 rounded-xl bg-[#df5043] px-5 py-2.5 text-xs font-bold text-white">
+                    Tarifleri keşfet
+                  </Link>
+                </div>
               )}
-
-              {activeTab === 'favorite' && (
-                favorites.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {favorites.map((recipe) => (
-                      <RecipeCard key={recipe.id} recipe={recipe} type="favorite" />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState message="Henüz favori tarifin yok." link="/recipes" linkText="Tarifleri Keşfet" />
-                )
-              )}
-
-              {activeTab === 'recipes' && (
-                userRecipes.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {userRecipes.map((recipe) => (
-                      <RecipeCard key={recipe.id} recipe={recipe} type="created" />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState message="Henüz tarif oluşturmadın." link="/recipe/create" linkText="İlk Tarifini Oluştur" />
-                )
-              )}
-            </>
+            </section>
           )}
         </div>
 
+        <div className="pt-4">
+          <h2 className="mb-4 font-heading text-lg font-extrabold text-slate-900">Üyelik ve kullanım hakların</h2>
+          <QuotaPanel data={quotas.data} error={quotas.error} loading={quotas.loading} />
+        </div>
       </div>
     </main>
   );
-}
-
-// Yardımcı Bileşenler (Dosya içinde tanımladım, ayrı dosyaya da alınabilir)
-
-function RecipeCard({ recipe, type }: { recipe: any, type: 'cooked' | 'favorite' | 'created' }) {
-    return (
-        <Link href={`/recipe/${recipe.slug}`} className="flex gap-4 bg-white p-4 rounded-2xl border border-gray-100 hover:shadow-md transition group">
-            <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden relative flex-shrink-0">
-                {isPlaceholderImage(recipe.image) ? (
-                    <ImagePlaceholder title={recipe.title} variant="card" />
-                ) : (
-                    <Image 
-                      src={recipe.image} 
-                      alt={recipe.title} 
-                      fill 
-                      className="object-cover group-hover:scale-105 transition"
-                      unoptimized={recipe.image?.includes('pexels.com') || recipe.image?.includes('unsplash.com')}
-                    />
-                )}
-            </div>
-            <div className="flex-1 py-1">
-                <h4 className="font-bold text-slate-800 line-clamp-1 group-hover:text-brand transition">{recipe.title}</h4>
-                <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><FaClock /> {recipe.prep_time || recipe.total_time_min || 0} dk</span>
-                    {type === 'cooked' && <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-md"><FaCheck /> Pişirildi</span>}
-                    {type === 'favorite' && <span className="flex items-center gap-1 text-pink-600 bg-pink-50 px-2 py-0.5 rounded-md"><FaHeart /> Favori</span>}
-                    {type === 'created' && <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md"><FaPen /> Oluşturuldu</span>}
-                </div>
-            </div>
-        </Link>
-    );
-}
-
-function EmptyState({ message, link, linkText }: { message: string, link: string, linkText: string }) {
-    return (
-        <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
-                <FaBowlFood className="text-2xl" />
-            </div>
-            <p className="text-gray-500 mb-4">{message}</p>
-            <Link href={link} className="inline-block px-6 py-3 bg-brand text-white rounded-xl font-bold shadow-lg shadow-brand/20 hover:bg-brand-dark transition">
-                {linkText}
-            </Link>
-        </div>
-    );
 }

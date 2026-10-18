@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import GlobalCreateMenu from "@/components/navigation/GlobalCreateMenu";
 // İkonlar - Standart Paket
 import { 
   FaSearch, FaRegBookmark, FaRegMoon, FaArrowRight, FaUser, 
@@ -123,6 +124,10 @@ export default function Header() {
                </button>
             </form>
 
+            <div className={isSearchOpen ? "hidden" : "flex"}>
+              <GlobalCreateMenu />
+            </div>
+
             <Link href="/cookbook" className={`w-9 h-9 rounded-full hover:bg-gray-100 text-slate-500 hover:text-[#db4c3f] flex items-center justify-center transition ${isSearchOpen ? 'hidden md:flex' : 'flex'}`} title="Tarif Defterim">
               <FaRegBookmark className="text-sm" />
             </Link>
@@ -186,12 +191,7 @@ export default function Header() {
                           </Link>
                         </div>
 
-                        {/* Aksiyon Bölümü */}
-                        <div className="border-t border-gray-50 py-1">
-                          <Link href="/recipe/create" className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#db4c3f] font-bold hover:bg-orange-50 transition">
-                            <FaPlus className="text-xs" /> Tarif Oluştur
-                          </Link>
-                        </div>
+                         {/* Tarif ve menü ekleme, üst alandaki tek global + menüsünden yapılır. */}
 
                         {/* Ayarlar ve Çıkış */}
                         <div className="border-t border-gray-50 py-1">
@@ -277,9 +277,6 @@ export default function Header() {
                   </Link>
                   <Link href="/cookbook" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 text-base font-medium text-slate-600">
                     <FaBookOpen /> Tarif Defterim
-                  </Link>
-                  <Link href="/recipe/create" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 text-base font-medium text-[#db4c3f]">
-                    <FaPlus /> Tarif Oluştur
                   </Link>
                   <Link href="/profile/edit" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 text-base font-medium text-slate-600">
                     <FaGear /> Hesap Ayarları

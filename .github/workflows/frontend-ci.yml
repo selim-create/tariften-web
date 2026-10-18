@@ -29,3 +29,5 @@ jobs:
         run: npx tsc --noEmit
       - name: Production build
         run: npm run build
+      - name: Verify Web owner-only Tariflerim Sofralarım and global create parity
+        run: node --test scripts/check-web-my-kitchen.test.cjs
