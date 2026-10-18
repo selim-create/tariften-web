@@ -26,30 +26,31 @@ const good=()=>({
  steps:['Domatesleri yıka.','Pirinci kavur.'],
  seo:{title:'Evde Domatesli Pilav',description:'Domatesli pilav.',focus_keywords:['pilav','domates']}
 });
-test('AI generation returns a draft only; not a published recipe or a second paid request',()=>{
+test('AI candidate is auto-published only after quality and quota guard, with duplicate-only choice',()=>{
  const flow=read('src/app/recipes/page.tsx');
  const generate=flow.slice(flow.indexOf('const handleGenerateRecipe = async ()'),flow.indexOf('const handlePublishQuickRecipe ='));
- const native=flow.slice(flow.indexOf('const handleGenerateAI = useCallback('),flow.indexOf('const handlePublishQuickRecipe ='));
- const body=generate;
- assert.match(body,/await generateRecipeClient\(/);
- assert.match(body,/quickRecipeFromAI\(aiResponse\.recipe\)/);
- assert.doesNotMatch(body,/await createRecipeClient\(/);
- const publish=flow.slice(flow.indexOf('const handlePublishQuickRecipe ='),flow.indexOf('const handleNewQuickRecipe',flow.indexOf('const handlePublishQuickRecipe =')));
- assert.match(publish,/approvedQuickRecipe\(reviewDraft\)/);
- assert.match(publish,/fetchAccountQuotas\(token\)/);
- assert.match(publish,/await createRecipeClient\(token,/);
- assert.ok(publish.indexOf('await fetchAccountQuotas(token)')<publish.indexOf('await createRecipeClient(token,'));
+ const publish=flow.slice(flow.indexOf('const publishGeneratedRecipe ='),flow.indexOf('const handleGenerateRecipe = async ()'));
+ assert.match(generate,/await generateRecipeClient\(token, searchTerm\)/);
+ assert.match(generate,/quickRecipeFromAI\(aiResponse\.recipe\)/);
+ assert.match(generate,/if \(duplicateId\)/);
+ assert.match(generate,/setReviewOpen\(true\)/);
+ assert.match(generate,/await publishGeneratedRecipe\(draft, token\)/);
+ assert.match(publish,/validateQuickRecipe\(draft\)/);
+ assert.match(publish,/approvedQuickRecipe\(draft\)/);
+ assert.match(publish,/await fetchAccountQuotas\(token\)/);
+ assert.match(publish,/await createRecipeClient\(token, payload\)/);
+ assert.ok(publish.indexOf('validateQuickRecipe(draft)') < publish.indexOf('createRecipeClient(token, payload)'));
+ assert.ok(publish.indexOf('await fetchAccountQuotas(token)') < publish.indexOf('createRecipeClient(token, payload)'));
  assert.match(flow,/quickPublishInFlightRef\.current/);
- assert.match(flow,/setReviewUncertain\(true\)|setPublishUncertain\(true\)/);
+ assert.match(flow,/setPublishUncertain\(true\)/);
  assert.match(flow,/setUsageNotice\(/);
  assert.doesNotMatch(flow,/<QuotaPanel|<QuotaCard/);
- const component=read('src/components/recipes/QuickRecipeReview.tsx');
- assert.match(component,/Kontrol ettim, yayımla/);
- assert.match(component,/Tarif henüz yayımlanmadı|Henüz yayımlanmadı/);
- assert.match(component,/Malzemeler/);
- assert.match(component,/Hazırlanış/);
- assert.match(component,/Kaç kişilik/);
- assert.match(component,/kalori|kcal/i);
+ assert.doesNotMatch(flow,/<QuickRecipeReview/);
+ const component=read('src/components/recipes/SimilarRecipeChoice.tsx');
+ assert.match(component,/Benzer bir tarif zaten var/);
+ assert.match(component,/Mevcut tarifi görüntüle/);
+ assert.match(component,/Yine de yeni tarif oluştur/);
+ assert.match(component,/existingRecipeSlug/);
 });
 test('AI draft retains real source fields, suggested serving and per-person estimates',()=>{
  const candidate=good();
@@ -84,7 +85,7 @@ test('AI must never invent unknown serving/calories or blindly save unsafe recor
  assert.throws(()=>quickRecipeFromAI({...good(),steps:new Array(41).fill('hazırla')}));
  assert.throws(()=>approvedQuickRecipe(zero));
 });
-test('user can edit headline, source ingredients, steps and metadata; validation blocks partial publication',()=>{
+test('AI values are preserved in safe publish payload; invalid records are refused',()=>{
  const draft=quickRecipeFromAI(good());
  draft.title='Çift domatesli pilav';
  draft.servings='6';draft.calories='';
