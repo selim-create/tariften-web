@@ -3,6 +3,8 @@
  * Mirrors the Mobile manual editor's field requirements without calling AI.
  * Server-side authentication and quota checks remain authoritative.
  */
+import { validateRecipeAmount, validateRecipeUnit } from './recipe-measurements';
+
 export type ManualRecipeIngredient = { name: string; amount: string; unit: string };
 export type ManualRecipeDraft = {
   title: string;
@@ -39,6 +41,10 @@ export function validateManualRecipeStage(
   }
   if (draft.ingredients.length > 40) {
     return { stage: 2, message: "Tarifine en fazla 40 malzeme ekleyebilirsin." };
+  }
+  for (const row of draft.ingredients) {
+    const issue = validateRecipeAmount(row.amount) || validateRecipeUnit(row.unit);
+    if (issue) return { stage: 2, message: issue };
   }
   if (through === 2) return null;
 
