@@ -62,10 +62,10 @@ export default function QuickRecipeReview({
                 value={draft.calories} onChange={e => patch({ calories: e.target.value })} placeholder="Bilinmiyor" />
             </label>
             <label><span className={labelClass}>Mutfak</span>
-              <input className={inputClass} value={draft.cuisine.join(", ")} onChange={e => patch({ cuisine: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} />
+              <input className={inputClass} value={draft.cuisine[0] || ""} onChange={e => patch({ cuisine: e.target.value ? [e.target.value] : [] })} />
             </label>
             <label><span className={labelClass}>Öğün türü</span>
-              <input className={inputClass} value={draft.meal_type.join(", ")} onChange={e => patch({ meal_type: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} />
+              <input className={inputClass} value={draft.meal_type[0] || ""} onChange={e => patch({ meal_type: e.target.value ? [e.target.value] : [] })} />
             </label>
             <label><span className={labelClass}>Hazırlama · dakika</span>
               <input className={inputClass} type="number" min={0} max={720} value={draft.prep_time} onChange={e => patch({ prep_time: e.target.value })} />
@@ -118,7 +118,7 @@ export default function QuickRecipeReview({
           {(error || problem) && <p role="alert" className="mb-3 rounded-xl bg-[#fff2ed] p-3 text-sm font-semibold text-[#b74135]">{error || problem}</p>}
           {uncertain && <p role="alert" className="mb-3 text-sm text-[#b74135]">Tarif kaydedilmiş olabilir. Yeniden göndermeden önce Profil &gt; Tariflerim bölümünü kontrol et.</p>}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <button type="button" onClick={onNew} disabled={saving} className="text-xs font-bold text-[#806f64] underline disabled:opacity-50">Yeni tarif isteği yaz</button>
+            <button type="button" onClick={onNew} disabled={saving || uncertain} className="text-xs font-bold text-[#806f64] underline disabled:opacity-50">Yeni tarif isteği yaz</button>
             <button type="button" onClick={onPublish} disabled={saving || uncertain || !!problem}
               className="min-h-12 rounded-2xl bg-[#db4c3f] px-6 py-3 text-sm font-black text-white shadow-lg shadow-[#db4c3f]/15 disabled:cursor-not-allowed disabled:opacity-50">
               {saving ? "Yayımlanıyor…" : "Kontrol ettim, yayımla"}
