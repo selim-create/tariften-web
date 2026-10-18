@@ -25,6 +25,8 @@ jobs:
         run: node --test scripts/check-lokma-emoji.test.cjs
       - name: Verified image upload filenames and JWT media routing
         run: node --test scripts/check-recipe-media-upload.test.cjs
+      - name: Verify Web owner-only Tariflerim Sofralarım and global create parity
+        run: node --test scripts/check-web-my-kitchen.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build
