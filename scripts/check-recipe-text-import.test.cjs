@@ -322,3 +322,48 @@ test('WordPress missing REST route and closed beta feature are distinct errors',
     global.fetch = before;
   }
 });
+
+
+test('AI import keeps optional editorial estimates distinct from source evidence and editable', () => {
+  const fixture = fakePreview();
+  fixture.recipe.suggestions = {
+    servings: 4, calories_per_serving: 270, cuisine: 'Türk Mutfağı',
+    meal_type: 'Öğle Yemeği', nutrition_note: 'Yaklaşık kcal/kişi',
+  };
+  const editor = lib.editorFromPreview(lib.parseImportPreview(fixture));
+  assert.equal(editor.servings, '4');
+  assert.equal(editor.calories, '270');
+  assert.equal(editor.cuisine, 'Türk Mutfağı');
+  assert.equal(editor.mealType, 'Öğle Yemeği');
+  editor.servings = '6'; editor.calories = '200'; editor.mealType = 'Akşam Yemeği';
+  const payload = lib.buildApprovedRecipe(editor);
+  assert.equal(payload.servings, 6);
+  assert.equal(payload.calories, 200);
+  assert.deepEqual(payload.cuisine, ['Türk Mutfağı']);
+  assert.deepEqual(payload.meal_type, ['Akşam Yemeği']);
+  fixture.recipe.suggestions.calories_per_serving = 7200;
+  assert.throws(() => lib.parseImportPreview(fixture), /alanları|beklenmeyen/);
+  const absent = lib.editorFromPreview(lib.parseImportPreview(fakePreview()));
+  absent.servings = '4';
+  assert.equal(absent.calories, '');
+  assert.equal(Object.hasOwn(lib.buildApprovedRecipe(absent), 'calories'), false);
+});
+test('Web quick creation and quota visibility stay outside recipe discovery cards', () => {
+  const root = require('node:path').join(__dirname, '..');
+  const read = file => fs.readFileSync(require('node:path').join(root, file), 'utf8');
+  const recipes = read('src/app/recipes/page.tsx');
+  const menu = read('src/components/navigation/GlobalCreateMenu.tsx');
+  const importer = read('src/app/recipe/import/page.tsx');
+  assert.match(recipes, /Hızlı tarif oluştur/);
+  assert.match(recipes, /Dolabımdaki malzemeleri kullan/);
+  assert.match(menu, /href: "\/recipes\?quick=1"/);
+  assert.match(menu, /href: "\/pantry"/);
+  assert.doesNotMatch(menu, /Yeni tarifin sen yayınladığında açılır/);
+  assert.doesNotMatch(recipes, /<QuotaPanel/);
+  assert.doesNotMatch(importer, /<CompactQuota/);
+  assert.match(importer, /usageNotice/);
+  assert.match(importer, /editor\.calories/);
+  assert.match(importer, /editor\.mealType/);
+  assert.match(importer, /editor\.cuisine/);
+  assert.match(read('src/app/profile/page.tsx'), /<QuotaPanel/);
+});
