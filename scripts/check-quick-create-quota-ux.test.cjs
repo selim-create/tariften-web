@@ -4,11 +4,13 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
-test('global + prioritizes quick AI and cupboard options without legal or quota copy',()=>{
+test('global + prioritizes AI, merges two import methods and leaves pantry in its own tab',()=>{
  const menu=read('src/components/navigation/GlobalCreateMenu.tsx');
  assert.match(menu,/href: "\/recipes\?quick=1"/);
- assert.match(menu,/href: "\/pantry"/);
- assert.ok(menu.indexOf('Hızlı tarif oluştur') < menu.indexOf('Tarifini kendin yaz'));
+ assert.doesNotMatch(menu,/href: "\/pantry"/);
+ assert.match(menu,/href: "\/recipe\/aktar"/);
+ assert.ok(menu.indexOf('AI ile Tarif Oluştur') < menu.indexOf('Tarifimi Kendim Yazacağım'));
+ assert.deepEqual([...menu.matchAll(/href: "([^"]+)"/g)].map(m=>m[1]), ['/recipes?quick=1','/recipe/aktar','/recipe/create','/menu/create']);
  assert.doesNotMatch(menu,/Yeni tarifin sen yayınladığında|mevcut tarif düzenlemeleri yönetici onayına sunulur/);
 });
 test('AI recipe search keeps name-ingredient prompt, reads usage quotas only at action and shows short notice',()=>{
