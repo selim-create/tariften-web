@@ -84,7 +84,7 @@ test('One global plus button opens three genuine routes and respects authenticat
   const header = read('src/components/layout/Header.tsx');
   const menu = read('src/components/navigation/GlobalCreateMenu.tsx');
   assert.match(header, /<GlobalCreateMenu\s*\/>/);
-  for (const uri of ['/recipe/create', '/recipe/social', '/recipe/import', '/menu/create']) {
+  for (const uri of ['/recipe/create', '/recipe/aktar', '/menu/create']) {
     assert.ok(menu.includes('href: "' + uri + '"'), uri);
   }
   assert.match(menu, /user\?\.token \? href : "\/login"/);
@@ -93,8 +93,10 @@ test('One global plus button opens three genuine routes and respects authenticat
   assert.match(menu, /event\.key === "Escape"/);
   assert.match(menu, /event\.key === "Tab"/);
   assert.match(menu, /createPortal/);
-  assert.match(menu, /Sosyal medyadan tarif ekle/);
-  assert.match(menu, /href: "\/recipe\/social"/);
+  assert.match(menu, /Tarif Aktar/);
+  assert.match(read('src/app/recipe/aktar/page.tsx'), /RecipeTextImportPage initialMethod="social"/);
+  assert.match(read('src/app/recipe/import/page.tsx'), /Tarif metni/);
+  assert.match(menu, /href: "\/recipe\/aktar"/);
   assert.doesNotMatch(menu, /fotoğraf.*aktar/i);
   assert.doesNotMatch(header, /href="\/recipe\/create"/);
 });
