@@ -3,38 +3,28 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
-import { FaBookOpen, FaPen, FaPlus, FaUtensils, FaXmark, FaArrowRight, FaVideo } from "react-icons/fa6";
+import { FaLink, FaPen, FaPlus, FaUtensils, FaXmark, FaArrowRight, FaWandMagicSparkles } from "react-icons/fa6";
 import { useAuth } from "@/context/AuthContext";
 
 const ACTIONS = [
   {
-    href: "/recipes?quick=1", title: "Hızlı tarif oluştur",
-    description: "Bir tarif adı veya elindeki malzemeleri yaz; AI Şef hazırlasın.",
-    icon: FaPlus,
+    href: "/recipes?quick=1", title: "AI ile Tarif Oluştur",
+    description: "Tarif adı veya malzemelerini yaz; AI Şef hazırlasın.",
+    icon: FaWandMagicSparkles,
   },
   {
-    href: "/pantry", title: "Dolabımdakilerle tarif bul",
-    description: "Dolabında kayıtlı malzemelerden yeni tarif öner.",
-    icon: FaUtensils,
+    href: "/recipe/aktar", title: "Tarif Aktar",
+    description: "Reels, TikTok, YouTube bağlantısı veya tarif metni.",
+    icon: FaLink,
   },
   {
-    href: "/recipe/create", title: "Tarifini kendin yaz",
-    description: "Malzemeler, adımlar ve fotoğraf tamamen senin elinde.",
+    href: "/recipe/create", title: "Tarifimi Kendim Yazacağım",
+    description: "Malzemeleri, adımları ve görseli kendin belirle.",
     icon: FaPen,
   },
   {
-    href: "/recipe/social", title: "Sosyal medyadan tarif ekle",
-    description: "Reels, TikTok ve Shorts bağlantısını Tariften'e aktar.",
-    icon: FaVideo,
-  },
-  {
-    href: "/recipe/import", title: "Tarif metninden aktar",
-    description: "Tarifini anlat; birlikte düzenleyelim.",
-    icon: FaBookOpen,
-  },
-  {
-    href: "/menu/create", title: "Yeni menü oluştur",
-    description: "Davetin veya günlük sofran için bir menü hazırla.",
+    href: "/menu/create", title: "Menü Oluştur",
+    description: "Günlük sofran veya özel davetin için bir menü hazırla.",
     icon: FaUtensils,
   },
 ] as const;
@@ -111,10 +101,10 @@ export default function GlobalCreateMenu() {
         </div>
 
         <div className="space-y-3">
-          {ACTIONS.map(({ href, title, description, icon: Icon }) => (
+          {ACTIONS.map(({ href, title, description, icon: Icon }, index) => (
             <button key={href} type="button" onClick={() => navigate(href)}
-              className="group flex min-h-[87px] w-full items-center gap-4 rounded-[20px] border border-[#eee0d4] bg-white px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-[#e9bfae] hover:shadow-md">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fff0e5] text-[#da5545]">
+              className={`group flex min-h-[73px] w-full items-center gap-3.5 rounded-[19px] border px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-[#e9bfae] hover:shadow-md ${index === 0 ? "border-[#ebbdaf] bg-[#fff0e9]" : "border-[#eee0d4] bg-white"}`}>
+              <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-[#da5545] ${index === 0 ? "bg-white" : "bg-[#fff0e5]"}`}>
                 <Icon size={18} />
               </span>
               <span className="min-w-0 flex-1">
