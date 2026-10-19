@@ -22,7 +22,7 @@ export function isYouTubeVideoLink(value: string): boolean {
     if (!["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"].includes(u.hostname.toLowerCase())) return false;
     return u.hostname === "youtu.be"
       ? /^\/[A-Za-z0-9_-]{11}$/.test(u.pathname)
-      : /^\/(shorts\/[A-Za-z0-9_-]{11}|watch\/?$)/.test(u.pathname)
+      : /^\/(shorts\/[A-Za-z0-9_-]{11}\/?|watch\/?)$/.test(u.pathname)
         && (u.pathname.startsWith("/shorts/") || /^[A-Za-z0-9_-]{11}$/.test(u.searchParams.get("v") || ""));
   } catch { return false; }
 }
