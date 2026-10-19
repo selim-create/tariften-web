@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -21,6 +21,7 @@ import {
 import type {
   GroundedImportPreview, ImportEditor, EditableIngredient, EditableStep,
 } from "@/lib/recipe-text-import";
+import { isYouTubeVideoLink, parseVideoJob, videoEditorFromJob } from "@/lib/video-recipe-import";
 
 const EXAMPLE = `Anneannemin fasulye yemeği
 
@@ -60,6 +61,12 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   const [importMethod, setImportMethod] = useState<"social" | "text">(initialMethod);
   const [socialUrl, setSocialUrl] = useState("");
   const [preview, setPreview] = useState<GroundedImportPreview | null>(null);
+  const [videoReview, setVideoReview] = useState(false);
+  const [videoWarnings, setVideoWarnings] = useState<string[]>([]);
+  const [videoStatus, setVideoStatus] = useState("");
+  const videoRequestRef = useRef<{ url: string; id: string } | null>(null);
+  const videoAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => videoAbortRef.current?.abort(), []);
   const [editor, setEditor] = useState<ImportEditor | null>(null);
   const [accepted, setAccepted] = useState(true);
   const [busy, setBusy] = useState<"preview" | "publish" | null>(null);
@@ -84,6 +91,10 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   const updateSource = (text: string) => {
     setSource(text);
     setPreview(null);
+    setVideoReview(false);
+    setVideoWarnings([]);
+    setVideoStatus("");
+    videoAbortRef.current?.abort();
     setEditor(null);
     setAccepted(true);
     setError("");
@@ -152,9 +163,87 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
     }
   };
 
+
+  const requestVideoPreview = async (url: string) => {
+    if (!token || busy) return;
+    const previous = videoRequestRef.current;
+    const requestId = previous && previous.url === url ? previous.id : crypto.randomUUID();
+    videoRequestRef.current = { url, id: requestId };
+    videoAbortRef.current?.abort();
+    const controller = new AbortController();
+    videoAbortRef.current = controller;
+    setBusy("preview");
+    setVideoStatus("queued");
+    setVideoReview(false);
+    setVideoWarnings([]);
+    setError("");
+    try {
+      // Core start only creates an idempotent DB job. Paid quota is reserved
+      // by the server-side worker, not by this browser request.
+      const response = await fetch("/api/recipe-social/video/start", {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ source_url: url, request_id: requestId }),
+        signal: controller.signal, cache: "no-store",
+      });
+      const payload: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = payload && typeof payload === "object" && "message" in payload
+          && typeof payload.message === "string" ? payload.message : "Video analizi başlatılamadı.";
+        throw new Error(message);
+      }
+      let job = parseVideoJob(payload);
+      // The status request cannot start a new analysis. Repeating start with
+      // the same URL/key returns the existing durable WordPress job.
+      for (let attempt = 0; attempt < 100 && !controller.signal.aborted; attempt++) {
+        setVideoStatus(job.status);
+        if (job.status === "needs_review") {
+          const checked = videoEditorFromJob(job);
+          setEditor(checked.editor);
+          setVideoWarnings(checked.warnings);
+          setVideoReview(true);
+          setPreview(null);
+          setAccepted(true);
+          setActiveIngredient(null);
+          setActiveStep(null);
+          void quotas.reload();
+          return;
+        }
+        if (job.status === "failed" || job.status === "uncertain") {
+          throw new Error(job.message || "Video analiz sonucu doğrulanamadı.");
+        }
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        if (controller.signal.aborted) return;
+        const current = await fetch(`/api/recipe-social/video/status/${job.id}`, {
+          headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+          signal: controller.signal,
+        });
+        const status: unknown = await current.json().catch(() => null);
+        if (!current.ok) {
+          const message = status && typeof status === "object" && "message" in status
+            && typeof status.message === "string" ? status.message : "Analiz durumu alınamadı.";
+          throw new Error(message);
+        }
+        job = parseVideoJob(status);
+      }
+      if (!controller.signal.aborted) {
+        setVideoStatus("processing");
+        setError("Video hâlâ işleniyor olabilir. Bir süre sonra aynı bağlantıyla durumunu yeniden kontrol et; yeni analiz başlatılmaz.");
+      }
+    } catch (cause) {
+      if (!controller.signal.aborted) {
+        setError(cause instanceof Error ? cause.message : "Video analiz durumu alınamadı.");
+      }
+    } finally {
+      if (videoAbortRef.current === controller) videoAbortRef.current = null;
+      void quotas.reload();
+      setBusy(null);
+    }
+  };
+
   const requestSocialPreview = async () => {
     if (!token || busy) return;
     const url = socialUrl.trim();
+    if (isYouTubeVideoLink(url)) { await requestVideoPreview(url); return; }
     if (!/^https:\/\/[^\s]+$/i.test(url) || url.length > 2048) {
       setError("Lütfen gönderinin HTTPS bağlantısını yapıştır.");
       return;
@@ -199,7 +288,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   };
 
   const publish = async () => {
-    if (!token || !editor || !preview || !accepted || busy) return;
+    if (!token || !editor || (!preview && !videoReview) || !accepted || busy) return;
     const invalid = publishValidation(editor);
     if (invalid) { setError(invalid); return; }
     setBusy("publish");
@@ -254,7 +343,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
     </main>
   );
 
-  const warnings = preview ? importReviewNotes(preview.warnings, preview.needs_confirmation) : [];
+  const warnings = preview ? importReviewNotes(preview.warnings, preview.needs_confirmation) : videoWarnings;
 
   return <main className="min-h-[calc(100dvh-4rem)] bg-[#fffbf7] text-slate-800">
     {usageNotice && <div role="status" className="fixed bottom-5 right-5 z-[110] max-w-sm rounded-2xl bg-[#253b30] px-4 py-3 text-xs font-bold text-white shadow-xl">{usageNotice}</div>}
@@ -333,13 +422,13 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
           </> : <>
             <FormLabel htmlFor="social-source-url">Sosyal medya paylaşım bağlantısı</FormLabel>
             <input id="social-source-url" type="url" inputMode="url" value={socialUrl}
-              onChange={event => { setSocialUrl(event.target.value); setPreview(null); setEditor(null); setError(""); }}
+              onChange={event => { videoAbortRef.current?.abort(); videoRequestRef.current = null; setSocialUrl(event.target.value); setPreview(null); setVideoReview(false); setVideoWarnings([]); setVideoStatus(""); setEditor(null); setError(""); }}
               placeholder="https://www.youtube.com/shorts/…"
               disabled={!!busy} maxLength={2048}
               className="min-h-12 w-full rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-4 text-sm text-slate-800 outline-none focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10" />
             <p className="mt-3 text-xs leading-6 text-[#86766b]">
               YouTube Shorts, TikTok, Instagram Reels, Facebook veya Pinterest bağlantısı yapıştır.
-              Bu beta sürümünde yalnızca erişilebilen paylaşım açıklaması değerlendirilir; video ve ses henüz analiz edilmez.
+              YouTube/Shorts için video analizi beta erişimi açıksa görüntü ve ses incelenir. Diğer platformlarda erişilebilir paylaşım açıklaması kullanılır.
             </p>
             {preview?.provenance.origin_type === "social_creator_description" && (
               <div className="mt-4 rounded-2xl border border-[#e6dfd5] bg-[#fffcf9] p-3">
@@ -352,21 +441,22 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               </div>
             )}
             <div className="mt-4 border-t border-slate-100 pt-3">
+              {videoStatus && !videoReview && <p role="status" className="mb-3 rounded-xl bg-[#fff4ec] px-3 py-2 text-xs text-[#8a5346]">{busy === "preview" ? (videoStatus === "queued" ? "Video sıraya alındı…" : videoStatus === "dispatching" ? "Analiz kuyruğa iletiliyor…" : "Video inceleniyor…") : "Video işinin durumunu yeniden kontrol edebilirsin."}</p>}
               <button type="button" onClick={() => void requestSocialPreview()}
                 disabled={!!busy || quotas.loading || !!quotas.error || !quotas.data
-                  || quotaReached(quotas.data, "recipe_ai_day") || !socialUrl.trim()}
+                  || (quotaReached(quotas.data, "recipe_ai_day") && !isYouTubeVideoLink(socialUrl)) || !socialUrl.trim()}
                 className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300">
-                {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> Kaynak inceleniyor…</>
+                {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {isYouTubeVideoLink(socialUrl) ? "Video analiz ediliyor…" : "Kaynak inceleniyor…"}</>
                   : <><Sparkles className="h-4 w-4" /> Bağlantıdan tarif oluştur <ArrowRight className="h-4 w-4" /></>}
               </button>
-              <p className="mt-2 text-center text-[10px] text-slate-400">Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin.</p>
+              <p className="mt-2 text-center text-[10px] text-slate-400">{isYouTubeVideoLink(socialUrl) ? "Beta açıksa analiz arka planda başlar; hak yalnız iş çalıştırılırken kullanılır." : "Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin."}</p>
             </div>
           </>}
         </section>
 
         <section className="min-w-0 rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-6" aria-live="polite">
           {!!error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium leading-5 text-red-800"><TriangleAlert className="mr-2 inline-block h-4 w-4" />{error}</div>}
-          {!preview || !editor ? (
+          {(!preview && !videoReview) || !editor ? (
             <div className="flex min-h-[260px] flex-col items-center justify-center px-3 text-center lg:h-full">
               <div className="mb-3 grid h-16 w-16 place-items-center rounded-[22px] bg-[#fff2e8] text-[#db4c3f]">
                 {busy === "preview" ? <LoaderCircle className="h-7 w-7 animate-spin" /> : <span aria-hidden="true" className="text-4xl">🍲</span>}
@@ -394,9 +484,9 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><CheckCheck className="h-5 w-5" /></div>
-                  <div><h2 className="font-heading text-xl font-extrabold">Düzenlenmiş tarifin</h2><p className="text-xs text-[#93887a]">Orijinal metin solda, düzeltme önerileri sağda</p></div>
+                  <div><h2 className="font-heading text-xl font-extrabold">Düzenlenmiş tarifin</h2><p className="text-xs text-[#93887a]">{videoReview ? "Videodan önerilen tarif · Kaynağı kontrol et" : "Orijinal metin solda, düzeltme önerileri sağda"}</p></div>
                 </div>
-                <button type="button" onClick={() => updateSource(source)} disabled={!!busy}
+                <button type="button" onClick={() => { updateSource(source); setVideoReview(false); }} disabled={!!busy}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 hover:border-[#db4c3f] hover:text-[#db4c3f]">
                   <RotateCcw className="h-3.5 w-3.5" /> Sıfırla
                 </button>
@@ -486,7 +576,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-[13px] font-bold text-slate-800">{capitalizeIngredientTr(ingredient.name) || "Yeni malzeme"}</span>
                               <span className={ingredient.userEdited ? "mt-0.5 block text-[10px] text-amber-700" : ingredient.name_corrected ? "mt-0.5 block text-[10px] text-[#b95c45]" : "mt-0.5 block text-[10px] text-emerald-700"}>
-                                {ingredient.userEdited ? "Sen düzenledin" : ingredient.name_corrected ? "Yazımı düzeltildi · kontrol et" : "Kaynaktan alındı"}
+                                {ingredient.userEdited ? "Sen düzenledin" : videoReview ? "AI önerisi · videoyla karşılaştır" : ingredient.name_corrected ? "Yazımı düzeltildi · kontrol et" : "Kaynaktan alındı"}
                               </span>
                             </span>
                             <span className={!ingredient.amount ? "max-w-[38%] shrink-0 text-right text-xs font-semibold text-amber-700" : "max-w-[38%] shrink-0 text-right text-xs font-semibold text-[#6d665f]"}>
@@ -528,7 +618,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
                             onClick={() => setActiveStep(current => current === i ? null : i)}
                             className="min-w-0 flex-1 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-[#db4c3f]">
                             <span className={step.userEdited ? "text-[10px] font-semibold text-amber-700" : step.editorial_rewrite ? "text-[10px] font-semibold text-[#b95c45]" : "text-[10px] font-semibold text-emerald-700"}>
-                              {step.userEdited ? "Sen düzenledin" : step.editorial_rewrite ? "Editoryal öneri · kontrol et" : "Orijinal adım"}
+                              {step.userEdited ? "Sen düzenledin" : videoReview ? "Videodan önerilen adım · kontrol et" : step.editorial_rewrite ? "Editoryal öneri · kontrol et" : "Orijinal adım"}
                             </span>
                             <p className="mt-1 whitespace-pre-wrap text-[13px] leading-6 text-slate-700">{step.content || "Yeni hazırlanış adımı"}</p>
                           </button>
