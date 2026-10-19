@@ -267,10 +267,10 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
           </Link>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-heading text-[20px] font-extrabold tracking-tight sm:text-[23px]">{importMethod === "social" ? "Sosyal medyadan tarif ekle" : "Tarifin, en güzel hâline geliyor."}</h1>
+              <h1 className="font-heading text-[20px] font-extrabold tracking-tight sm:text-[23px]">Tarif Aktar</h1>
               <span className="rounded-full border border-[#f0d6ca] bg-[#fdf0e9] px-2 py-0.5 text-[9px] font-black tracking-wide text-[#ba6251]">BETA</span>
             </div>
-            <p className="mt-1 text-xs leading-5 text-[#847a70]">{importMethod === "social" ? "Beğendiğin paylaşımı Tariften tarifine dönüştür. Kaynağı ve belirsizlikleri şeffafça gösteriyoruz." : "Tarifini sen anlat, düzenlemesini Tariften’e bırak. Son söz her zaman senin."}</p>
+            <p className="mt-1 text-xs leading-5 text-[#847a70]">Bağlantını veya tarif notlarını ekle; Tariften düzenlesin, son kararı sen ver.</p>
           </div>
         </div>
         <nav aria-label="Tarif aktarım adımları" className="hidden items-center gap-2 text-[11px] font-semibold text-[#9a8170] md:flex">
