@@ -28,7 +28,7 @@ export default function Footer() {
   // Text import is a dedicated full-height writing workspace on desktop.
   // Do not place a large marketing footer beneath the editor.
   const pathname = usePathname();
-  if (pathname === '/recipe/import') return null;
+  if (pathname === '/recipe/import' || pathname === '/recipe/social' || pathname === '/recipe/aktar') return null;
 
   return (
     <footer className="mt-16 border-t border-[#eee7e3] bg-[#fbfaf8] text-slate-800">
