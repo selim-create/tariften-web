@@ -131,9 +131,9 @@ test('published source lookup, private history and video owner publish use guard
   assert.match(page, /found\.status === "existing"/);
   assert.match(page, /found\.status === "published"/);
   assert.match(page, /reviewJobId/);
-  assert.match(page, /setVideoHistory\(items =>/);
+  assert.match(page, /router\.push\(\`\/recipe\/aktarimlarim\?job=/);
   assert.doesNotMatch(page, /attempt < 18/, 'Web never waits for the paid worker');
-  assert.match(page, /Analizlerim/);
+  assert.match(page, /Tarif Aktarımlarım/);
   for (const route of [resolve, history, publish]) {
     assert.match(route, /Authorization: token/);
     assert.match(route, /cache: "no-store"/);
@@ -169,12 +169,12 @@ test('async recipe transfer gives a notification without blocking the editor', (
   const page = read('src/app/recipe/import/page.tsx');
   const ready = read('src/components/layout/VideoRecipeReadyNotice.tsx');
   const layout = read('src/app/layout.tsx');
-  assert.match(page, /Tarif aktarımın sıraya alındı/);
+  assert.match(page, /\/recipe\/aktarimlarim\?job=/);
   assert.match(page, /deepLinkOpenedRef/);
   assert.match(page, /URLSearchParams\(window\.location\.search\)/);
   assert.match(page, /Tarif Aktarımlarım/);
   assert.match(ready, /setInterval\(\(\) => \{ void check\(\); \}, 60000\)/);
-  assert.match(ready, /status === "needs_review"/);
+  assert.match(ready, /\["needs_review", "published"\]/);
   assert.match(ready, /\/recipe\/aktar\?job=/);
   assert.match(layout, /<VideoRecipeReadyNotice/);
 });
@@ -197,4 +197,18 @@ test('Instagram standard post may be photo or carousel; cannot be silently sold 
   assert.match(page, /Bu işlem için AI hakkın kullanılmadı/);
   assert.match(page, /disabled=\{isInstagramPostLink\(socialUrl\)/);
   assert.match(page, /Instagram gönderi bağlantıları/);
+});
+
+test('separate transfers page handles stalled jobs and automatic publication without charging again', () => {
+  const tracker = read('src/app/recipe/aktarimlarim/page.tsx');
+  const importPage = read('src/app/recipe/import/page.tsx');
+  const notice = read('src/components/layout/VideoRecipeReadyNotice.tsx');
+  assert.match(tracker, /Tarif Aktarımlarım/);
+  assert.match(tracker, /Date\.now\(\) - date > 10 \* 60 \* 1000/);
+  assert.match(tracker, /işleyici bu kaydı henüz tamamlamadı/i);
+  assert.match(tracker, /setInterval\(\(\) => \{ void load\(\); \}, 20000\)/);
+  assert.match(tracker, /item\.status === "published"/);
+  assert.match(importPage, /router\.push\(\`\/recipe\/aktarimlarim\?job=/);
+  assert.match(notice, /ready\.status === "published"/);
+  assert.match(notice, /encodeURIComponent\(ready\.recipe_slug\)/);
 });
