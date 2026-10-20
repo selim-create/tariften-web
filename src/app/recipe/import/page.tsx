@@ -21,7 +21,7 @@ import {
 import type {
   GroundedImportPreview, ImportEditor, EditableIngredient, EditableStep,
 } from "@/lib/recipe-text-import";
-import { isYouTubeVideoLink, parseVideoJob, videoEditorFromJob } from "@/lib/video-recipe-import";
+import { isInstagramReelLink, isVideoRecipeLink, parseVideoJob, videoEditorFromJob } from "@/lib/video-recipe-import";
 
 const EXAMPLE = `Anneannemin fasulye yemeği
 
@@ -60,6 +60,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   const [source, setSource] = useState("");
   const [importMethod, setImportMethod] = useState<"social" | "text">(initialMethod);
   const [socialUrl, setSocialUrl] = useState("");
+  const [instagramRightsConfirmed, setInstagramRightsConfirmed] = useState(false);
   const [preview, setPreview] = useState<GroundedImportPreview | null>(null);
   const [videoReview, setVideoReview] = useState(false);
   const [videoWarnings, setVideoWarnings] = useState<string[]>([]);
@@ -182,7 +183,9 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
       // by the server-side worker, not by this browser request.
       const response = await fetch("/api/recipe-social/video/start", {
         method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ source_url: url, request_id: requestId }),
+        body: JSON.stringify(isInstagramReelLink(url)
+          ? { source_url: url, request_id: requestId, rights_confirmed: true }
+          : { source_url: url, request_id: requestId }),
         signal: controller.signal, cache: "no-store",
       });
       const payload: unknown = await response.json().catch(() => null);
@@ -243,7 +246,14 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   const requestSocialPreview = async () => {
     if (!token || busy) return;
     const url = socialUrl.trim();
-    if (isYouTubeVideoLink(url)) { await requestVideoPreview(url); return; }
+    if (isVideoRecipeLink(url)) {
+      if (isInstagramReelLink(url) && !instagramRightsConfirmed) {
+        setError("Instagram videosunu analiz etmek için gerekli kullanım iznine sahip olduğunu onayla.");
+        return;
+      }
+      await requestVideoPreview(url);
+      return;
+    }
     if (!/^https:\/\/[^\s]+$/i.test(url) || url.length > 2048) {
       setError("Lütfen gönderinin HTTPS bağlantısını yapıştır.");
       return;
@@ -422,14 +432,23 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
           </> : <>
             <FormLabel htmlFor="social-source-url">Sosyal medya paylaşım bağlantısı</FormLabel>
             <input id="social-source-url" type="url" inputMode="url" value={socialUrl}
-              onChange={event => { videoAbortRef.current?.abort(); videoRequestRef.current = null; setSocialUrl(event.target.value); setPreview(null); setVideoReview(false); setVideoWarnings([]); setVideoStatus(""); setEditor(null); setError(""); }}
-              placeholder="https://www.youtube.com/shorts/…"
+              onChange={event => { videoAbortRef.current?.abort(); videoRequestRef.current = null; setInstagramRightsConfirmed(false); setSocialUrl(event.target.value); setPreview(null); setVideoReview(false); setVideoWarnings([]); setVideoStatus(""); setEditor(null); setError(""); }}
+              placeholder="https://www.instagram.com/reel/…"
               disabled={!!busy} maxLength={2048}
               className="min-h-12 w-full rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-4 text-sm text-slate-800 outline-none focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10" />
             <p className="mt-3 text-xs leading-6 text-[#86766b]">
               YouTube Shorts, TikTok, Instagram Reels, Facebook veya Pinterest bağlantısı yapıştır.
-              YouTube/Shorts için video analizi beta erişimi açıksa görüntü ve ses incelenir. Diğer platformlarda erişilebilir paylaşım açıklaması kullanılır.
+              Instagram Reels ve YouTube videolarında özellik etkinse görüntü ve ses incelenir. Diğer desteklenen paylaşımlarda erişilebilir açıklama kullanılır.
             </p>
+            {isInstagramReelLink(socialUrl) && (
+              <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-xs leading-5 text-[#6f625b]">
+                <input type="checkbox" checked={instagramRightsConfirmed}
+                  onChange={event => setInstagramRightsConfirmed(event.target.checked)}
+                  disabled={!!busy}
+                  className="mt-1 h-4 w-4 shrink-0 accent-[#db4c3f]" />
+                <span>Bu videoyu analiz ettirmeye ve içeriğini tarif taslağına dönüştürmeye yetkim olduğunu onaylıyorum. Herkese açık olması tek başına kullanım hakkı vermez.</span>
+              </label>
+            )}
             {preview?.provenance.origin_type === "social_creator_description" && (
               <div className="mt-4 rounded-2xl border border-[#e6dfd5] bg-[#fffcf9] p-3">
                 <p className="mb-2 text-xs font-bold text-[#5e7167]">Kaynak açıklaması · düzenlenmiş tarif sağda</p>
@@ -444,12 +463,13 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               {videoStatus && !videoReview && <p role="status" className="mb-3 rounded-xl bg-[#fff4ec] px-3 py-2 text-xs text-[#8a5346]">{busy === "preview" ? (videoStatus === "queued" ? "Video sıraya alındı…" : videoStatus === "dispatching" ? "Analiz kuyruğa iletiliyor…" : "Video inceleniyor…") : "Video işinin durumunu yeniden kontrol edebilirsin."}</p>}
               <button type="button" onClick={() => void requestSocialPreview()}
                 disabled={!!busy || quotas.loading || !!quotas.error || !quotas.data
-                  || (quotaReached(quotas.data, "recipe_ai_day") && !isYouTubeVideoLink(socialUrl)) || !socialUrl.trim()}
+                  || (quotaReached(quotas.data, "recipe_ai_day") && !isVideoRecipeLink(socialUrl))
+                   || (isInstagramReelLink(socialUrl) && !instagramRightsConfirmed) || !socialUrl.trim()}
                 className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300">
-                {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {isYouTubeVideoLink(socialUrl) ? "Video analiz ediliyor…" : "Kaynak inceleniyor…"}</>
+                {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {isVideoRecipeLink(socialUrl) ? "Video analiz ediliyor…" : "Kaynak inceleniyor…"}</>
                   : <><Sparkles className="h-4 w-4" /> Bağlantıdan tarif oluştur <ArrowRight className="h-4 w-4" /></>}
               </button>
-              <p className="mt-2 text-center text-[10px] text-slate-400">{isYouTubeVideoLink(socialUrl) ? "Beta açıksa analiz arka planda başlar; hak yalnız iş çalıştırılırken kullanılır." : "Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin."}</p>
+              <p className="mt-2 text-center text-[10px] text-slate-400">{isVideoRecipeLink(socialUrl) ? "Beta açıksa analiz arka planda başlar; hak yalnız iş çalıştırılırken kullanılır." : "Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin."}</p>
             </div>
           </>}
         </section>

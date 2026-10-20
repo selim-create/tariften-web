@@ -11,7 +11,7 @@ const js = ts.transpileModule(read('src/lib/video-recipe-import.ts'), {
 }).outputText;
 const mod = { exports: {} };
 Function('module', 'exports', 'require', js)(mod, mod.exports, () => { throw Error('unexpected_import'); });
-const { isYouTubeVideoLink, parseVideoJob, videoEditorFromJob } = mod.exports;
+const { isYouTubeVideoLink, isInstagramReelLink, isVideoRecipeLink, parseVideoJob, videoEditorFromJob } = mod.exports;
 const link = 'https://www.youtube.com/watch?v=abcdefghijk';
 
 function fixture() {
@@ -47,6 +47,28 @@ test('YouTube/Shorts detector is bounded to exact allowed URLs, not hostile look
     'https://instagram.com/reel/abcdefghijk',
   ]) assert.equal(isYouTubeVideoLink(url), false, url);
 });
+test('Instagram Reels detection and review keep exact host, rights and YouTube compatibility', () => {
+  const reel = 'https://www.instagram.com/reel/C5ToOyqIZvb/';
+  assert.equal(isInstagramReelLink(reel), true);
+  assert.equal(isInstagramReelLink('https://instagram.com/reels/C5ToOyqIZvb/?igsh=abc'), true);
+  assert.equal(isVideoRecipeLink(reel), true);
+  assert.equal(isVideoRecipeLink(link), true);
+  for (const bad of [
+    'http://instagram.com/reel/C5ToOyqIZvb/', 'https://instagram.com.evil.test/reel/C5ToOyqIZvb/',
+    'https://user@instagram.com/reel/C5ToOyqIZvb/', 'https://instagram.com:444/reel/C5ToOyqIZvb/',
+    'https://instagram.com/p/C5ToOyqIZvb/', 'https://instagram.com/tv/C5ToOyqIZvb/',
+    'https://instagram.com/reel/C5ToOyqIZvb/extra', 'https://instagram.com/reel/four',
+  ]) assert.equal(isInstagramReelLink(bad), false, bad);
+  const job = parseVideoJob({ ...fixture(), source_url: reel });
+  assert.equal(videoEditorFromJob(job).editor.title, 'Kuru Domatesli Gnocchi');
+  const page = read('src/app/recipe/import/page.tsx');
+  const start = read('src/app/api/recipe-social/video/start/route.ts');
+  assert.match(page, /instagramRightsConfirmed/);
+  assert.match(page, /rights_confirmed: true/);
+  assert.match(start, /request_id,rights_confirmed,source_url/);
+  assert.match(start, /p.rights_confirmed !== true/);
+});
+
 test('true Gemini video preview maps to editable fields without falsifying source proof', () => {
   const raw = fixture();
   const job = parseVideoJob(raw);
