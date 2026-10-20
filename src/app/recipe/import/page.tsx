@@ -23,6 +23,14 @@ import type {
 } from "@/lib/recipe-text-import";
 import { isInstagramReelLink, isVideoRecipeLink, parseVideoJob, videoEditorFromJob } from "@/lib/video-recipe-import";
 
+type VideoHistoryEntry = {
+  id: number;
+  status: string;
+  source_url: string;
+  created_at: string;
+  title?: string;
+  recipe_slug?: string;
+};
 const EXAMPLE = `Anneannemin fasulye yemeği
 
 2 su bardağı kuru fasulye, 1 adet soğan, 2 yemek kaşığı zeytinyağı, 1 tatlı kaşığı domates salçası, tuz.
@@ -63,11 +71,30 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   const [instagramRightsConfirmed, setInstagramRightsConfirmed] = useState(true);
   const [preview, setPreview] = useState<GroundedImportPreview | null>(null);
   const [videoReview, setVideoReview] = useState(false);
+  const [reviewJobId, setReviewJobId] = useState<number | null>(null);
+  const [videoHistory, setVideoHistory] = useState<VideoHistoryEntry[]>([]);
   const [videoWarnings, setVideoWarnings] = useState<string[]>([]);
   const [videoStatus, setVideoStatus] = useState("");
   const videoRequestRef = useRef<{ url: string; id: string } | null>(null);
   const videoAbortRef = useRef<AbortController | null>(null);
   useEffect(() => () => videoAbortRef.current?.abort(), []);
+  useEffect(() => {
+    if (!token) { setVideoHistory([]); return; }
+    let mounted = true;
+    void fetch("/api/recipe-social/video/history", {
+      headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+    }).then(async response => {
+      if (!response.ok) return;
+      const data: unknown = await response.json();
+      if (data && typeof data === "object" && "jobs" in data && Array.isArray(data.jobs) && mounted) {
+        setVideoHistory((data.jobs as unknown[]).filter((item): item is VideoHistoryEntry =>
+          !!item && typeof item === "object" && Number.isSafeInteger((item as VideoHistoryEntry).id) &&
+          typeof (item as VideoHistoryEntry).source_url === "string" &&
+          typeof (item as VideoHistoryEntry).status === "string"));
+      }
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, [token]);
   const [editor, setEditor] = useState<ImportEditor | null>(null);
   const [accepted, setAccepted] = useState(true);
   const [busy, setBusy] = useState<"preview" | "publish" | null>(null);
@@ -93,6 +120,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
     setSource(text);
     setPreview(null);
     setVideoReview(false);
+    setReviewJobId(null);
     setVideoWarnings([]);
     setVideoStatus("");
     videoAbortRef.current?.abort();
@@ -165,6 +193,49 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   };
 
 
+  const openVideoEditor = (job: ReturnType<typeof parseVideoJob>) => {
+    const checked = videoEditorFromJob(job);
+    setEditor(checked.editor);
+    setVideoWarnings(checked.warnings);
+    setVideoReview(true);
+    setReviewJobId(job.id);
+    setPreview(null);
+    setAccepted(true);
+    setActiveIngredient(null);
+    setActiveStep(null);
+    setVideoStatus("needs_review");
+    setImportMethod("social");
+    setSocialUrl(job.source_url);
+    setError("");
+    void quotas.reload();
+  };
+
+  const openHistoryJob = async (entry: VideoHistoryEntry) => {
+    if (!token || busy) return;
+    if (entry.status === "published" && entry.recipe_slug) {
+      router.push(`/recipe/${encodeURIComponent(entry.recipe_slug)}`);
+      return;
+    }
+    setBusy("preview");
+    setError("");
+    try {
+      const response = await fetch(`/api/recipe-social/video/status/${entry.id}`, {
+        headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+      });
+      const data: unknown = await response.json().catch(() => null);
+      if (!response.ok) throw new Error("Analiz kaydı açılamadı.");
+      const job = parseVideoJob(data);
+      if (job.status === "needs_review") openVideoEditor(job);
+      else {
+        setSocialUrl(job.source_url);
+        setVideoStatus(job.status);
+        setError("Bu kayıt henüz tamamlanmadı. Yeniden ücretli analiz başlatılmadı.");
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Analiz kaydı alınamadı.");
+    } finally { setBusy(null); }
+  };
+
   const requestVideoPreview = async (url: string) => {
     if (!token || busy) return;
     const previous = videoRequestRef.current;
@@ -176,44 +247,56 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
     setBusy("preview");
     setVideoStatus("queued");
     setVideoReview(false);
+    setReviewJobId(null);
     setVideoWarnings([]);
     setError("");
     try {
-      // Core start only creates an idempotent DB job. Paid quota is reserved
-      // by the server-side worker, not by this browser request.
-      const response = await fetch("/api/recipe-social/video/start", {
-        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(isInstagramReelLink(url)
-          ? { source_url: url, request_id: requestId, rights_confirmed: true }
-          : { source_url: url, request_id: requestId }),
+      const preflight = await fetch("/api/recipe-social/video/resolve", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ source_url: url }),
         signal: controller.signal, cache: "no-store",
       });
-      const payload: unknown = await response.json().catch(() => null);
-      if (!response.ok) {
-        const message = payload && typeof payload === "object" && "message" in payload
-          && typeof payload.message === "string" ? payload.message : "Video analizi başlatılamadı.";
-        throw new Error(message);
+      const resolved: unknown = await preflight.json().catch(() => null);
+      if (!preflight.ok || !resolved || typeof resolved !== "object" || !("status" in resolved))
+        throw new Error("Video kaydı doğrulanamadı; yeni analiz başlatılmadı.");
+      const found = resolved as Record<string, unknown>;
+      if (found.status === "published" && typeof found.recipe_slug === "string") {
+        router.push(`/recipe/${encodeURIComponent(found.recipe_slug)}`);
+        return;
       }
-      let job = parseVideoJob(payload);
-      // The status request cannot start a new analysis. Repeating start with
-      // the same URL/key returns the existing durable WordPress job.
-      for (let attempt = 0; attempt < 100 && !controller.signal.aborted; attempt++) {
-        setVideoStatus(job.status);
-        if (job.status === "needs_review") {
-          const checked = videoEditorFromJob(job);
-          setEditor(checked.editor);
-          setVideoWarnings(checked.warnings);
-          setVideoReview(true);
-          setPreview(null);
-          setAccepted(true);
-          setActiveIngredient(null);
-          setActiveStep(null);
-          void quotas.reload();
+      if (found.status === "pending") throw new Error("Bu video için yayın işlemi sürüyor.");
+      let job: ReturnType<typeof parseVideoJob>;
+      if (found.status === "existing") {
+        job = parseVideoJob(found.job);
+      } else if (found.status === "new" && found.can_start === true) {
+        const response = await fetch("/api/recipe-social/video/start", {
+          method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(isInstagramReelLink(url)
+            ? { source_url: url, request_id: requestId, rights_confirmed: true }
+            : { source_url: url, request_id: requestId }),
+          signal: controller.signal, cache: "no-store",
+        });
+        const payload: unknown = await response.json().catch(() => null);
+        if (!response.ok) {
+          const message = payload && typeof payload === "object" && "message" in payload
+            && typeof payload.message === "string" ? payload.message : "Video analizi başlatılamadı.";
+          throw new Error(message);
+        }
+        if (payload && typeof payload === "object" && "status" in payload &&
+            payload.status === "published" && "recipe_slug" in payload && typeof payload.recipe_slug === "string") {
+          router.push(`/recipe/${encodeURIComponent(payload.recipe_slug)}`);
           return;
         }
-        if (job.status === "failed" || job.status === "uncertain") {
+        job = parseVideoJob(payload);
+      } else {
+        throw new Error("Yeni video analizi şu anda kapalı. Hazır tarifleri Analizlerim bölümünden açabilirsin.");
+      }
+      for (let attempt = 0; attempt < 18 && !controller.signal.aborted; attempt++) {
+        setVideoStatus(job.status);
+        if (job.status === "needs_review") { openVideoEditor(job); return; }
+        if (job.status === "failed" || job.status === "uncertain")
           throw new Error(job.message || "Video analiz sonucu doğrulanamadı.");
-        }
         await new Promise(resolve => setTimeout(resolve, 3000));
         if (controller.signal.aborted) return;
         const current = await fetch(`/api/recipe-social/video/status/${job.id}`, {
@@ -221,21 +304,16 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
           signal: controller.signal,
         });
         const status: unknown = await current.json().catch(() => null);
-        if (!current.ok) {
-          const message = status && typeof status === "object" && "message" in status
-            && typeof status.message === "string" ? status.message : "Analiz durumu alınamadı.";
-          throw new Error(message);
-        }
+        if (!current.ok) throw new Error("Durum alınamadı. Analizlerim bölümünden kontrol edebilirsin.");
         job = parseVideoJob(status);
       }
       if (!controller.signal.aborted) {
-        setVideoStatus("processing");
-        setError("Video hâlâ işleniyor olabilir. Bir süre sonra aynı bağlantıyla durumunu yeniden kontrol et; yeni analiz başlatılmaz.");
+        setVideoStatus(job.status);
+        setError("Video henüz tamamlanmadı. Sayfada beklemen gerekmiyor; Analizlerim bölümünden tekrar açabilirsin.");
       }
     } catch (cause) {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted)
         setError(cause instanceof Error ? cause.message : "Video analiz durumu alınamadı.");
-      }
     } finally {
       if (videoAbortRef.current === controller) videoAbortRef.current = null;
       void quotas.reload();
@@ -310,7 +388,24 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
         setError("Bugünkü tarif yayımlama hakkın doldu. Yenilenme: " + quotaReset(fresh, "recipe_day"));
         return;
       }
-      const result = await createRecipe(token, buildApprovedRecipe(editor));
+      let result: { success?: boolean; slug?: string; id?: number; message?: string };
+      if (videoReview && reviewJobId) {
+        const response = await fetch("/api/recipe-social/video/publish", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ job_id: reviewJobId, recipe: buildApprovedRecipe(editor) }),
+          cache: "no-store",
+        });
+        const data: unknown = await response.json().catch(() => null);
+        if (!response.ok) {
+          const message = data && typeof data === "object" && "message" in data &&
+            typeof data.message === "string" ? data.message : "Video tarifi yayımlanamadı.";
+          throw new Error(message);
+        }
+        result = data as typeof result;
+      } else {
+        result = await createRecipe(token, buildApprovedRecipe(editor));
+      }
       if (!result?.success || !(result.slug || result.id)) {
         throw new Error(result?.message || "Tarif yayımlanamadı.");
       }
@@ -432,7 +527,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
           </> : <>
             <FormLabel htmlFor="social-source-url">Sosyal medya paylaşım bağlantısı</FormLabel>
             <input id="social-source-url" type="url" inputMode="url" value={socialUrl}
-              onChange={event => { videoAbortRef.current?.abort(); videoRequestRef.current = null; setInstagramRightsConfirmed(true); setSocialUrl(event.target.value); setPreview(null); setVideoReview(false); setVideoWarnings([]); setVideoStatus(""); setEditor(null); setError(""); }}
+              onChange={event => { videoAbortRef.current?.abort(); videoRequestRef.current = null; setInstagramRightsConfirmed(true); setSocialUrl(event.target.value); setPreview(null); setVideoReview(false); setReviewJobId(null); setVideoWarnings([]); setVideoStatus(""); setEditor(null); setError(""); }}
               placeholder="https://www.instagram.com/reel/…"
               disabled={!!busy} maxLength={2048}
               className="min-h-12 w-full rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-4 text-sm text-slate-800 outline-none focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10" />
@@ -472,6 +567,38 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               <p className="mt-2 text-center text-[10px] text-slate-400">{isVideoRecipeLink(socialUrl) ? "Beta açıksa analiz arka planda başlar; hak yalnız iş çalıştırılırken kullanılır." : "Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin."}</p>
             </div>
           </>}
+          {importMethod === "social" && (
+            <div className="mt-5 border-t border-[#f0e6dc] pt-4">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-extrabold text-slate-800">Analizlerim</h3>
+                <span className="text-[10px] text-slate-400">Son 30 kayıt · hesabına özel</span>
+              </div>
+              {videoHistory.length === 0 && <p className="mt-2 text-xs text-slate-500">
+                Henüz kayıtlı video analizi görünmüyor.
+              </p>}
+              <div className="mt-3 space-y-2">
+                {videoHistory.slice(0, 8).map(entry => (
+                  <button key={entry.id} type="button" disabled={!!busy}
+                    onClick={() => void openHistoryJob(entry)}
+                    className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-3 py-2.5 text-left transition hover:border-[#db4c3f] disabled:opacity-50">
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-bold text-slate-800">
+                        {entry.title || `Video analizi #${entry.id}`}
+                      </span>
+                      <span className="mt-1 block text-[11px] text-slate-500">
+                        {entry.status === "published" ? "Yayımlanmış tarife git"
+                          : entry.status === "needs_review" ? "Düzenlemeye hazır"
+                          : entry.status === "processing" ? "İşleniyor"
+                          : entry.status === "queued" || entry.status === "pull_ready"
+                            ? "Sırada bekliyor" : "İnceleme gerekli"}
+                      </span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-[#b64d3b]" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="min-w-0 rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-6" aria-live="polite">
