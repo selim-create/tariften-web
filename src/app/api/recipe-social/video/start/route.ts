@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isInstagramReelLink } from "@/lib/video-recipe-import";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const BASE = "https://api.tariften.com/wp-json/tariften/v1/ai/recipe-social/video";
@@ -20,7 +21,10 @@ export async function POST(request: NextRequest) {
   } catch { return send({ success: false, message: "Bağlantı okunamadı." }, 400); }
   if (!params || Array.isArray(params) || typeof params !== "object") return send({ success: false, message: "Geçersiz istek." }, 400);
   const p = params as Record<string, unknown>;
-  if (Object.keys(p).sort().join(",") !== "request_id,source_url" ||
+  const instagram = typeof p.source_url === "string" && isInstagramReelLink(p.source_url);
+  const expectedKeys = instagram ? "request_id,rights_confirmed,source_url" : "request_id,source_url";
+  if (Object.keys(p).sort().join(",") !== expectedKeys ||
+      (instagram && p.rights_confirmed !== true) ||
       typeof p.source_url !== "string" || p.source_url.length > 2048 ||
       !/^https:\/\/[^\s]+$/.test(p.source_url) || typeof p.request_id !== "string" ||
       !/^[A-Za-z0-9-]{16,80}$/.test(p.request_id)) return send({ success: false, message: "Geçersiz video bağlantısı veya istek kimliği." }, 400);
