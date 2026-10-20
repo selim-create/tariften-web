@@ -221,3 +221,15 @@ test('Instagram post aliases resolve existing public Reels but never start unkno
   assert.match(page, /found\.can_start === true && isVideoRecipeLink\(url\)/);
   assert.match(page, /Mevcut tarifi bul/);
 });
+
+test('social card shows only measured and timestamped counts, never synthetic values', () => {
+  const card = read('src/components/recipe/SocialRecipeSourceCard.tsx');
+  const types = read('src/types/index.ts');
+  assert.match(card, /source\.metrics_origin === "public_instagram_extractor"/);
+  assert.match(card, /source\.view_count/);
+  assert.match(card, /source\.like_count/);
+  assert.match(card, /source\.follower_count/);
+  assert.match(card, /Number\.isSafeInteger/);
+  assert.match(card, /güncel veya resmî hesap istatistiği değildir/);
+  assert.match(types, /metrics_captured_at\?: string/);
+});
