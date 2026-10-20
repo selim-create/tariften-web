@@ -16,6 +16,12 @@ export interface RecipeSocialSource {
   video_id: string;
   url: string;
   creator_handle: string | null;
+  creator_verified?: boolean;
+  view_count?: number | null;
+  like_count?: number | null;
+  follower_count?: number | null;
+  metrics_origin?: "public_instagram_extractor" | null;
+  metrics_captured_at?: string | null;
 }
 
 export interface Recipe {

@@ -131,9 +131,9 @@ test('published source lookup, private history and video owner publish use guard
   assert.match(page, /found\.status === "existing"/);
   assert.match(page, /found\.status === "published"/);
   assert.match(page, /reviewJobId/);
-  assert.match(page, /setVideoHistory\(items =>/);
+  assert.match(page, /router\.push\(\`\/recipe\/aktarimlarim\?job=/);
   assert.doesNotMatch(page, /attempt < 18/, 'Web never waits for the paid worker');
-  assert.match(page, /Analizlerim/);
+  assert.match(page, /Tarif Aktarımlarım/);
   for (const route of [resolve, history, publish]) {
     assert.match(route, /Authorization: token/);
     assert.match(route, /cache: "no-store"/);
@@ -169,12 +169,12 @@ test('async recipe transfer gives a notification without blocking the editor', (
   const page = read('src/app/recipe/import/page.tsx');
   const ready = read('src/components/layout/VideoRecipeReadyNotice.tsx');
   const layout = read('src/app/layout.tsx');
-  assert.match(page, /Tarif aktarımın sıraya alındı/);
+  assert.match(page, /\/recipe\/aktarimlarim\?job=/);
   assert.match(page, /deepLinkOpenedRef/);
   assert.match(page, /URLSearchParams\(window\.location\.search\)/);
   assert.match(page, /Tarif Aktarımlarım/);
   assert.match(ready, /setInterval\(\(\) => \{ void check\(\); \}, 60000\)/);
-  assert.match(ready, /status === "needs_review"/);
+  assert.match(ready, /\["needs_review", "published"\]/);
   assert.match(ready, /\/recipe\/aktar\?job=/);
   assert.match(layout, /<VideoRecipeReadyNotice/);
 });
@@ -194,7 +194,42 @@ test('Instagram standard post may be photo or carousel; cannot be silently sold 
   ]) assert.equal(isInstagramPostLink(suspicious), false, suspicious);
   const page = read('src/app/recipe/import/page.tsx');
   assert.match(page, /isInstagramPostLink\(url\)/);
-  assert.match(page, /Bu işlem için AI hakkın kullanılmadı/);
-  assert.match(page, /disabled=\{isInstagramPostLink\(socialUrl\)/);
+  assert.match(page, /await requestVideoPreview\(url\)/);
+  assert.match(page, /Mevcut tarifi bul/);
   assert.match(page, /Instagram gönderi bağlantıları/);
+});
+
+test('separate transfers page handles stalled jobs and automatic publication without charging again', () => {
+  const tracker = read('src/app/recipe/aktarimlarim/page.tsx');
+  const importPage = read('src/app/recipe/import/page.tsx');
+  const notice = read('src/components/layout/VideoRecipeReadyNotice.tsx');
+  assert.match(tracker, /Tarif Aktarımlarım/);
+  assert.match(tracker, /Date\.now\(\) - date > 10 \* 60 \* 1000/);
+  assert.match(tracker, /bu kaydı henüz tamamlamadı/);
+  assert.match(tracker, /setInterval\(\(\) => \{ void load\(\); \}, 20000\)/);
+  assert.match(tracker, /item\.status === "published"/);
+  assert.match(importPage, /router\.push\(\`\/recipe\/aktarimlarim\?job=/);
+  assert.match(notice, /ready\.status === "published"/);
+  assert.match(notice, /encodeURIComponent\(ready\.recipe_slug\)/);
+});
+
+test('Instagram post aliases resolve existing public Reels but never start unknown videos', () => {
+  const page = read('src/app/recipe/import/page.tsx');
+  const resolve = read('src/app/api/recipe-social/video/resolve/route.ts');
+  assert.match(resolve, /isInstagramPostLink\(body\.source_url\)/);
+  assert.match(page, /found\.status === "unsupported_post"/);
+  assert.match(page, /found\.can_start === true && isVideoRecipeLink\(url\)/);
+  assert.match(page, /Mevcut tarifi bul/);
+});
+
+test('social card shows only measured and timestamped counts, never synthetic values', () => {
+  const card = read('src/components/recipe/SocialRecipeSourceCard.tsx');
+  const types = read('src/types/index.ts');
+  assert.match(card, /source\.metrics_origin === "public_instagram_extractor"/);
+  assert.match(card, /source\.view_count/);
+  assert.match(card, /source\.like_count/);
+  assert.match(card, /source\.follower_count/);
+  assert.match(card, /Number\.isSafeInteger/);
+  assert.match(card, /güncel veya resmî hesap istatistiği değildir/);
+  assert.match(types, /metrics_captured_at\?: string/);
 });

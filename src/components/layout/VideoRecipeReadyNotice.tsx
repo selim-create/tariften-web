@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BellRing, Check, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
-type ReadyItem = { id: number; status: string; title?: string };
+type ReadyItem = { id: number; status: string; title?: string; recipe_slug?: string };
 
 function stored(userId: number): number[] {
   try {
@@ -35,7 +35,7 @@ export default function VideoRecipeReadyNotice() {
         const seen = new Set(stored(userId));
         const unread = (data.jobs as unknown[]).find((job): job is ReadyItem =>
           !!job && typeof job === "object" &&
-          (job as ReadyItem).status === "needs_review" &&
+          ["needs_review", "published"].includes((job as ReadyItem).status) &&
           Number.isSafeInteger((job as ReadyItem).id) &&
           !seen.has((job as ReadyItem).id));
         if (active) setReady(unread || null);
@@ -73,14 +73,19 @@ export default function VideoRecipeReadyNotice() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#ba6e55]">Tariften&apos;den haber var</p>
-          <h3 className="mt-1 font-heading text-base font-extrabold text-[#26382f]">Aktardığın tarif hazır!</h3>
+          <h3 className="mt-1 font-heading text-base font-extrabold text-[#26382f]">
+            {ready.status === "published" ? "Tarifin yayımlandı!" : "Tarifin için kontrol gerekiyor"}
+          </h3>
           <p className="mt-1 text-xs leading-5 text-[#756e67]">
-            {ready.title ? `${ready.title} artık düzenlenmeye hazır.`
-              : "Tarifini kontrol edip mutfak defterine ekleyebilirsin."}
+            {ready.status === "published"
+              ? (ready.title ? `${ready.title} yayında. Afiyet olsun!` : "Tarifin hazır ve yayında.")
+              : "Bazı ayrıntılar netleştirilmeli. Taslağını inceleyebilirsin."}
           </p>
-          <Link href={`/recipe/aktar?job=${ready.id}`} onClick={acknowledge}
+          <Link href={ready.status === "published" && ready.recipe_slug
+            ? `/recipe/${encodeURIComponent(ready.recipe_slug)}`
+            : `/recipe/aktar?job=${ready.id}`} onClick={acknowledge}
             className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#e35143] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#c94537]">
-            <Check className="h-3.5 w-3.5" /> Tarifi görüntüle
+            <Check className="h-3.5 w-3.5" /> {ready.status === "published" ? "Tarifi aç" : "Taslağı incele"}
           </Link>
         </div>
         <button type="button" onClick={acknowledge} aria-label="Bildirimi kapat"

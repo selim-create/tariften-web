@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isVideoRecipeLink } from "@/lib/video-recipe-import";
+import { isInstagramPostLink, isVideoRecipeLink } from "@/lib/video-recipe-import";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   if (!body || typeof body !== "object" || Array.isArray(body) ||
       Object.keys(body).join(",") !== "source_url" ||
       !("source_url" in body) || typeof body.source_url !== "string" ||
-      !isVideoRecipeLink(body.source_url)) {
+      !(isVideoRecipeLink(body.source_url) || isInstagramPostLink(body.source_url))) {
     return NextResponse.json({ success: false, message: "Desteklenen bir video bağlantısı gir." }, { status: 400, headers: NO_STORE });
   }
   try {
