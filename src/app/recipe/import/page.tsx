@@ -606,8 +606,8 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
           {importMethod === "social" && (
             <div className="mt-5 border-t border-[#f0e6dc] pt-4">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-extrabold text-slate-800">Analizlerim</h3>
-                <span className="text-[10px] text-slate-400">Son 30 kayıt · hesabına özel</span>
+                <h3 className="text-sm font-extrabold text-slate-800">Tarif Aktarımlarım</h3>
+                <Link href="/recipe/aktarimlarim" className="text-[11px] font-bold text-[#c84b3d] hover:underline">Tümünü gör →</Link>
               </div>
               {videoHistory.length === 0 && <p className="mt-2 text-xs text-slate-500">
                 Henüz aktardığın bir video tarifi bulunmuyor.
