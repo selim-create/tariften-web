@@ -57,7 +57,7 @@ test('Instagram Reels detection and review keep exact host, rights and YouTube c
     'http://instagram.com/reel/C5ToOyqIZvb/', 'https://instagram.com.evil.test/reel/C5ToOyqIZvb/',
     'https://user@instagram.com/reel/C5ToOyqIZvb/', 'https://instagram.com:444/reel/C5ToOyqIZvb/',
     'https://instagram.com/p/C5ToOyqIZvb/', 'https://instagram.com/tv/C5ToOyqIZvb/',
-    'https://instagram.com/reel/C5ToOyqIZvb/extra', 'https://instagram.com/reel/short',
+    'https://instagram.com/reel/C5ToOyqIZvb/extra', 'https://instagram.com/reel/four',
   ]) assert.equal(isInstagramReelLink(bad), false, bad);
   const job = parseVideoJob({ ...fixture(), source_url: reel });
   assert.equal(videoEditorFromJob(job).editor.title, 'Kuru Domatesli Gnocchi');
