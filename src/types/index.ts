@@ -11,6 +11,13 @@ export interface User {
   token?: string;
 }
 
+export interface RecipeSocialSource {
+  platform: "instagram" | "youtube";
+  video_id: string;
+  url: string;
+  creator_handle: string | null;
+}
+
 export interface Recipe {
   id: number;
   title: string;
@@ -24,6 +31,7 @@ export interface Recipe {
   calories: string | number;
   nutrition_status?: 'unverified' | 'verified' | string;
   quality_status?: string;
+  social_source?: RecipeSocialSource | null;
   
   difficulty: string[]; // Backend 'get_term_names' array döner
   rating: number;
