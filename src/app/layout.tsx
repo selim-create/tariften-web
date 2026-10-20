@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import AppBanner from '@/components/layout/AppBanner';
+import VideoRecipeReadyNotice from '@/components/layout/VideoRecipeReadyNotice';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import { AuthProvider } from "@/context/AuthContext";
@@ -94,6 +95,7 @@ export default function RootLayout({
               <div className="flex-grow">
                 {children}
               </div>
+              <VideoRecipeReadyNotice />
               <Footer />
               <AppBanner /> {/* Dinamik mobil banner'ımız */}
             </AuthProvider>
