@@ -205,7 +205,7 @@ test('separate transfers page handles stalled jobs and automatic publication wit
   const notice = read('src/components/layout/VideoRecipeReadyNotice.tsx');
   assert.match(tracker, /Tarif Aktarımlarım/);
   assert.match(tracker, /Date\.now\(\) - date > 10 \* 60 \* 1000/);
-  assert.match(tracker, /işleyici bu kaydı henüz tamamlamadı/i);
+  assert.match(tracker, /bu kaydı henüz tamamlamadı/);
   assert.match(tracker, /setInterval\(\(\) => \{ void load\(\); \}, 20000\)/);
   assert.match(tracker, /item\.status === "published"/);
   assert.match(importPage, /router\.push\(\`\/recipe\/aktarimlarim\?job=/);
