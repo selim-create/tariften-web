@@ -119,3 +119,34 @@ test('Web video routes and UX use only server Core, idempotent request and expli
   assert.match(page, /buildApprovedRecipe\(editor\)/);
   assert.doesNotMatch(page, /generateImage/);
 });
+
+test('published source lookup, private history and video owner publish use guarded routes', () => {
+  const page = read('src/app/recipe/import/page.tsx');
+  const resolve = read('src/app/api/recipe-social/video/resolve/route.ts');
+  const history = read('src/app/api/recipe-social/video/history/route.ts');
+  const publish = read('src/app/api/recipe-social/video/publish/route.ts');
+  assert.match(page, /\/api\/recipe-social\/video\/resolve/);
+  assert.match(page, /\/api\/recipe-social\/video\/history/);
+  assert.match(page, /\/api\/recipe-social\/video\/publish/);
+  assert.match(page, /found\.status === "existing"/);
+  assert.match(page, /found\.status === "published"/);
+  assert.match(page, /reviewJobId/);
+  assert.match(page, /attempt < 18/);
+  assert.match(page, /Analizlerim/);
+  for (const route of [resolve, history, publish]) {
+    assert.match(route, /Authorization: token/);
+    assert.match(route, /cache: "no-store"/);
+    assert.match(route, /AbortSignal\.timeout/);
+  }
+  assert.match(resolve, /isVideoRecipeLink/);
+  assert.match(publish, /job_id,recipe/);
+  assert.doesNotMatch(page, /attempt < 100/, 'no five-minute spinner');
+});
+
+test('provider estimated calories are labelled tentative, not silently removed', () => {
+  const job = fixture();
+  job.preview.recipe.nutrition.calories_per_serving = 926.2;
+  const { editor, warnings } = videoEditorFromJob(parseVideoJob(job));
+  assert.equal(editor.calories, '926');
+  assert.ok(warnings.some(w => w.includes('Kalori') && w.includes('tahminidir')));
+});
