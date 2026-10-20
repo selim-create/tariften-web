@@ -63,7 +63,11 @@ test('Instagram Reels detection and review keep exact host, rights and YouTube c
   assert.equal(videoEditorFromJob(job).editor.title, 'Kuru Domatesli Gnocchi');
   const page = read('src/app/recipe/import/page.tsx');
   const start = read('src/app/api/recipe-social/video/start/route.ts');
-  assert.match(page, /instagramRightsConfirmed/);
+  assert.match(page, /\[instagramRightsConfirmed, setInstagramRightsConfirmed\] = useState\(true\)/);
+  assert.match(page, /setInstagramRightsConfirmed\(true\); setSocialUrl/);
+  assert.match(page, /onChange=\{event => setInstagramRightsConfirmed\(event.target.checked\)\}/);
+  assert.match(page, /text-\[11px\] leading-4/);
+  assert.doesNotMatch(page, /Herkese açık olması tek başına kullanım hakkı vermez/);
   assert.match(page, /rights_confirmed: true/);
   assert.match(start, /request_id,rights_confirmed,source_url/);
   assert.match(start, /p.rights_confirmed !== true/);
