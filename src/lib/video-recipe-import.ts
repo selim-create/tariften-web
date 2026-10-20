@@ -43,7 +43,7 @@ export function isInstagramPostLink(value: string): boolean {
     const u = new URL(value.trim());
     return u.protocol === "https:" && !u.username && !u.password && !u.port
       && ["instagram.com", "www.instagram.com"].includes(u.hostname.toLowerCase())
-      && /^\\/p\\/[A-Za-z0-9_-]{5,64}\\/?$/.test(u.pathname);
+      && /^\/p\/[A-Za-z0-9_-]{5,64}\/?$/.test(u.pathname);
   } catch { return false; }
 }
 
