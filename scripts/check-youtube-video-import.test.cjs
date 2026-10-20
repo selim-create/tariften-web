@@ -11,7 +11,7 @@ const js = ts.transpileModule(read('src/lib/video-recipe-import.ts'), {
 }).outputText;
 const mod = { exports: {} };
 Function('module', 'exports', 'require', js)(mod, mod.exports, () => { throw Error('unexpected_import'); });
-const { isYouTubeVideoLink, isInstagramReelLink, isVideoRecipeLink, parseVideoJob, videoEditorFromJob } = mod.exports;
+const { isYouTubeVideoLink, isInstagramReelLink, isInstagramPostLink, isVideoRecipeLink, parseVideoJob, videoEditorFromJob } = mod.exports;
 const link = 'https://www.youtube.com/watch?v=abcdefghijk';
 
 function fixture() {
@@ -177,4 +177,24 @@ test('async recipe transfer gives a notification without blocking the editor', (
   assert.match(ready, /status === "needs_review"/);
   assert.match(ready, /\/recipe\/aktar\?job=/);
   assert.match(layout, /<VideoRecipeReadyNotice/);
+});
+
+test('Instagram standard post may be photo or carousel; cannot be silently sold as video', () => {
+  const standard = 'https://www.instagram.com/p/DFiPb_aoAXi/';
+  assert.equal(isInstagramPostLink(standard), true);
+  assert.equal(isVideoRecipeLink(standard), false);
+  assert.equal(isInstagramPostLink('https://www.instagram.com/p/DFiPb_aoAXi/?igsh=test'), true);
+  assert.equal(isInstagramReelLink(standard), false);
+  for (const suspicious of [
+    'https://instagram.com.evil.tld/p/DFiPb_aoAXi/',
+    'http://www.instagram.com/p/DFiPb_aoAXi/',
+    'https://www.instagram.com/p/abcd/',
+    'https://user@www.instagram.com/p/DFiPb_aoAXi/',
+    'https://www.instagram.com/p/DFiPb_aoAXi/extra',
+  ]) assert.equal(isInstagramPostLink(suspicious), false, suspicious);
+  const page = read('src/app/recipe/import/page.tsx');
+  assert.match(page, /isInstagramPostLink\(url\)/);
+  assert.match(page, /Bu işlem için AI hakkın kullanılmadı/);
+  assert.match(page, /disabled=\{isInstagramPostLink\(socialUrl\)/);
+  assert.match(page, /Instagram gönderi bağlantıları/);
 });

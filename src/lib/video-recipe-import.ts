@@ -37,6 +37,16 @@ export function isInstagramReelLink(value: string): boolean {
   } catch { return false; }
 }
 
+/** A /p/ URL can be photo, video or carousel; URL alone cannot identify media type. */
+export function isInstagramPostLink(value: string): boolean {
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === "https:" && !u.username && !u.password && !u.port
+      && ["instagram.com", "www.instagram.com"].includes(u.hostname.toLowerCase())
+      && /^\/p\/[A-Za-z0-9_-]{5,64}\/?$/.test(u.pathname);
+  } catch { return false; }
+}
+
 export function isVideoRecipeLink(value: string): boolean {
   return isYouTubeVideoLink(value) || isInstagramReelLink(value);
 }
