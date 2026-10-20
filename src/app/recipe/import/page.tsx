@@ -216,6 +216,10 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
       router.push(`/recipe/${encodeURIComponent(entry.recipe_slug)}`);
       return;
     }
+    if (entry.status !== "needs_review") {
+      router.push(`/recipe/aktarimlarim?job=${entry.id}`);
+      return;
+    }
     setBusy("preview");
     setError("");
     try {
@@ -324,15 +328,10 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
       if (job.status === "failed" || job.status === "uncertain") {
         throw new Error(job.message || "Tarif aktarımı tamamlanamadı.");
       }
-      // A durable WordPress job exists: leave immediately. The app-wide
-      // readiness notice and transactional email will notify on completion.
-      setVideoStatus(job.status);
-      setVideoHistory(items => [
-        { id: job.id, source_url: job.source_url, status: job.status,
-          created_at: new Date().toISOString() },
-        ...items.filter(item => item.id !== job.id),
-      ].slice(0, 30));
-      setUsageNotice("Tarif aktarımın sıraya alındı. Hazır olduğunda haber vereceğiz.");
+      // A persisted, uniquely identified job now has its own status page.
+      // Keep the editor available for a *different* new transfer.
+      router.push(`/recipe/aktarimlarim?job=${job.id}`);
+      return;
     } catch (cause) {
       if (!controller.signal.aborted)
         setError(cause instanceof Error ? cause.message : "Video analiz durumu alınamadı.");
