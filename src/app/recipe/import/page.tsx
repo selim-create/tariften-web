@@ -236,6 +236,31 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
     } finally { setBusy(null); }
   };
 
+  const deepLinkOpenedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!token) return;
+    const id = new URLSearchParams(window.location.search).get("job");
+    if (!id || !/^[1-9]\\d{0,12}$/.test(id)) return;
+    const key = `${user?.id || 0}:${id}`;
+    if (deepLinkOpenedRef.current === key) return;
+    deepLinkOpenedRef.current = key;
+    let active = true;
+    void fetch(`/api/recipe-social/video/status/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+    }).then(async res => {
+      if (!res.ok) throw new Error("Aktardığın tarif hesabında bulunamadı.");
+      const job = parseVideoJob(await res.json());
+      if (!active) return;
+      if (job.status === "needs_review") openVideoEditor(job);
+      else {
+        setVideoStatus(job.status);
+        setSocialUrl(job.source_url);
+        setError("Tarifin henüz hazırlanıyor; tamamlandığında haber vereceğiz.");
+      }
+    }).catch(() => { if (active) setError("Tarif kaydını açamadık. Tarif aktarımlarını kontrol et."); });
+    return () => { active = false; };
+  }, [token, user?.id]);
+
   const requestVideoPreview = async (url: string) => {
     if (!token || busy) return;
     const previous = videoRequestRef.current;
@@ -290,27 +315,24 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
         }
         job = parseVideoJob(payload);
       } else {
-        throw new Error("Yeni video analizi şu anda kapalı. Hazır tarifleri Analizlerim bölümünden açabilirsin.");
+        throw new Error("Yeni video analizi şu anda kapalı. Hazır tarifleri Tarif Aktarımlarım bölümünden açabilirsin.");
       }
-      for (let attempt = 0; attempt < 18 && !controller.signal.aborted; attempt++) {
-        setVideoStatus(job.status);
-        if (job.status === "needs_review") { openVideoEditor(job); return; }
-        if (job.status === "failed" || job.status === "uncertain")
-          throw new Error(job.message || "Video analiz sonucu doğrulanamadı.");
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        if (controller.signal.aborted) return;
-        const current = await fetch(`/api/recipe-social/video/status/${job.id}`, {
-          headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
-          signal: controller.signal,
-        });
-        const status: unknown = await current.json().catch(() => null);
-        if (!current.ok) throw new Error("Durum alınamadı. Analizlerim bölümünden kontrol edebilirsin.");
-        job = parseVideoJob(status);
+      if (job.status === "needs_review") {
+        openVideoEditor(job);
+        return;
       }
-      if (!controller.signal.aborted) {
-        setVideoStatus(job.status);
-        setError("Video henüz tamamlanmadı. Sayfada beklemen gerekmiyor; Analizlerim bölümünden tekrar açabilirsin.");
+      if (job.status === "failed" || job.status === "uncertain") {
+        throw new Error(job.message || "Tarif aktarımı tamamlanamadı.");
       }
+      // A durable WordPress job exists: leave immediately. The app-wide
+      // readiness notice and transactional email will notify on completion.
+      setVideoStatus(job.status);
+      setVideoHistory(items => [
+        { id: job.id, source_url: job.source_url, status: job.status,
+          created_at: new Date().toISOString() },
+        ...items.filter(item => item.id !== job.id),
+      ].slice(0, 30));
+      setUsageNotice("Tarif aktarımın sıraya alındı. Hazır olduğunda haber vereceğiz.");
     } catch (cause) {
       if (!controller.signal.aborted)
         setError(cause instanceof Error ? cause.message : "Video analiz durumu alınamadı.");
@@ -555,16 +577,16 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               </div>
             )}
             <div className="mt-4 border-t border-slate-100 pt-3">
-              {videoStatus && !videoReview && <p role="status" className="mb-3 rounded-xl bg-[#fff4ec] px-3 py-2 text-xs text-[#8a5346]">{busy === "preview" ? (videoStatus === "queued" ? "Video sıraya alındı…" : videoStatus === "dispatching" ? "Analiz kuyruğa iletiliyor…" : "Video inceleniyor…") : "Video işinin durumunu yeniden kontrol edebilirsin."}</p>}
+              {videoStatus && !videoReview && <p role="status" className="mb-3 rounded-xl bg-[#fff4ec] px-3 py-2 text-xs text-[#8a5346]">{busy === "preview" ? (videoStatus === "queued" ? "Tarif aktarımı sıraya alındı…" : videoStatus === "dispatching" ? "Tarif aktarımı başladı…" : "Tarif hazırlanıyor…") : "Tarif aktarımın sürüyor. Hazır olduğunda bildireceğiz."}</p>}
               <button type="button" onClick={() => void requestSocialPreview()}
                 disabled={!!busy || quotas.loading || !!quotas.error || !quotas.data
                   || (quotaReached(quotas.data, "recipe_ai_day") && !isVideoRecipeLink(socialUrl))
                    || (isInstagramReelLink(socialUrl) && !instagramRightsConfirmed) || !socialUrl.trim()}
                 className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300">
-                {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {isVideoRecipeLink(socialUrl) ? "Video analiz ediliyor…" : "Kaynak inceleniyor…"}</>
-                  : <><Sparkles className="h-4 w-4" /> Bağlantıdan tarif oluştur <ArrowRight className="h-4 w-4" /></>}
+                {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {isVideoRecipeLink(socialUrl) ? "Tarif aktarılıyor…" : "Kaynak inceleniyor…"}</>
+                  : <><Sparkles className="h-4 w-4" /> Tarifi aktar <ArrowRight className="h-4 w-4" /></>}
               </button>
-              <p className="mt-2 text-center text-[10px] text-slate-400">{isVideoRecipeLink(socialUrl) ? "Beta açıksa analiz arka planda başlar; hak yalnız iş çalıştırılırken kullanılır." : "Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin."}</p>
+              <p className="mt-2 text-center text-[10px] text-slate-400">{isVideoRecipeLink(socialUrl) ? "Tarifini hazırlarken bu ekranda beklemen gerekmiyor. Hazır olduğunda haber vereceğiz." : "Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin."}</p>
             </div>
           </>}
           {importMethod === "social" && (
@@ -574,7 +596,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
                 <span className="text-[10px] text-slate-400">Son 30 kayıt · hesabına özel</span>
               </div>
               {videoHistory.length === 0 && <p className="mt-2 text-xs text-slate-500">
-                Henüz kayıtlı video analizi görünmüyor.
+                Henüz aktardığın bir video tarifi bulunmuyor.
               </p>}
               <div className="mt-3 space-y-2">
                 {videoHistory.slice(0, 8).map(entry => (
@@ -583,14 +605,14 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
                     className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-3 py-2.5 text-left transition hover:border-[#db4c3f] disabled:opacity-50">
                     <span className="min-w-0">
                       <span className="block truncate text-xs font-bold text-slate-800">
-                        {entry.title || `Video analizi #${entry.id}`}
+                        {entry.title || `Tarif aktarımı #${entry.id}`}
                       </span>
                       <span className="mt-1 block text-[11px] text-slate-500">
                         {entry.status === "published" ? "Yayımlanmış tarife git"
-                          : entry.status === "needs_review" ? "Düzenlemeye hazır"
-                          : entry.status === "processing" ? "İşleniyor"
+                          : entry.status === "needs_review" ? "Tarifin hazır"
+                          : entry.status === "processing" ? "Tarif hazırlanıyor"
                           : entry.status === "queued" || entry.status === "pull_ready"
-                            ? "Sırada bekliyor" : "İnceleme gerekli"}
+                            ? "Hazırlanıyor" : "İnceleme gerekli"}
                       </span>
                     </span>
                     <ArrowRight className="h-4 w-4 shrink-0 text-[#b64d3b]" />
@@ -610,11 +632,11 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               </div>
               <span className="mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-[#db4c3f]">Tariften editör masası</span>
               <h2 className="max-w-sm text-lg font-black leading-tight text-slate-900 md:text-xl">
-                {busy === "preview" ? "Tarifin deftere işleniyor…" : "Tarifinin düzenlenmiş hâli burada görünecek"}
+                {busy === "preview" ? "Tarifin deftere işleniyor…" : "Tarifin hazır olduğunda burada düzenleyebilirsin"}
               </h2>
               <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
                 {busy === "preview" ? "Malzemeler, adımlar ve kanıt parçaları karşılaştırılıyor. Bu işlem biraz sürebilir." :
-                  "Tarif notlarını soldan ekle. Yazım düzeltmelerini, editoryal spotu ve profesyonel yapılış önerilerini senin onayına sunacağız."}
+                  "Bağlantını girerek tarifi aktar. Sayfada beklemene gerek yok; tarif hazır olduğunda haber vereceğiz."}
               </p>
               <div className="mt-4 flex flex-wrap justify-center gap-1.5">
                 {["Malzemeler", "Hazırlanış", "Editoryal spot"].map(x =>
