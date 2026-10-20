@@ -567,6 +567,38 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               <p className="mt-2 text-center text-[10px] text-slate-400">{isVideoRecipeLink(socialUrl) ? "Beta açıksa analiz arka planda başlar; hak yalnız iş çalıştırılırken kullanılır." : "Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin."}</p>
             </div>
           </>}
+          {importMethod === "social" && (
+            <div className="mt-5 border-t border-[#f0e6dc] pt-4">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-extrabold text-slate-800">Analizlerim</h3>
+                <span className="text-[10px] text-slate-400">Son 30 kayıt · hesabına özel</span>
+              </div>
+              {videoHistory.length === 0 && <p className="mt-2 text-xs text-slate-500">
+                Henüz kayıtlı video analizi görünmüyor.
+              </p>}
+              <div className="mt-3 space-y-2">
+                {videoHistory.slice(0, 8).map(entry => (
+                  <button key={entry.id} type="button" disabled={!!busy}
+                    onClick={() => void openHistoryJob(entry)}
+                    className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-3 py-2.5 text-left transition hover:border-[#db4c3f] disabled:opacity-50">
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-bold text-slate-800">
+                        {entry.title || `Video analizi #${entry.id}`}
+                      </span>
+                      <span className="mt-1 block text-[11px] text-slate-500">
+                        {entry.status === "published" ? "Yayımlanmış tarife git"
+                          : entry.status === "needs_review" ? "Düzenlemeye hazır"
+                          : entry.status === "processing" ? "İşleniyor"
+                          : entry.status === "queued" || entry.status === "pull_ready"
+                            ? "Sırada bekliyor" : "İnceleme gerekli"}
+                      </span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-[#b64d3b]" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="min-w-0 rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-6" aria-live="polite">
