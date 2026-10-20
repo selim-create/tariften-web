@@ -194,8 +194,8 @@ test('Instagram standard post may be photo or carousel; cannot be silently sold 
   ]) assert.equal(isInstagramPostLink(suspicious), false, suspicious);
   const page = read('src/app/recipe/import/page.tsx');
   assert.match(page, /isInstagramPostLink\(url\)/);
-  assert.match(page, /Bu işlem için AI hakkın kullanılmadı/);
-  assert.match(page, /disabled=\{isInstagramPostLink\(socialUrl\)/);
+  assert.match(page, /await requestVideoPreview\(url\)/);
+  assert.match(page, /Mevcut tarifi bul/);
   assert.match(page, /Instagram gönderi bağlantıları/);
 });
 
@@ -211,4 +211,13 @@ test('separate transfers page handles stalled jobs and automatic publication wit
   assert.match(importPage, /router\.push\(\`\/recipe\/aktarimlarim\?job=/);
   assert.match(notice, /ready\.status === "published"/);
   assert.match(notice, /encodeURIComponent\(ready\.recipe_slug\)/);
+});
+
+test('Instagram post aliases resolve existing public Reels but never start unknown videos', () => {
+  const page = read('src/app/recipe/import/page.tsx');
+  const resolve = read('src/app/api/recipe-social/video/resolve/route.ts');
+  assert.match(resolve, /isInstagramPostLink\(body\.source_url\)/);
+  assert.match(page, /found\.status === "unsupported_post"/);
+  assert.match(page, /found\.can_start === true && isVideoRecipeLink\(url\)/);
+  assert.match(page, /Mevcut tarifi bul/);
 });
