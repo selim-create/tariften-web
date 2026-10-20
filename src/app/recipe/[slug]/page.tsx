@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { FaClock, FaFire, FaChartSimple, FaChevronRight, FaPlay, FaUtensils, FaLeaf } from "react-icons/fa6";
 import { FaRegClock, FaRegBookmark } from "react-icons/fa";
 import RecipeDetailClient from "@/components/recipe/RecipeDetailClient";
+import SocialRecipeSourceCard from "@/components/recipe/SocialRecipeSourceCard";
 import PilotEntryButton from "@/components/pilot/PilotEntryButton";
 import RecipeActions from "@/components/recipe/RecipeActions"; 
 import EditButton from "@/components/recipe/EditButton";
@@ -192,6 +193,8 @@ export default async function RecipeDetailPage({
             </div>
           </div>
         </div>
+
+        {recipe.social_source && <SocialRecipeSourceCard source={recipe.social_source} />}
 
         <RecipeDetailClient recipe={recipe} />
 
