@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpRight, CheckCircle2, ExternalLink, Instagram, Play, Video, Youtube } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, ExternalLink, Eye, Heart, Instagram, Play, UsersRound, Video, Youtube } from "lucide-react";
 import type { RecipeSocialSource } from "@/types";
 
 const labels = { instagram: "Instagram Reels", youtube: "YouTube" } as const;
@@ -26,6 +26,16 @@ export default function SocialRecipeSourceCard({ source }: { source: RecipeSocia
   const profile = trusted
     ? (youtube ? null : `https://www.instagram.com/${trusted}/`)
     : null;
+  const publicMetrics = source.metrics_origin === "public_instagram_extractor";
+  const counts = publicMetrics ? [
+    { label: "İzlenme", value: source.view_count, icon: Eye },
+    { label: "Beğeni", value: source.like_count, icon: Heart },
+    { label: "Takipçi", value: source.follower_count, icon: UsersRound },
+  ].filter((metric): metric is { label: string; value: number; icon: typeof Eye } =>
+    typeof metric.value === "number" && Number.isSafeInteger(metric.value) && metric.value >= 0) : [];
+  const countText = (value: number) => new Intl.NumberFormat("tr-TR", {
+    notation: "compact", maximumFractionDigits: 1,
+  }).format(value);
 
   return (
     <section aria-label="Tarifin sosyal medya kaynağı"
@@ -68,6 +78,23 @@ export default function SocialRecipeSourceCard({ source }: { source: RecipeSocia
             İlham veren orijinal videoyu izleyebilir, ardından Tariften&apos;de
             düzenlenmiş malzeme listesini ve adım adım hazırlanışını takip edebilirsin.
           </p>
+          {counts.length > 0 && (
+            <div className="mt-5">
+              <div className="flex flex-wrap gap-2">
+                {counts.map(metric => (
+                  <div key={metric.label} className="flex items-center gap-2 rounded-xl border border-[#eee0d7] bg-white px-3 py-2">
+                    <metric.icon className="h-4 w-4 text-[#c75a45]" />
+                    <span className="text-sm font-extrabold text-[#24342b]">{countText(metric.value)}</span>
+                    <span className="text-[11px] text-[#80746d]">{metric.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] leading-5 text-[#8b8179]">
+                Sosyal platformdan erişilebilen, aktarım sırasında alınmış değerlerdir; güncel veya resmî hesap istatistiği değildir.
+              </p>
+            </div>
+          )}
+
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <a href={source.url} target="_blank" rel="noopener noreferrer nofollow"
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#e35143] px-5 py-3 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(220,79,62,0.18)] transition hover:bg-[#c94237] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e35143]">
