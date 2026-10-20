@@ -295,10 +295,12 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
         return;
       }
       if (found.status === "pending") throw new Error("Bu video için yayın işlemi sürüyor.");
+      if (found.status === "unsupported_post")
+        throw new Error("Bu Instagram gönderisinin Reels videosu olduğu doğrulanamadı. Aynı kısa kodla yayımlanmış bir tarif de bulunmuyor. Bu bağlantı için ücretli analiz başlatılmadı.");
       let job: ReturnType<typeof parseVideoJob>;
       if (found.status === "existing") {
         job = parseVideoJob(found.job);
-      } else if (found.status === "new" && found.can_start === true) {
+      } else if (found.status === "new" && found.can_start === true && isVideoRecipeLink(url)) {
         const response = await fetch("/api/recipe-social/video/start", {
           method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify(isInstagramReelLink(url)
@@ -354,9 +356,8 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
       return;
     }
     if (isInstagramPostLink(url)) {
-      // A standard Instagram /p/ may be a photo, a reel-like video or a
-      // carousel. URL syntax cannot prove which, so never charge for it.
-      setError("Bu bağlantı Instagram gönderisi (/p/). Fotoğraf, video veya galeri olduğunu bağlantıdan doğrulayamıyoruz. Video bir Reels ise orijinal /reel/ bağlantısını paylaş. Diğer gönderiler için tarif metnini aktarabilirsin. Bu işlem için AI hakkın kullanılmadı.");
+      // Read-only shortcode resolution; backend never charges for a /p/ URL.
+      await requestVideoPreview(url);
       return;
     }
     if (!/^https:\/\/[^\s]+$/i.test(url) || url.length > 2048) {
@@ -565,9 +566,9 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
             {isInstagramPostLink(socialUrl) && (
               <Notice warning>
                 Instagram gönderi bağlantıları (/p/) fotoğraf, video veya galeri olabilir.
-                Şu anda doğrudan video aktarımı yalnızca Reels bağlantılarında kullanılabiliyor.
-                İçeriğin Reels bağlantısı varsa onu yapıştır; aksi halde Tarif metni bölümünü kullan.
-                Bu bağlantı için ücretli analiz başlamaz.
+                Bu kısa kodla önceden oluşturulmuş bir Reels tarifi varsa onu bulabiliriz.
+                İlk kez aktarılan /p/ gönderilerinin medya türü henüz doğrulanamıyor;
+                fotoğraf veya galeri videoymuş gibi işlenmeyecek ve AI hakkı kullanılmayacak.
               </Notice>
             )}
             {isInstagramReelLink(socialUrl) && (
@@ -592,12 +593,12 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
             <div className="mt-4 border-t border-slate-100 pt-3">
               {videoStatus && !videoReview && <p role="status" className="mb-3 rounded-xl bg-[#fff4ec] px-3 py-2 text-xs text-[#8a5346]">{busy === "preview" ? (videoStatus === "queued" ? "Tarif aktarımı sıraya alındı…" : videoStatus === "dispatching" ? "Tarif aktarımı başladı…" : "Tarif hazırlanıyor…") : "Tarif aktarımın sürüyor. Hazır olduğunda bildireceğiz."}</p>}
               <button type="button" onClick={() => void requestSocialPreview()}
-                disabled={isInstagramPostLink(socialUrl) || !!busy || quotas.loading || !!quotas.error || !quotas.data
+                disabled={!!busy || quotas.loading || !!quotas.error || !quotas.data
                   || (quotaReached(quotas.data, "recipe_ai_day") && !isVideoRecipeLink(socialUrl))
                    || (isInstagramReelLink(socialUrl) && !instagramRightsConfirmed) || !socialUrl.trim()}
                 className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300">
                 {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {isVideoRecipeLink(socialUrl) ? "Tarif aktarılıyor…" : "Kaynak inceleniyor…"}</>
-                  : <><Sparkles className="h-4 w-4" /> Tarifi aktar <ArrowRight className="h-4 w-4" /></>}
+                  : <><Sparkles className="h-4 w-4" /> {isInstagramPostLink(socialUrl) ? "Mevcut tarifi bul" : "Tarifi aktar"} <ArrowRight className="h-4 w-4" /></>}
               </button>
               <p className="mt-2 text-center text-[10px] text-slate-400">{isVideoRecipeLink(socialUrl) ? "Tarifini hazırlarken bu ekranda beklemen gerekmiyor. Hazır olduğunda haber vereceğiz." : "Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin."}</p>
             </div>
