@@ -60,7 +60,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   const [source, setSource] = useState("");
   const [importMethod, setImportMethod] = useState<"social" | "text">(initialMethod);
   const [socialUrl, setSocialUrl] = useState("");
-  const [instagramRightsConfirmed, setInstagramRightsConfirmed] = useState(false);
+  const [instagramRightsConfirmed, setInstagramRightsConfirmed] = useState(true);
   const [preview, setPreview] = useState<GroundedImportPreview | null>(null);
   const [videoReview, setVideoReview] = useState(false);
   const [videoWarnings, setVideoWarnings] = useState<string[]>([]);
@@ -432,7 +432,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
           </> : <>
             <FormLabel htmlFor="social-source-url">Sosyal medya paylaşım bağlantısı</FormLabel>
             <input id="social-source-url" type="url" inputMode="url" value={socialUrl}
-              onChange={event => { videoAbortRef.current?.abort(); videoRequestRef.current = null; setInstagramRightsConfirmed(false); setSocialUrl(event.target.value); setPreview(null); setVideoReview(false); setVideoWarnings([]); setVideoStatus(""); setEditor(null); setError(""); }}
+              onChange={event => { videoAbortRef.current?.abort(); videoRequestRef.current = null; setInstagramRightsConfirmed(true); setSocialUrl(event.target.value); setPreview(null); setVideoReview(false); setVideoWarnings([]); setVideoStatus(""); setEditor(null); setError(""); }}
               placeholder="https://www.instagram.com/reel/…"
               disabled={!!busy} maxLength={2048}
               className="min-h-12 w-full rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-4 text-sm text-slate-800 outline-none focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10" />
@@ -441,12 +441,12 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               Instagram Reels ve YouTube videolarında özellik etkinse görüntü ve ses incelenir. Diğer desteklenen paylaşımlarda erişilebilir açıklama kullanılır.
             </p>
             {isInstagramReelLink(socialUrl) && (
-              <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-xs leading-5 text-[#6f625b]">
+              <label className="mt-2 flex cursor-pointer items-start gap-2 text-[11px] leading-4 text-[#6f625b]">
                 <input type="checkbox" checked={instagramRightsConfirmed}
                   onChange={event => setInstagramRightsConfirmed(event.target.checked)}
                   disabled={!!busy}
-                  className="mt-1 h-4 w-4 shrink-0 accent-[#db4c3f]" />
-                <span>Bu videoyu analiz ettirmeye ve içeriğini tarif taslağına dönüştürmeye yetkim olduğunu onaylıyorum. Herkese açık olması tek başına kullanım hakkı vermez.</span>
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[#db4c3f]" />
+                <span>Bu videoyu analiz ettirmeye ve içeriğini tarif taslağına dönüştürmeye yetkim olduğunu onaylıyorum.</span>
               </label>
             )}
             {preview?.provenance.origin_type === "social_creator_description" && (
