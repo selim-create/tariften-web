@@ -97,12 +97,18 @@ export function videoEditorFromJob(job: VideoJob): { editor: ImportEditor; warni
       if (object(item) && str(item.message) && item.message.length <= 220) warnings.push(item.message);
     }
   }
+  const nutrition = object(r.nutrition) ? r.nutrition : null;
+  const estimatedKcal = nutrition && typeof nutrition.calories_per_serving === "number"
+    && Number.isFinite(nutrition.calories_per_serving)
+    && nutrition.calories_per_serving > 0 && nutrition.calories_per_serving <= 3000
+    ? String(Math.round(nutrition.calories_per_serving)) : "";
+  if (estimatedKcal) warnings.push("Kalori değeri tahminidir; doğrulanmış besin değeri değildir.");
   const servings = Number.isInteger(r.servings) && Number(r.servings) >= 1 && Number(r.servings) <= 36
     ? String(r.servings) : "";
   // No calorie estimate without validated ingredient weights; user may add it.
   const editor: ImportEditor = {
     title: r.title.trim(), excerpt: shortString(r.excerpt, 700),
-    servings, calories: "", cuisine: shortString(r.cuisine, 80), mealType: shortString(r.meal_type, 80),
+    servings, calories: estimatedKcal, cuisine: shortString(r.cuisine, 80), mealType: shortString(r.meal_type, 80),
     ingredients, steps, seoTitle: r.title.trim(),
     seoDescription: shortString(r.excerpt, 700), seoKeywords: "",
   };
