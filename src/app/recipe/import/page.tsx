@@ -240,7 +240,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   useEffect(() => {
     if (!token) return;
     const id = new URLSearchParams(window.location.search).get("job");
-    if (!id || !/^[1-9]\\d{0,12}$/.test(id)) return;
+    if (!id || !/^[1-9]\d{0,12}$/.test(id)) return;
     const key = `${user?.id || 0}:${id}`;
     if (deepLinkOpenedRef.current === key) return;
     deepLinkOpenedRef.current = key;
