@@ -131,7 +131,8 @@ test('published source lookup, private history and video owner publish use guard
   assert.match(page, /found\.status === "existing"/);
   assert.match(page, /found\.status === "published"/);
   assert.match(page, /reviewJobId/);
-  assert.match(page, /attempt < 18/);
+  assert.match(page, /setVideoHistory\(items =>/);
+  assert.doesNotMatch(page, /attempt < 18/, 'Web never waits for the paid worker');
   assert.match(page, /Analizlerim/);
   for (const route of [resolve, history, publish]) {
     assert.match(route, /Authorization: token/);
@@ -149,4 +150,31 @@ test('provider estimated calories are labelled tentative, not silently removed',
   const { editor, warnings } = videoEditorFromJob(parseVideoJob(job));
   assert.equal(editor.calories, '926');
   assert.ok(warnings.some(w => w.includes('Kalori') && w.includes('tahminidir')));
+});
+
+test('social source card is premium, safe and genuinely attributable', () => {
+  const card = read('src/components/recipe/SocialRecipeSourceCard.tsx');
+  const detail = read('src/app/recipe/[slug]/page.tsx');
+  const types = read('src/types/index.ts');
+  assert.match(card, /Orijinal videoyu aç/);
+  assert.match(card, /rel="noopener noreferrer nofollow"/);
+  assert.match(card, /setWatching\(true\)/);
+  assert.match(card, /source\.creator_handle/);
+  assert.doesNotMatch(card, /viewCount|likeCount|2\.8M|35K/, 'social counts are never fabricated');
+  assert.match(detail, /<SocialRecipeSourceCard source=\{recipe\.social_source\}/);
+  assert.match(types, /social_source\?: RecipeSocialSource/);
+});
+
+test('async recipe transfer gives a notification without blocking the editor', () => {
+  const page = read('src/app/recipe/import/page.tsx');
+  const ready = read('src/components/layout/VideoRecipeReadyNotice.tsx');
+  const layout = read('src/app/layout.tsx');
+  assert.match(page, /Tarif aktarımın sıraya alındı/);
+  assert.match(page, /deepLinkOpenedRef/);
+  assert.match(page, /URLSearchParams\(window\.location\.search\)/);
+  assert.match(page, /Tarif Aktarımlarım/);
+  assert.match(ready, /setInterval\(\(\) => \{ void check\(\); \}, 60000\)/);
+  assert.match(ready, /status === "needs_review"/);
+  assert.match(ready, /\/recipe\/aktar\?job=/);
+  assert.match(layout, /<VideoRecipeReadyNotice/);
 });
