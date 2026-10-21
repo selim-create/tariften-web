@@ -195,10 +195,10 @@ test('Instagram standard post may be photo or carousel; cannot be silently sold 
     'https://www.instagram.com/p/DFiPb_aoAXi/extra',
   ]) assert.equal(isInstagramPostLink(suspicious), false, suspicious);
   const page = read('src/app/recipe/import/page.tsx');
-  assert.match(page, /isInstagramPostLink\(url\)/);
+  assert.match(page, /isVideoRecipeLink\(url\)/);
   assert.match(page, /await requestVideoPreview\(url\)/);
   assert.match(page, /Tarifi aktar/);
-  assert.match(page, /Instagram gönderi bağlantıları/);
+  assert.match(page, /fotoğraf veya galeri ise video analizi başlatmayız/);
 });
 
 test('separate transfers page handles stalled jobs and automatic publication without charging again', () => {
