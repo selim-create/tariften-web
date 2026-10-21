@@ -1,24 +1,12 @@
-# OG Image Requirement
+# Brand assets
 
-An OpenGraph image is needed for social media sharing at:
-`/public/og-image.png`
+All files are generated from one geometric source, `scripts/brand/build_logo.py`
+(`pip install skia-python`, then `python3 scripts/brand/build_logo.py <out-dir>`).
+Vectors only, no traced bitmaps:
 
-## Specifications:
-- **Dimensions:** 1200x630 pixels
-- **Format:** PNG or JPG
-- **Content:** Should include Tariften logo and branding
-
-## Current Status:
-- The metadata has been configured to reference `/og-image.png`
-- A placeholder or actual image needs to be created and placed at this location
-- The logo.svg file exists in /public/ and can be used as a base for creating the OG image
-
-## How to Create:
-1. Use a design tool (Figma, Canva, Photoshop)
-2. Create a 1200x630px canvas
-3. Add the Tariften logo and tagline
-4. Export as PNG
-5. Save to /public/og-image.png
-
-## Temporary Solution:
-Until a proper OG image is created, social media platforms will fall back to the site's favicon or default image.
+- `logo.svg` – full logo, transparent background (white "t" inside the badge, red wordmark).
+- `logo-white.svg` – reverse version for red or photo backgrounds.
+- `tariften-icon.svg` – rounded app-style icon.
+- `favicon.ico` – 16/32/48 px use the simplified badge (badge + t), 64–256 px the full icon.
+- `apple-touch-icon.png` – 180 px, full-bleed (iOS masks the corners).
+- `og-image.jpg` – 1200×630 share image (cream background, logo, tagline).

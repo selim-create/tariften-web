@@ -30,9 +30,12 @@ export const metadata: Metadata = {
   creator: 'Hip Medya',
   publisher: 'Tariften',
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/tariften-icon.svg', type: 'image/svg+xml' },
+    ],
     shortcut: '/favicon.ico',
-    apple: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
   itunes: {
     appId: '6760183583',
