@@ -48,7 +48,7 @@ test('missing Turkish characters and inflections still match', () => {
   assert.equal(key('cig badem'), 'almond');
   assert.equal(key('Bademler'), 'almond');
   assert.equal(key('Kültür mantarı'), '🍄');
-  assert.equal(key('Labne peyniri'), '🧀');
+  assert.equal(key('Labne peyniri'), 'creamcheese');
 });
 
 test('variety names beat the generic family noun', () => {
@@ -85,4 +85,24 @@ test('dish titles pick an illustration for photo-less recipe cards', () => {
   assert.equal(dish('Fırında Karnıyarık'), '🍆');
   assert.equal(dish('Menemen'), '🥚');
   assert.equal(key('Tuzlu tereyağı'), '🧈', 'the -lı fallback never applies to ingredient lists');
+});
+
+test('wave 2: everyday Turkish pantry items get their own illustration', () => {
+  const cases = [
+    ['Patlıcan', '🍆'], ['Salatalık', '🥒'], ['Yeşil biber', 'sweetpepper'], ['Dolmalık biber', 'bellpepper'],
+    ['Ispanak', 'spinach'], ['Taze soğan', 'greenonion'], ['Kuru nane', 'mint'], ['Kekik', 'thyme'],
+    ['Biberiye', 'rosemary'], ['Defne yaprağı', 'bayleaf'], ['Zencefil', 'ginger'],
+    ['Nar', 'pomegranate'], ['Nar ekşisi', 'pomsauce'], ['Kuru incir', 'fig'], ['Kuru kayısı', 'apricot'],
+    ['Erik', 'plum'], ['Hurma', 'date'], ['Ayva', 'quince'], ['Antep fıstığı', 'pistachio'], ['Yer fıstığı', '🥜'],
+    ['Hindistan cevizi rendesi', 'coconut'], ['Haşlanmış nohut', 'chickpea'], ['Kuru fasulye', '🫘'],
+    ['Köftelik bulgur', 'bulgur'], ['Yulaf ezmesi', 'oats'], ['Zerdeçal', 'turmeric'], ['Sumak', 'sumac'],
+    ['Pul biber', 'chiliflakes'], ['Kakao', 'cocoa'], ['Esmer şeker', 'brownsugar'], ['Toz şeker', '🍬'],
+    ['Dana kıyma', 'mince'], ['Kuzu pirzola', 'lamb'], ['Dana eti', '🥩'], ['Ton balığı', 'tuna'],
+    ['Somon fileto', 'salmon'], ['Levrek', '🐟'], ['Midye', 'mussel'],
+    ['Beyaz peynir', 'whitecheese'], ['Kaşar peyniri', '🧀'], ['Labne', 'creamcheese'], ['Sıvı krema', 'cream'],
+    ['Süt', '🥛'], ['Elma sirkesi', 'vinegar'], ['Soya sosu', 'soysauce'], ['Üzüm pekmezi', 'molasses'],
+    ['Bal', '🍯'], ['Hardal', 'mustard'], ['Ketçap', 'ketchup'], ['Mayonez', 'mayonnaise'], ['Tahin', 'sauce'],
+    ['Kuru maya', 'yeast'], ['Kabartma tozu', 'baking'], ['Turşu', 'pickle'], ['Lavaş', 'flatbread'], ['Ekmek', '🍞'],
+  ];
+  for (const [name, expected] of cases) assert.equal(key(name), expected, name);
 });
