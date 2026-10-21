@@ -35,9 +35,10 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🌶️", art: "bellpepper", label: "Dolmalık biber", tint: "sage", patterns: ["dolmalık biber","dolma biber","dolmalik biber"] },
   { emoji: "🌶️", art: "kapiapepper", label: "Kapya biber", tint: "rose", patterns: ["kapya","kapya biber"] },
   { emoji: "🌶️", art: "redpepper", label: "Kırmızı biber", tint: "rose", patterns: ["kırmızı biber","kirmizi biber"] },
-  { emoji: "🌶️", art: "carliston", label: "Çarliston biber", tint: "sage", patterns: ["çarliston","carliston"] },
+  { emoji: "🌶️", art: "carliston", label: "Çarliston biber", tint: "sage", patterns: ["çarliston","carliston","çarliston biber"] },
   { emoji: "🌶️", art: "sivri", label: "Sivri biber", tint: "sage", patterns: ["sivri biber","sivri"] },
   { emoji: "🌶️", art: "sweetpepper", label: "Biber", tint: "sage", patterns: ["yeşil biber","yesil biber"] },
+  { emoji: "🧂", art: "blackpepper", label: "Karabiber", tint: "sand", patterns: ["karabiber","kara biber","tane karabiber","black pepper"] },
   { emoji: "🧂", art: "salt", label: "Tuz", tint: "sand", patterns: ["tuz","kaya tuzu","deniz tuzu","iri tuz"] },
   { emoji: "🧂", art: "cumin", label: "Kimyon", tint: "sand", patterns: ["kimyon","cumin"] },
   { emoji: "🧂", art: "cinnamon", label: "Çubuk tarçın", tint: "sand", patterns: ["çubuk tarçın","tarçın çubuğu","cinnamon stick"] },
@@ -74,8 +75,8 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🧅", label: "Soğan", tint: "sand", patterns: ["soğan", "soğanı", "sogan", "arpacık"] },
   { emoji: "🧄", label: "Sarımsak", tint: "sand", patterns: ["sarımsak", "sarmısak", "sarimsak", "garlic"] },
   { emoji: "🥔", label: "Patates", tint: "sand", patterns: ["patates", "potato"] },
-  { emoji: "🍋", label: "Limon", tint: "yellow", patterns: ["limon", "lime", "misket limonu"] },
-  { emoji: "🍊", label: "Portakal", tint: "orange", patterns: ["portakal", "mandalina"] },
+  { emoji: "🍋", label: "Limon", tint: "yellow", patterns: ["limon", "lime", "misket limonu", "limon suyu", "limon kabuğu"] },
+  { emoji: "🍊", label: "Portakal", tint: "orange", patterns: ["portakal", "mandalina", "portakal suyu"] },
   { emoji: "🍓", label: "Çilek", tint: "rose", patterns: ["çilek", "strawberry"] },
   { emoji: "🍒", label: "Kiraz", tint: "rose", patterns: ["kiraz", "vişne"] },
   { emoji: "🫐", label: "Yaban mersini", tint: "lavender", patterns: ["yaban mersini", "blueberry", "böğürtlen"] },
@@ -88,7 +89,7 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🥝", label: "Kivi", tint: "sage", patterns: ["kivi", "kiwi"] },
   { emoji: "🍍", label: "Ananas", tint: "yellow", patterns: ["ananas", "pineapple"] },
   { emoji: "🥑", label: "Avokado", tint: "sage", patterns: ["avokado", "avocado"] },
-  { emoji: "🌰", label: "Kuruyemiş", tint: "sand", patterns: ["badem", "fındık", "ceviz", "kestane", "pecan"] },
+  { emoji: "🌰", label: "Kuruyemiş", tint: "sand", patterns: ["badem", "fındık", "ceviz", "kestane", "pecan", "hindistan cevizi", "antep fıstığı", "fıstık", "kaju"] },
   { emoji: "🥜", label: "Yer fıstığı", tint: "sand", patterns: ["yer fıstığı", "fıstık ezmesi", "peanut"] },
   { emoji: "🧀", label: "Peynir", tint: "yellow", patterns: ["parmesan", "peynir", "mozzarella", "kaşar", "feta", "ricotta"] },
   { emoji: "🥚", label: "Yumurta", tint: "sand", patterns: ["yumurta", "egg"] },
@@ -108,7 +109,7 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🌽", label: "Mısır", tint: "yellow", patterns: ["mısır", "corn"] },
   { emoji: "🍚", label: "Pirinç", tint: "sand", patterns: ["pirinç", "bulgur", "quinoa", "kinoa", "kus kus"] },
   { emoji: "🍝", label: "Makarna", tint: "orange", patterns: ["gnocchi", "makarna", "spagetti", "penne", "erişte", "noodle", "lazanya"] },
-  { emoji: "🍞", label: "Ekmek", tint: "sand", patterns: ["ekmek", "un", "galeta", "hamur", "lavaş", "panko"] },
+  { emoji: "🍞", label: "Ekmek", tint: "sand", patterns: ["ekmek", "un", "galeta", "hamur", "lavaş", "panko", "yufka", "tortilla"] },
   { emoji: "🍗", label: "Tavuk", tint: "orange", patterns: ["tavuk", "hindi", "chicken"] },
   { emoji: "🥩", label: "Et", tint: "rose", patterns: ["dana", "kuzu", "kıyma", "antrikot", "bonfile", "biftek"] },
   { emoji: "🐟", label: "Balık", tint: "blue", patterns: ["balık", "somon", "levrek", "çipura", "ton balığı", "hamsi"] },
@@ -118,7 +119,7 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🍬", label: "Şeker", tint: "rose", patterns: ["şeker", "pudra şekeri"] },
   { emoji: "☕", label: "Kahve", tint: "sand", patterns: ["kahve", "espresso", "nescafe"] },
   { emoji: "🍵", label: "Çay", tint: "sage", patterns: ["çay", "matcha"] },
-  { emoji: "🫗", label: "Sıvı", tint: "blue", patterns: ["su", "sirke", "soda", "maden suyu"] },
+  { emoji: "🫗", label: "Sıvı", tint: "blue", patterns: ["su", "sirke", "soda", "maden suyu", "haşlama suyu", "pişirme suyu", "makarna suyu", "et suyu", "tavuk suyu", "sebze suyu", "kemik suyu", "sıcak su", "ılık su", "soğuk su", "kaynar su"] },
 ];
 
 const BACKGROUND: Record<string, string> = {
@@ -131,14 +132,68 @@ const BACKGROUND: Record<string, string> = {
   lavender: "bg-[#f5eefb] ring-[#e8ddf0]",
 };
 
-export function lokmaIngredient(name: string): FoodSymbol {
-  const text = name.toLocaleLowerCase("tr-TR").normalize("NFC").replace(/[()\[\],.;:]/g, " ").trim();
-  const words = ` ${text.replace(/\s+/g, " ")} `;
-  for (const rule of RULES) {
-    if (rule.patterns.some(p => words.includes(` ${p} `))) {
-      return { emoji: rule.emoji, label: rule.label, tint: rule.tint, ...(rule.art ? { art: rule.art } : {}) };
-    }
+/** Turkish-insensitive comparison key: "Fesleğen" and "feslegen" match. */
+function fold(value: string): string {
+  return value.toLocaleLowerCase("tr-TR").normalize("NFC")
+    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i")
+    .replace(/ö/g, "o").replace(/ş/g, "s").replace(/ü/g, "u")
+    .replace(/â/g, "a").replace(/î/g, "i").replace(/û/g, "u");
+}
+
+function words(value: string): string[] {
+  return fold(value).replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean);
+}
+
+// Inflections a pattern may carry in an ingredient name: "domatesleri",
+// "bademler", "suyu", "nişastası". Kept short on purpose: longer suffix
+// lists start turning unrelated words into food matches.
+const SUFFIX = /^(?:lar|ler|lari|leri|i|u|si|su|yi|yu|in|un|nin|nun)$/;
+
+function wordMatches(word: string, pattern: string): boolean {
+  return word === pattern || (word.startsWith(pattern) && SUFFIX.test(word.slice(pattern.length)));
+}
+
+/** Index of the last word of the match, or -1. Picks the right-most hit. */
+function matchEnd(tokens: string[], pattern: string[]): number {
+  for (let end = tokens.length - 1; end >= pattern.length - 1; end--) {
+    const start = end - pattern.length + 1;
+    if (pattern.every((p, i) => (i === pattern.length - 1 ? wordMatches(tokens[start + i], p) : tokens[start + i] === p))) return end;
   }
+  return -1;
+}
+
+const COMPILED = RULES.map(rule => ({ rule, patterns: rule.patterns.map(words) }));
+
+function resolve(text: string): FoodRule | null {
+  // Turkish compound names put the head noun last: "patates gnocchi" is
+  // gnocchi, "gnocchi haşlama suyu" is a liquid, "domates salçası" is paste.
+  // So the right-most match wins; for the same end word the longer, more
+  // specific pattern wins; then the earlier (more specific) rule.
+  const tokens = words(text);
+  let best: { rule: FoodRule; end: number; length: number; order: number } | null = null;
+  COMPILED.forEach(({ rule, patterns }, order) => {
+    for (const pattern of patterns) {
+      let end = matchEnd(tokens, pattern);
+      if (end < 0) continue;
+      // An inflected bare "su" ("limon suyu", "limonun suyu") names the juice
+      // of the food before it; it only wins when nothing else matched.
+      if (pattern.length === 1 && pattern[0] === "su" && tokens[end] !== "su") end = -0.5;
+      if (!best || end > best.end || (end === best.end && (pattern.length > best.length || (pattern.length === best.length && order < best.order)))) {
+        best = { rule, end, length: pattern.length, order };
+      }
+    }
+  });
+  return best ? (best as { rule: FoodRule }).rule : null;
+}
+
+export function lokmaIngredient(name: string): FoodSymbol {
+  const raw = typeof name === "string" ? name : "";
+  // "Parmesan peyniri (veya Grana Padano / Pecorino)": an alternative in
+  // parentheses must not replace the ingredient itself. Descriptive
+  // qualifiers stay, because they can disambiguate: "kırmızı biber (baharat)".
+  const main = raw.replace(/\(\s*(?:veya|ya da|yada|or|yerine|alternatif)\b[^()]*\)/giu, " ");
+  const rule = resolve(main) || resolve(raw);
+  if (rule) return { emoji: rule.emoji, label: rule.label, tint: rule.tint, ...(rule.art ? { art: rule.art } : {}) };
   return { emoji: "🍽️", label: "Malzeme", tint: "sand" };
 }
 
@@ -420,7 +475,7 @@ export const LOKMA_ICON_SAMPLES = [
   },
   {
     "category": "Otlar, baharatlar ve soslar",
-    "name": "Karabiber",
+    "name": "Zerdeçal",
     "figure": "spice"
   },
   {
@@ -592,5 +647,10 @@ export const LOKMA_ICON_SAMPLES = [
     "category": "Meyveler",
     "name": "Yeşil elma",
     "figure": "greenapple"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Karabiber (tane)",
+    "figure": "blackpepper"
   }
 ] as const;
