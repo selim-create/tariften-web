@@ -21,7 +21,8 @@ type Figure = "tomato" | "carrot" | "onion" | "garlic" | "cheese" | "olive"
  | "leek" | "celery" | "cauliflower" | "artichoke" | "radish" | "beet"
  | "pumpkin" | "asparagus" | "okra" | "zucchini" | "pea" | "greenbean"
  | "yogurt" | "oil" | "flour" | "baking" | "sesame" | "sauce" | "paste"
- | "greenlentil" | "redlentil" | "bellpepper" | "kapiapepper" | "redpepper" | "carliston" | "sivri" | "sweetpepper" | "salt" | "paprikaspice" | "cumin" | "cinnamon" | "vanilla" | "dill" | "arugula" | "walnut" | "almond" | "cabbage" | "melon" | "oliveoil" | "greenapple" | "blackpepper";
+ | "greenlentil" | "redlentil" | "bellpepper" | "kapiapepper" | "redpepper" | "carliston" | "sivri" | "sweetpepper" | "salt" | "paprikaspice" | "cumin" | "cinnamon" | "vanilla" | "dill" | "arugula" | "walnut" | "almond" | "cabbage" | "melon" | "oliveoil" | "greenapple" | "blackpepper"
+ | "spinach" | "greenonion" | "mint" | "thyme" | "rosemary" | "bayleaf" | "ginger" | "pomegranate" | "fig" | "apricot" | "plum" | "date" | "quince" | "pistachio" | "coconut" | "chickpea" | "bulgur" | "oats" | "turmeric" | "sumac" | "chiliflakes" | "cocoa" | "brownsugar" | "mince" | "lamb" | "tuna" | "salmon" | "mussel" | "whitecheese" | "creamcheese" | "cream" | "vinegar" | "soysauce" | "pomsauce" | "molasses" | "mustard" | "ketchup" | "mayonnaise" | "yeast" | "pickle" | "flatbread";
 
 const FIGURES: Record<string, Figure> = {
   "🍅": "tomato", "🥕": "carrot", "🧅": "onion", "🧄": "garlic",
@@ -124,9 +125,14 @@ export default function LokmaIngredientIcon({ name, size = "md", className = "",
         <path d="m15 10 2 2m-1 9v3" stroke={shine} strokeWidth="2" opacity=".85" />
       </>}
       {figure === "bean" && <>
-        <path d="M17 8c-7-2-13 3-13 10 0 9 8 14 15 10 4-3 4-8 0-12-2-2-3-6-2-8Z" fill="#c7a47d" stroke="#9a7858" strokeWidth="1.2" />
-        <path d="M30 14c-7-3-13 3-12 10 0 8 6 12 13 9 5-3 6-8 2-12-3-2-4-4-3-7Z" fill="#a98368" stroke="#87614c" strokeWidth="1.2" />
-        <path d="M9 15c-2 3-2 5-1 7m16 3c0 3 2 5 4 6" stroke={shine} strokeWidth="1.8" opacity=".5" />
+        <g fill="#f3ead6" stroke="#c2ad86" strokeWidth="1.1">
+          <path d="M7 25c0-4 4-6 7-5 3 1 5-1 7 1 2 3 0 7-4 8-3 1-5 0-6 0-3 0-4-2-4-4Z"/>
+          <path d="M19 17c0-4 4-6 7-5 3 1 5-1 7 1 2 3 0 7-4 8-3 1-5 0-6 0-3 0-4-2-4-4Z"/>
+          <path d="M18 29c0-4 4-6 7-5 3 1 5-1 7 1 2 3 0 7-4 8-3 1-5 0-6 0-3 0-4-2-4-4Z"/>
+          <path d="M8 14c0-3 3-5 6-4 2 1 4-1 5 1 2 2 0 6-3 6-2 1-4 0-5 0-2 0-3-1-3-3Z"/>
+        </g>
+        <path d="M12 23.5h2.5M24 15.5h2.5M23 27.5h2.5M12.5 12.5h2" stroke="#b39a6c" strokeWidth="1.2"/>
+        <path d="M9 24c1-1 2-2 3-2m8-6c1-1 2-2 3-2" stroke="#ffffff" strokeWidth="1.4"/>
       </>}
       {figure === "spice" && <>
         <path d="M13 12h14l2 5-1 17H12l-1-17 2-5Z" fill="#e9d7bf" stroke="#b6a38c" strokeWidth="1.2" />
@@ -157,11 +163,10 @@ export default function LokmaIngredientIcon({ name, size = "md", className = "",
         <path d="M11 21c3-6 8-5 10-2m3-6c2 0 5 2 5 5" stroke="#a3d1a1" strokeWidth="2" opacity=".85" />
       </>}
       {figure === "eggplant" && <>
-        <path d="M16 13C9 17 5 28 10 33c4 5 12 3 19-4 8-8 8-17-1-19-3-1-8 0-12 3Z" fill="#78558f" stroke="#513a72" strokeWidth="1.6"/>
-        <path d="M11 23c-2 5-1 7 0 9" stroke="#b69ac7" strokeWidth="2.4"/>
-        <path d="M15 16c-2-4-1-8 4-11l2 7c5-3 9-3 12 0-4 2-6 4-7 7l-5-3-4 6-2-6Z" fill="#76a06a" stroke="#4f7b55" strokeWidth="1.25"/>
-        <path d="M19 8c3-4 5-4 8-5" stroke="#62875d" strokeWidth="2.5"/>
-        <path d="M25 25c3-3 4-6 4-9" stroke="#8d6da8" strokeWidth="1.5"/>
+        <path d="M28 9c1-3 3-4 5-5" stroke="#5b8752" strokeWidth="2.2"/>
+        <path d="M27 11c5 2 7 7 5 12-2 6-7 10-13 13-5 3-11 2-12-2-1-4 2-8 6-11 4-3 6-6 7-9 1-2 4-4 7-3Z" fill="#6e4a8c" stroke="#4a2f66" strokeWidth="1.4"/>
+        <path d="M11 31c3-2 6-5 8-8" stroke="#b79ad0" strokeWidth="2" opacity=".85"/>
+        <path d="M22 13c1-3 4-5 7-4 3 1 4 4 2 6-1-2-3-2-5-1 0 2-1 3-3 3 0-2-1-3-1-4Z" fill="#6f9e5f" stroke="#4c7a48" strokeWidth="1.1"/>
       </>}
       {figure === "mushroom" && <>
         <path d="M14 21h12l-2 14h-8l-2-14Z" fill="#f0e0ca" stroke="#bea78a" strokeWidth="1.3"/>
@@ -172,11 +177,10 @@ export default function LokmaIngredientIcon({ name, size = "md", className = "",
         <path d="M24 34h12" stroke="#9ab387" strokeWidth="1.4"/>
       </>}
       {figure === "cucumber" && <>
-        <path d="M7 26C6 19 13 11 22 9c6-2 12 1 12 6 0 8-9 17-19 18-4 0-7-2-8-7Z" fill="#6eab68" stroke="#4c8b55" strokeWidth="1.6"/>
-        <path d="M11 27C13 18 21 12 30 13" stroke="#acd08d" strokeWidth="2.4"/>
-        <path d="M16 22l2 1m6-7 2 1m-8 11 2 1m6-6 2 1" stroke="#3e7b4c" strokeWidth="1.35"/>
-        <ellipse cx="29" cy="14" rx="3.5" ry="2.5" transform="rotate(-35 29 14)" fill="#8dc17b" stroke="#659e5f" strokeWidth=".8"/>
-        <path d="m34 13 3-2" stroke="#6b965b" strokeWidth="1.8"/>
+        <path d="M8 31C6 29 7 26 9 24L25 9c3-3 7-3 8 0 1 2 0 5-2 7L15 31c-2 2-5 2-7 0Z" fill="#4f8f4f" stroke="#356b3c" strokeWidth="1.4"/>
+        <path d="M11 27 28 11" stroke="#8cc283" strokeWidth="2.2" opacity=".9"/>
+        <g fill="#2f5f35"><circle cx="14" cy="23" r=".9"/><circle cx="19" cy="18" r=".9"/><circle cx="24" cy="13" r=".9"/><circle cx="17" cy="26" r=".9"/><circle cx="22" cy="21" r=".9"/><circle cx="27" cy="16" r=".9"/></g>
+        <path d="M8 31l-2.5 2.5" stroke="#6b8f4e" strokeWidth="1.8"/>
       </>}
       {figure === "greens" && <>
         <path d="M20 34C9 35 4 28 5 20c-3-4 0-10 5-10 0-6 6-9 10-5 5-4 11-1 11 5 6 0 8 7 5 11 1 7-6 14-16 13Z" fill="#91c084" stroke="#5c9b69" strokeWidth="1.4"/>
@@ -241,12 +245,13 @@ export default function LokmaIngredientIcon({ name, size = "md", className = "",
         <path d="M12 25c0 4 3 7 6 8" stroke="#ecc195" strokeWidth="1.9"/>
       </>}
       {figure === "honey" && <>
-        <rect x="11" y="14" width="20" height="22" rx="4" fill="#eeb861" stroke="#bb894b" strokeWidth="1.3"/>
-        <rect x="9" y="10" width="24" height="6" rx="2" fill="#c49b70" stroke="#997557" strokeWidth="1.2"/>
-        <path d="M14 20h14v12H14V20Z" fill="#f9d88f" stroke="#dba858" strokeWidth=".8"/>
-        <path d="M16 24c2-4 7-4 10 0-3 5-7 5-10 0Z" fill="#e0a64a"/>
-        <path d="M3 7 16 12m-7-7 9 3" stroke="#966b4b" strokeWidth="2"/>
-        <path d="M16 12c2 4-1 8-3 7-4-1-3-4 0-7" fill="#ebb44b" stroke="#c79443" strokeWidth="1"/>
+        <path d="M11 15h18v16c0 3-2 5-5 5h-8c-3 0-5-2-5-5V15Z" fill="#eeb861" stroke="#bb894b" strokeWidth="1.3"/>
+        <rect x="9.5" y="10" width="21" height="6" rx="2" fill="#c49b70" stroke="#997557" strokeWidth="1.2"/>
+        <path d="M14 21h12v9H14z" fill="#f9d88f" opacity=".8"/>
+        <path d="M17 24c2-3 5-3 7 0-2 3-5 3-7 0Z" fill="#e0a64a"/>
+        <path d="M25 3 21 13" stroke="#a87a4f" strokeWidth="2"/>
+        <ellipse cx="20.5" cy="14" rx="2.6" ry="1.8" transform="rotate(-20 20.5 14)" fill="#c08c55" stroke="#8f6439" strokeWidth=".9"/>
+        <path d="M13 18c1 3 0 5 1 7" stroke="#ffe7b0" strokeWidth="1.6"/>
       </>}
       {figure === "chocolate" && <>
         <path d="M7 9h26v25H7V9Z" fill="#825848" stroke="#624137" strokeWidth="1.3" />
@@ -366,9 +371,11 @@ export default function LokmaIngredientIcon({ name, size = "md", className = "",
         <path d="M12 18c1-4 5-5 8-3m7-3c-3 1-4 3-4 6m6 6c-3-3-6-3-9-1" stroke="#d7ccb7" strokeWidth="1.4"/>
       </>}
       {figure === "artichoke" && <>
-        <path d="M20 35v-7" stroke="#588764" strokeWidth="3"/>
-        <path d="M20 31C6 27 3 20 11 16c-4-7 4-12 9-8 6-5 13 1 10 8 8 5 5 12-10 15Z" fill="#92b58c" stroke="#608f6e" strokeWidth="1.3"/>
-        <path d="M20 8c-6 8-5 13 0 22 6-8 7-16 0-22Zm-9 8c4 2 7 6 9 14m10-14c-5 3-7 7-10 14" stroke="#d0dfb8" strokeWidth="1.4"/>
+        <path d="M20 33v5" stroke="#5f8a55" strokeWidth="3"/>
+        <path d="M20 6c7 4 12 10 12 17 0 6-5 10-12 10S8 29 8 23c0-7 5-13 12-17Z" fill="#93b47c" stroke="#5d8556" strokeWidth="1.4"/>
+        <path d="M15 13.5c1.7 2 3.3 2 5 0 1.7 2 3.3 2 5 0M11.5 19.5c2.2 2.6 4.3 2.6 6 0 .9 1.3 1.6 2 2.5 2s1.6-.7 2.5-2c1.7 2.6 3.8 2.6 6 0M10 26c2.5 2.8 5 2.8 7 0 .9 1.4 1.9 2.1 3 2.1s2.1-.7 3-2.1c2 2.8 4.5 2.8 7 0" stroke="#5d8556" strokeWidth="1.3"/>
+        <path d="M20 8.5 18.8 12M15 13.5l-.8 1.2M25 13.5l.8 1.2" stroke="#8a6a9c" strokeWidth="1.2"/>
+        <path d="M13 16c1-2 2-3 4-4" stroke="#dbe9c5" strokeWidth="1.6"/>
       </>}
       {figure === "radish" && <>
         <path d="M20 9c-4-7-9-7-11-5 0 6 5 9 11 8 3-7 8-9 12-7-1 7-5 10-12 7Z" fill="#8ab282" stroke="#648e67" strokeWidth="1.2"/>
@@ -394,11 +401,11 @@ export default function LokmaIngredientIcon({ name, size = "md", className = "",
         <path d="m11 28 19 2m-19 4 20 1" stroke="#d7e3bb" strokeWidth="1.5" />
       </>}
       {figure === "okra" && <>
-        <path d="M10 10c5-4 10-2 13 3 4 6 6 14 4 21-8-1-15-7-19-15-1-4-1-7 2-9Z" fill="#83b278" stroke="#568f61" strokeWidth="1.4"/>
-        <path d="M10 11c2-5 6-7 10-6l-3 7m-8 4 17 16m-14-18 14 15" stroke="#c1dba3" strokeWidth="1.8"/>
-        <path d="M23 13c5-2 13 2 13 9 0 6-6 10-13 7-5-3-6-12 0-16Z" fill="#75a66b" stroke="#4d8459" strokeWidth="1.2"/>
-        <path d="m29 15 2 6-5 1-2-4m7 3 1 5-5 0-1-4m-2-1-3 2" stroke="#d7e9b4" strokeWidth="1.7"/>
-        <circle cx="28" cy="22" r="1.8" fill="#f1e9c4"/>
+        <path d="M19 8c0-2 1-4 3-5" stroke="#5b8a4a" strokeWidth="2"/>
+        <path d="M17 10c3-1 6 0 7 3l4 19c.5 2-.5 4-2 4.5-1 .3-2-.5-3-1.5L14 15c-1-3 0-4 3-5Z" fill="#7cae63" stroke="#4f8547" strokeWidth="1.4"/>
+        <path d="M20 12l5.5 21m-7.5-18 5 18" stroke="#5d9450" strokeWidth="1.2"/>
+        <path d="M17 16l3 12" stroke="#c7e0a6" strokeWidth="1.6"/>
+        <path d="M15 11c1-3 6-4 9-2l-1 3c-2-1-5-1-8 0Z" fill="#5b8a4a" stroke="#3f6a3a" strokeWidth="1"/>
       </>}
       {figure === "zucchini" && <>
         <path d="M6 24c1-8 10-13 21-13 6 0 9 3 8 8-2 8-11 14-22 14-5 0-8-3-7-9Z" fill="#78a977" stroke="#4a8559" strokeWidth="1.5"/>
@@ -508,10 +515,10 @@ export default function LokmaIngredientIcon({ name, size = "md", className = "",
         <path d="M12 15c6 5 13 13 19 17" stroke="#b1d495" strokeWidth="2" />
       </>}
       {figure === "sweetpepper" && <>
-        <path d="M19 10c-1-5 1-7 5-8" stroke="#4f805c" strokeWidth="2.6"/>
-        <path d="M20 12C12 8 7 14 7 22c0 9 5 13 11 11 8 3 15-2 15-12 0-7-5-12-13-9Z" fill="#7bb47c" stroke="#558e61" strokeWidth="1.5"/>
-        <path d="M16 13c-4 7-3 13-1 18m10-18c3 6 3 13 1 18" stroke="#5b9a67" strokeWidth="1.4"/>
-        <path d="M11 17c1-2 3-4 5-4" stroke="#d6efc1" strokeWidth="2"/>
+        <path d="M11 9c-1-3 1-5 4-5" stroke="#4d7d4a" strokeWidth="2.4"/>
+        <path d="M9 13c4-2 8 0 10 4 3 6 7 11 14 15 2 1 2 3 0 4-9 1-17-4-21-11-3-5-5-10-3-12Z" fill="#8cc66a" stroke="#4f8a45" strokeWidth="1.4"/>
+        <path d="M8 11c2-3 6-3 8-1l-1 3c-2-1-4-1-6 0Z" fill="#5f8f4f" stroke="#42703f" strokeWidth="1"/>
+        <path d="M12 17c2 5 6 10 12 14" stroke="#e0f2c4" strokeWidth="1.8" opacity=".9"/>
       </>}
       {figure === "salt" && <>
         <path d="M12 11h16l4 23H8l4-23Z" fill="#dce7e6" stroke="#a5b8b9" strokeWidth="1.3"/>
@@ -596,6 +603,274 @@ export default function LokmaIngredientIcon({ name, size = "md", className = "",
           <circle cx="16.5" cy="21.5" r="3.4"/><circle cx="23.5" cy="21.5" r="3.4"/><circle cx="20" cy="15.5" r="3.4"/>
         </g>
         <path d="M12 26l1-1m6 2 1-1m6 0 1-1m-11-4 1-1m6 0 1-1m-4-5 1-1" stroke="#a89b90" strokeWidth="1.3"/>
+      </>}
+      {figure === "spinach" && <>
+        <path d="M20 35C12 30 7 22 10 14c4-3 9 1 11 7 1 5 0 10-1 14Z" fill="#4f9a5a" stroke="#367645" strokeWidth="1.3"/>
+        <path d="M20 35c-1-9 1-17 7-22 4-2 7 1 6 5-1 7-6 12-13 17Z" fill="#5fae66" stroke="#3d8049" strokeWidth="1.3"/>
+        <path d="M20 35c-4-8-5-17-1-25 2-3 5-2 6 1 1 8-1 16-5 24Z" fill="#6cbb70" stroke="#418a4d" strokeWidth="1.3"/>
+        <path d="M20 34c-3-6-6-12-8-18m8 18c2-6 4-11 6-17m-6 17c-1-7-1-14 1-21" stroke="#b6e0aa" strokeWidth="1"/>
+      </>}
+      {figure === "greenonion" && <>
+        <path d="M14 29 10 6m10 23-1-24m7 24 6-23" stroke="#5ea05a" strokeWidth="3"/>
+        <path d="M14 22 12 10m8 12V9m6 13 3-12" stroke="#a8d79c" strokeWidth="1"/>
+        <g fill="#f6f3e6" stroke="#c9c3ad" strokeWidth="1.1"><ellipse cx="14" cy="31" rx="3.2" ry="4"/><ellipse cx="20" cy="32" rx="3.2" ry="4"/><ellipse cx="26" cy="31" rx="3.2" ry="4"/></g>
+        <path d="M13 35l-1 2m2-2v2m5-1v2m2-2 1 2m4-3v2m1-2 1 2" stroke="#c9b99a" strokeWidth="1"/>
+      </>}
+      {figure === "mint" && <>
+        <path d="M20 37V9" stroke="#4f8a4f" strokeWidth="1.8"/>
+        <g fill="#6fb46d" stroke="#437f47" strokeWidth="1.1">
+          <path d="M20 15c-6 0-10-3-10-8 5-1 9 2 10 8Z"/><path d="M20 15c6 0 10-3 10-8-5-1-9 2-10 8Z"/>
+          <path d="M20 27c-7 0-12-4-11-10 6-1 10 3 11 10Z"/><path d="M20 27c7 0 12-4 11-10-6-1-10 3-11 10Z"/>
+          <path d="M20 9c-2-2-2-5 0-7 2 2 2 5 0 7Z"/>
+        </g>
+        <path d="M20 15 13 9m7 6 7-6m-7 12-8-6m8 6 8-6" stroke="#bfe3ad" strokeWidth=".9"/>
+      </>}
+      {figure === "thyme" && <>
+        <path d="M13 37c1-10 4-20 9-31M22 37c1-8 4-15 10-21" stroke="#7a6a4a" strokeWidth="1.5"/>
+        <g fill="#7aa56a" stroke="#557d4a" strokeWidth=".7">
+          <ellipse cx="11.5" cy="30" rx="1.6" ry="2.6" transform="rotate(-30 11.5 30)"/><ellipse cx="16" cy="28" rx="1.6" ry="2.6" transform="rotate(30 16 28)"/>
+          <ellipse cx="13" cy="23" rx="1.6" ry="2.6" transform="rotate(-30 13 23)"/><ellipse cx="17.5" cy="21" rx="1.6" ry="2.6" transform="rotate(30 17.5 21)"/>
+          <ellipse cx="15" cy="16" rx="1.5" ry="2.4" transform="rotate(-30 15 16)"/><ellipse cx="19.5" cy="14" rx="1.5" ry="2.4" transform="rotate(30 19.5 14)"/>
+          <ellipse cx="18" cy="9.5" rx="1.4" ry="2.2" transform="rotate(-25 18 9.5)"/><ellipse cx="22.5" cy="7.5" rx="1.4" ry="2.2" transform="rotate(30 22.5 7.5)"/>
+          <ellipse cx="22" cy="30" rx="1.5" ry="2.4" transform="rotate(-20 22 30)"/><ellipse cx="26" cy="27" rx="1.5" ry="2.4" transform="rotate(40 26 27)"/>
+          <ellipse cx="25" cy="22" rx="1.4" ry="2.2" transform="rotate(-10 25 22)"/><ellipse cx="29.5" cy="20" rx="1.4" ry="2.2" transform="rotate(50 29.5 20)"/>
+        </g>
+      </>}
+      {figure === "rosemary" && <>
+        <path d="M11 36 29 5" stroke="#6f6249" strokeWidth="1.6"/>
+        <path d="M13.5 31.5 8 30m7.4-1.7-5.6-1.6m7.5-1.7-5.6-1.6m7.5-1.7-5.5-1.7m7.4-1.6-5.4-1.8m7.3-1.5-5.3-1.9m7.2-1.4-5-2m6.9-1.3-4.6-2.3M14.5 33.3l3 4.4m-1.1-7.6 3 4.4m-1.1-7.6 3 4.4m-1.1-7.6 3 4.4m-1.1-7.6 3 4.3m-1.1-7.5 3 4.2m-1.1-7.4 3 4m-1-7.2 2.8 3.6" stroke="#5f8f6a" strokeWidth="2.2"/>
+        <path d="M13 31 27 7" stroke="#9fc4a6" strokeWidth=".8"/>
+      </>}
+      {figure === "bayleaf" && <>
+        <path d="M12 34c4-9 12-13 22-13-4 9-12 13-22 13Z" fill="#94b273" stroke="#63834a" strokeWidth="1.2"/>
+        <path d="M13 33 33 21.5" stroke="#c8dba9" strokeWidth="1"/>
+        <path d="M7 31C9 19 19 10 32 8c-1 12-11 22-25 23Z" fill="#7f9f5e" stroke="#57763f" strokeWidth="1.3"/>
+        <path d="M8 30 31 9M14 23l1 5m4-10 1 5m4-10 1 4" stroke="#bfd39c" strokeWidth="1.1"/>
+      </>}
+      {figure === "ginger" && <>
+        <path d="M6 24c0-4 4-6 8-5 1-4 5-6 8-4 2-3 6-3 8 0 3 0 5 3 4 6-1 4-5 5-8 4-2 3-6 4-9 2-3 2-7 2-9 0-2 0-2-1-2-3Z" fill="#e2c08a" stroke="#b08a55" strokeWidth="1.4"/>
+        <path d="M13 21c1 2 1 4 0 6m8-8c1 2 1 4 0 6m8-6c1 1 1 3 0 5" stroke="#c49e66" strokeWidth="1.1"/>
+        <path d="M9 22c1-2 3-3 5-2m6-4c1-1 3-1 4 0" stroke="#fbe7c2" strokeWidth="1.6"/>
+        <ellipse cx="34" cy="20.5" rx="1.6" ry="2.4" fill="#f4dfb6" stroke="#b08a55" strokeWidth=".9"/>
+      </>}
+      {figure === "pomegranate" && <>
+        <path d="M15.5 11.5 15 6l3 2.5L20 5l2 3.5L25 6l-.5 5.5" fill="#b23a43" stroke="#8c2a33" strokeWidth="1.2"/>
+        <path d="M20 10c8 0 14 6 14 13s-6 13-14 13S6 30 6 23s6-13 14-13Z" fill="#c8414a" stroke="#962f38" strokeWidth="1.4"/>
+        <path d="M11 19c1-3 3-5 6-6" stroke="#f3a9a9" strokeWidth="2"/>
+        <path d="M27 31c3-2 4-5 4-8" stroke="#a5323b" strokeWidth="1.2" opacity=".6"/>
+      </>}
+      {figure === "fig" && <>
+        <path d="M20 7c0-2 1-3 2-4" stroke="#6c8a4f" strokeWidth="2"/>
+        <path d="M20 7c2 3 4 5 7 8 5 5 6 12 3 16-3 4-7 5-10 5s-7-1-10-5c-3-4-2-11 3-16 3-3 5-5 7-8Z" fill="#7b4a6e" stroke="#57314f" strokeWidth="1.4"/>
+        <path d="M13 23c0-4 2-7 5-10" stroke="#c99bc0" strokeWidth="1.8"/>
+        <path d="M20 9c-2 7-3 16 0 26" stroke="#69405e" strokeWidth="1" opacity=".7"/>
+        <circle cx="20" cy="34" r="1" fill="#3d2236"/>
+      </>}
+      {figure === "apricot" && <>
+        <path d="M20 11c8-1 14 5 14 12s-6 13-14 13S6 30 6 23s6-11 14-12Z" fill="#f2a54a" stroke="#cf7f2c" strokeWidth="1.4"/>
+        <path d="M25 30c3-2 5-5 5-8" stroke="#e5743a" strokeWidth="2.2" opacity=".55"/>
+        <path d="M20 12c-3 6-3 15 0 23" stroke="#d88a37" strokeWidth="1.3"/>
+        <path d="M21 11c2-4 6-5 9-4-2 3-5 5-9 4Z" fill="#7aa765" stroke="#557f48" strokeWidth="1"/>
+        <path d="M11 19c1-3 3-5 5-5" stroke="#ffe0a8" strokeWidth="2"/>
+      </>}
+      {figure === "plum" && <>
+        <path d="M20 11c0-3 1-5 3-6" stroke="#6b5a40" strokeWidth="1.8"/>
+        <path d="M22 8c3-3 7-2 8 0-3 2-6 2-8 0Z" fill="#7aa765" stroke="#557f48" strokeWidth="1"/>
+        <path d="M20 11c7 0 12 6 12 13s-5 12-12 12S8 31 8 24s5-13 12-13Z" fill="#5d5a9e" stroke="#3f3c78" strokeWidth="1.4"/>
+        <path d="M21 12c-2 7-2 16 0 23" stroke="#4a4787" strokeWidth="1.2"/>
+        <path d="M12 20c1-3 3-5 6-6" stroke="#bcbae6" strokeWidth="2"/>
+      </>}
+      {figure === "date" && <>
+        <ellipse cx="14" cy="22" rx="5.5" ry="10" transform="rotate(-22 14 22)" fill="#8a4f2c" stroke="#5e3219" strokeWidth="1.3"/>
+        <ellipse cx="26" cy="20" rx="5.5" ry="10" transform="rotate(20 26 20)" fill="#9c5b33" stroke="#683c20" strokeWidth="1.3"/>
+        <path d="M11 18c1 4 1 8 0 11m5-12c1 3 1 7 0 10M24 16c-1 3-1 7 0 10m5-10c0 3 0 7-1 10" stroke="#6a3a1f" strokeWidth="1" opacity=".75"/>
+        <path d="M11 16c1-2 2-3 3-4m10 2c1-2 2-3 3-3" stroke="#d9a07a" strokeWidth="1.5"/>
+      </>}
+      {figure === "quince" && <>
+        <path d="M20 10c0-3 1-5 2-6" stroke="#6b5a40" strokeWidth="1.8"/>
+        <path d="M21 7c3-3 7-3 9-1-3 3-6 3-9 1Z" fill="#7aa765" stroke="#557f48" strokeWidth="1"/>
+        <path d="M20 10c-4 0-7 3-7 7-4 2-7 6-6 11 1 6 7 9 13 9s12-3 13-9c1-5-2-9-6-11 0-4-3-7-7-7Z" fill="#f0d06a" stroke="#c9a641" strokeWidth="1.4"/>
+        <path d="M11 24c0-3 2-5 4-6" stroke="#fff1b8" strokeWidth="2"/>
+        <path d="M26 31c2-1 4-3 4-6" stroke="#cfa53c" strokeWidth="1.2" opacity=".7"/>
+      </>}
+      {figure === "pistachio" && <>
+        <ellipse cx="14.5" cy="23" rx="6.5" ry="9" transform="rotate(-20 14.5 23)" fill="#eadbbd" stroke="#b89e74" strokeWidth="1.2"/>
+        <ellipse cx="15" cy="22" rx="3" ry="6" transform="rotate(-20 15 22)" fill="#9cc05a" stroke="#6f9440" strokeWidth="1"/>
+        <ellipse cx="26" cy="19" rx="6.5" ry="9" transform="rotate(25 26 19)" fill="#eadbbd" stroke="#b89e74" strokeWidth="1.2"/>
+        <ellipse cx="25.6" cy="18" rx="3" ry="6" transform="rotate(25 25.6 18)" fill="#a8c76a" stroke="#6f9440" strokeWidth="1"/>
+        <path d="M13 18c0-2 1-3 2-4m9 0c1-1 2-2 3-2" stroke="#e8f4c8" strokeWidth="1.3"/>
+      </>}
+      {figure === "coconut" && <>
+        <path d="M5 21h30c0 8-7 14-15 14S5 29 5 21Z" fill="#7a5137" stroke="#55361f" strokeWidth="1.4"/>
+        <path d="M9 27c3 1 6 2 9 2m4 0c3 0 6-1 9-3" stroke="#a37753" strokeWidth="1.1"/>
+        <ellipse cx="20" cy="21" rx="15" ry="4.5" fill="#fbf7ef" stroke="#55361f" strokeWidth="1.3"/>
+        <ellipse cx="20" cy="21" rx="10.5" ry="2.6" fill="#efe4d1"/>
+      </>}
+      {figure === "chickpea" && <>
+        <g fill="#e7c48b" stroke="#b8915a" strokeWidth="1.1">
+          <circle cx="13" cy="27" r="5"/><circle cx="22" cy="29" r="5"/><circle cx="29" cy="24" r="4.8"/><circle cx="17.5" cy="19.5" r="5"/><circle cx="26" cy="16" r="4.6"/>
+        </g>
+        <path d="M14 23l1-2m8 5 1-2m6-1 1-2m-12-5 1-2m8-2 1-2" stroke="#b8915a" strokeWidth="1.2"/>
+        <path d="M10 26c0-1 1-2 2-2m3-6c0-1 1-2 2-2m3 12c0-1 1-2 2-2" stroke="#fff1d0" strokeWidth="1.3"/>
+      </>}
+      {figure === "bulgur" && <>
+        <path d="M5 26h30l-3 9H8l-3-9Z" fill="#f2e6d7" stroke="#cdb5a3" strokeWidth="1.3"/>
+        <ellipse cx="20" cy="25" rx="14.5" ry="6" fill="#d9a95a" stroke="#b07f37" strokeWidth="1.2"/>
+        <path d="M9 23c5-5 16-5 22 0" stroke="#f0c985" strokeWidth="2.2"/>
+        <g fill="#f3d39a"><circle cx="12" cy="24" r=".9"/><circle cx="16" cy="22" r=".9"/><circle cx="21" cy="23" r=".9"/><circle cx="25" cy="21.5" r=".9"/><circle cx="29" cy="24" r=".9"/><circle cx="18" cy="26" r=".9"/><circle cx="24" cy="26" r=".9"/></g>
+      </>}
+      {figure === "oats" && <>
+        <path d="M5 26h30l-3 9H8l-3-9Z" fill="#f2e6d7" stroke="#cdb5a3" strokeWidth="1.3"/>
+        <ellipse cx="20" cy="25" rx="14.5" ry="6" fill="#ead7ad" stroke="#c2a676" strokeWidth="1.2"/>
+        <path d="M9 23c5-5 16-5 22 0" stroke="#fbf0d6" strokeWidth="2.2"/>
+        <g fill="#f7ead0" stroke="#c9ad7f" strokeWidth=".7"><ellipse cx="13" cy="23" rx="2.6" ry="1.5" transform="rotate(-15 13 23)"/><ellipse cx="19" cy="21.5" rx="2.6" ry="1.5" transform="rotate(10 19 21.5)"/><ellipse cx="25" cy="22.5" rx="2.6" ry="1.5" transform="rotate(-20 25 22.5)"/><ellipse cx="17" cy="26" rx="2.6" ry="1.5" transform="rotate(20 17 26)"/><ellipse cx="23.5" cy="26.5" rx="2.6" ry="1.5"/></g>
+      </>}
+      {figure === "turmeric" && <>
+        <path d="M5 26h30l-3 9H8l-3-9Z" fill="#f2e6d7" stroke="#cdb5a3" strokeWidth="1.3"/>
+        <ellipse cx="20" cy="25" rx="14.5" ry="6" fill="#e9a520" stroke="#bf7f12" strokeWidth="1.2"/>
+        <path d="M9 23c5-5 16-5 22 0" stroke="#f8cd6a" strokeWidth="2.2"/>
+      </>}
+      {figure === "sumac" && <>
+        <path d="M5 26h30l-3 9H8l-3-9Z" fill="#f2e6d7" stroke="#cdb5a3" strokeWidth="1.3"/>
+        <ellipse cx="20" cy="25" rx="14.5" ry="6" fill="#8e2f3f" stroke="#6a1f2c" strokeWidth="1.2"/>
+        <path d="M9 23c5-5 16-5 22 0" stroke="#c06373" strokeWidth="2.2"/>
+        <g fill="#5a1520"><circle cx="13" cy="24" r=".8"/><circle cx="18" cy="23" r=".8"/><circle cx="23" cy="25" r=".8"/><circle cx="27" cy="23" r=".8"/><circle cx="20" cy="27" r=".8"/></g>
+      </>}
+      {figure === "chiliflakes" && <>
+        <path d="M5 26h30l-3 9H8l-3-9Z" fill="#f2e6d7" stroke="#cdb5a3" strokeWidth="1.3"/>
+        <ellipse cx="20" cy="25" rx="14.5" ry="6" fill="#d0482f" stroke="#a83524" strokeWidth="1.2"/>
+        <path d="M9 23c5-5 16-5 22 0" stroke="#f08d6d" strokeWidth="2.2"/>
+        <g fill="#7d1d12"><path d="M12 24l1.6-.6.4 1.4-1.6.5Z"/><path d="M17 22.5l1.6.2-.3 1.5-1.5-.3Z"/><path d="M22 24.5l1.4-.8.7 1.3-1.4.7Z"/><path d="M27 23l1.6.3-.4 1.4-1.5-.4Z"/><path d="M19 27l1.5-.5.4 1.4-1.5.4Z"/></g>
+        <g fill="#f3d46a"><circle cx="15" cy="25.5" r=".7"/><circle cx="25" cy="26.5" r=".7"/></g>
+      </>}
+      {figure === "cocoa" && <>
+        <path d="M5 26h30l-3 9H8l-3-9Z" fill="#f2e6d7" stroke="#cdb5a3" strokeWidth="1.3"/>
+        <ellipse cx="20" cy="25" rx="14.5" ry="6" fill="#7a4a33" stroke="#55311f" strokeWidth="1.2"/>
+        <path d="M9 23c5-5 16-5 22 0" stroke="#a8724f" strokeWidth="2.2"/>
+      </>}
+      {figure === "brownsugar" && <>
+        <path d="M5 26h30l-3 9H8l-3-9Z" fill="#f2e6d7" stroke="#cdb5a3" strokeWidth="1.3"/>
+        <ellipse cx="20" cy="25" rx="14.5" ry="6" fill="#b57c45" stroke="#8a5a2c" strokeWidth="1.2"/>
+        <path d="M9 23c5-5 16-5 22 0" stroke="#d8a46f" strokeWidth="2.2"/>
+        <g fill="#e2b98a"><rect x="12" y="23" width="1.6" height="1.6" rx=".3"/><rect x="17" y="21.5" width="1.6" height="1.6" rx=".3"/><rect x="22" y="23.5" width="1.6" height="1.6" rx=".3"/><rect x="27" y="22.5" width="1.6" height="1.6" rx=".3"/><rect x="19" y="26" width="1.6" height="1.6" rx=".3"/></g>
+      </>}
+      {figure === "mince" && <>
+        <path d="M5 28h30l-3 6H8l-3-6Z" fill="#efe6d8" stroke="#c8b9a2" strokeWidth="1.2"/>
+        <path d="M8 28c0-8 6-13 12-13s12 5 12 13H8Z" fill="#c95f5a" stroke="#9c4440" strokeWidth="1.3"/>
+        <path d="M11 25c2-1 3 1 5 0s3 1 5 0 3 1 5 0 2 1 3 0M13 21c2-1 3 1 5 0s3 1 5 0 2 1 3 0" stroke="#eba69c" strokeWidth="1.4"/>
+      </>}
+      {figure === "lamb" && <>
+        <path d="M24 18 33 8" stroke="#f3e8d8" strokeWidth="4.2"/>
+        <path d="M24 18 33 8" stroke="#cdbda5" strokeWidth="1" opacity=".6"/>
+        <circle cx="33.5" cy="7.5" r="2.6" fill="#f3e8d8" stroke="#cdbda5" strokeWidth="1"/>
+        <path d="M6 26c0-7 6-12 13-12 5 0 9 3 8 8-1 6-8 10-14 10-4 0-7-2-7-6Z" fill="#c46a60" stroke="#96504a" strokeWidth="1.4"/>
+        <path d="M9 22c2-4 6-6 10-6 3 0 6 2 6 5" stroke="#f6d3c4" strokeWidth="2.6"/>
+        <path d="M13 26c2-1 4 0 6-1" stroke="#e39b8f" strokeWidth="1.3"/>
+      </>}
+      {figure === "tuna" && <>
+        <path d="M8 18v12c0 3 5 5 12 5s12-2 12-5V18" fill="#6aa2c4" stroke="#3f7495" strokeWidth="1.3"/>
+        <path d="M8 23c0 3 5 5 12 5s12-2 12-5" stroke="#ffffff" strokeWidth="1.6" opacity=".9"/>
+        <ellipse cx="20" cy="18" rx="12" ry="4" fill="#dfe7ec" stroke="#8fa3b0" strokeWidth="1.2"/>
+        <ellipse cx="20" cy="18" rx="8.5" ry="2.4" fill="#c7d3da"/>
+        <path d="M15 31c2-2 5-2 7 0-2 2-5 2-7 0Zm7 0 2-1.5v3Z" fill="#f4f8fb"/>
+      </>}
+      {figure === "salmon" && <>
+        <path d="M6 22c3-7 12-11 22-10 4 0 7 3 6 7-1 7-11 13-21 12-5 0-8-4-7-9Z" fill="#f08f6d" stroke="#c96447" strokeWidth="1.4"/>
+        <path d="M12 16c2 4 2 9 0 14m6-16c2 5 2 10 0 16m6-16c2 5 2 9 0 14m6-12c1 3 1 7 0 10" stroke="#fcd5c3" strokeWidth="1.5"/>
+        <path d="M9 30c6 2 14 0 21-5" stroke="#8a6a6a" strokeWidth="1.8"/>
+      </>}
+      {figure === "mussel" && <>
+        <path d="M10 31c-3-4-1-10 5-15 5-5 11-8 15-7 3 1 3 5 1 9-3 7-9 13-15 15-3 1-5 0-6-2Z" fill="#33354f" stroke="#1f2033" strokeWidth="1.4"/>
+        <path d="M13 28c-2-3 0-8 4-12 4-4 9-6 11-5 1 1 1 4-1 7-2 5-7 9-11 11-1 0-2 0-3-1Z" fill="#f0a05a" stroke="#c7783a" strokeWidth="1"/>
+        <path d="M16 25c3-3 6-7 9-10" stroke="#f8c48e" strokeWidth="1.5"/>
+        <path d="M11 29c-1-1-1-3 0-5" stroke="#6a6d8e" strokeWidth="1.2"/>
+      </>}
+      {figure === "whitecheese" && <>
+        <path d="M6 18l14-7 14 7-14 7-14-7Z" fill="#fdfcf6" stroke="#c4bea9" strokeWidth="1.2"/>
+        <path d="M6 18v10l14 7V25L6 18Z" fill="#eeeadc" stroke="#c4bea9" strokeWidth="1.2"/>
+        <path d="M20 25l14-7v10l-14 7V25Z" fill="#f6f3e8" stroke="#c4bea9" strokeWidth="1.2"/>
+        <g fill="#e1d9c4"><circle cx="15" cy="17" r=".9"/><circle cx="22" cy="15" r=".7"/><circle cx="25" cy="19" r=".9"/><circle cx="12" cy="26" r=".8"/><circle cx="27" cy="27" r=".8"/></g>
+      </>}
+      {figure === "creamcheese" && <>
+        <path d="M8 16h24l-2 16c0 2-4 3-10 3s-10-1-10-3L8 16Z" fill="#eef4f7" stroke="#a9bac4" strokeWidth="1.3"/>
+        <path d="M9 23c3 1 7 1.5 11 1.5s8-.5 11-1.5" stroke="#d24b3e" strokeWidth="2.2"/>
+        <ellipse cx="20" cy="16" rx="12" ry="3.6" fill="#fffdf8" stroke="#a9bac4" strokeWidth="1.2"/>
+        <path d="M13 15c2-2 5-2 7 0s5 1 6-1" stroke="#e6e0d2" strokeWidth="1.6"/>
+      </>}
+      {figure === "cream" && <>
+        <path d="M12 15l4-7h8l4 7" fill="#efeae0" stroke="#bfb7a6" strokeWidth="1.2"/>
+        <path d="M12 15h16v20H12z" fill="#fbf9f2" stroke="#bfb7a6" strokeWidth="1.2"/>
+        <path d="M12 21h16v8H12z" fill="#8fc0db"/>
+        <path d="M20 22c1.5 2 2.5 3 2.5 4.2a2.5 2.5 0 0 1-5 0c0-1.2 1-2.2 2.5-4.2Z" fill="#ffffff"/>
+        <path d="M16 8l4 7 4-7" stroke="#bfb7a6" strokeWidth="1"/>
+      </>}
+      {figure === "vinegar" && <>
+        <path d="M17 6h6v5l3 4v19c0 1-1 2-2 2h-8c-1 0-2-1-2-2V15l3-4V6Z" fill="#f2ead2" stroke="#b5a57a" strokeWidth="1.2"/>
+        <path d="M14 20h12v14c0 1-1 1-2 1h-8c-1 0-2 0-2-1V20Z" fill="#e7c86f" opacity=".8"/>
+        <rect x="16" y="3.5" width="8" height="3" rx="1" fill="#8c6d4a"/>
+        <rect x="15.5" y="24" width="9" height="6" rx="1" fill="#fffdf6" stroke="#cdbf98" strokeWidth=".8"/>
+        <path d="M16 16v12" stroke="#ffffff" strokeWidth="1.3" opacity=".8"/>
+      </>}
+      {figure === "soysauce" && <>
+        <path d="M17 7h6v4l3 4v19c0 1-1 2-2 2h-8c-1 0-2-1-2-2V15l3-4V7Z" fill="#3a2a24" stroke="#1f1612" strokeWidth="1.2"/>
+        <rect x="16" y="3.5" width="8" height="4" rx="1" fill="#c94a3c"/>
+        <rect x="15" y="21" width="10" height="9" rx="1" fill="#f5efe6"/>
+        <path d="M17.5 25.5h5" stroke="#3a2a24" strokeWidth="1.6"/>
+        <path d="M16 17v3" stroke="#8a7066" strokeWidth="1.2"/>
+      </>}
+      {figure === "pomsauce" && <>
+        <path d="M17 7h6v4l3 4v19c0 1-1 2-2 2h-8c-1 0-2-1-2-2V15l3-4V7Z" fill="#6b1f2b" stroke="#45121b" strokeWidth="1.2"/>
+        <rect x="16" y="3.5" width="8" height="4" rx="1" fill="#3a302c"/>
+        <rect x="15" y="20" width="10" height="10" rx="1" fill="#f7eedc"/>
+        <circle cx="20" cy="25.3" r="2.6" fill="#c8414a"/>
+        <path d="M19 22.6l.3-1 .7.6.7-.6.3 1" stroke="#962f38" strokeWidth=".7"/>
+        <path d="M16 16v3" stroke="#b35a68" strokeWidth="1.2"/>
+      </>}
+      {figure === "molasses" && <>
+        <path d="M10 14h20v18c0 2-2 4-4 4H14c-2 0-4-2-4-4V14Z" fill="#4b2a1f" stroke="#2e1810" strokeWidth="1.3"/>
+        <rect x="9" y="9.5" width="22" height="5" rx="1.5" fill="#b9884f" stroke="#8a6234" strokeWidth="1.1"/>
+        <rect x="12" y="20" width="16" height="8" rx="1" fill="#f3e5c8"/>
+        <path d="M15 24h10" stroke="#7a4a33" strokeWidth="1.6"/>
+        <path d="M12.5 16v3" stroke="#8b5e4c" strokeWidth="1.3"/>
+      </>}
+      {figure === "mustard" && <>
+        <path d="M17 14l2-8h2l2 8" fill="#ece5d3" stroke="#b0a690" strokeWidth="1.1"/>
+        <path d="M13 14h14v19c0 2-2 3-4 3h-6c-2 0-4-1-4-3V14Z" fill="#efc23a" stroke="#c49a22" strokeWidth="1.3"/>
+        <rect x="14.5" y="20" width="11" height="8" rx="1" fill="#fff8de"/>
+        <path d="M17 24h6" stroke="#c49a22" strokeWidth="1.6"/>
+        <path d="M15 16v3" stroke="#fbe39a" strokeWidth="1.4"/>
+      </>}
+      {figure === "ketchup" && <>
+        <path d="M17 14l2-8h2l2 8" fill="#ece5d3" stroke="#b0a690" strokeWidth="1.1"/>
+        <path d="M13 14h14v19c0 2-2 3-4 3h-6c-2 0-4-1-4-3V14Z" fill="#d9483b" stroke="#a83229" strokeWidth="1.3"/>
+        <rect x="14.5" y="20" width="11" height="8" rx="1" fill="#fff6f0"/>
+        <circle cx="20" cy="24" r="2.3" fill="#e75a49"/>
+        <path d="M19 21.8c.5-.8 1.5-.8 2 0" stroke="#64a777" strokeWidth=".9"/>
+        <path d="M15 16v3" stroke="#f3a197" strokeWidth="1.4"/>
+      </>}
+      {figure === "mayonnaise" && <>
+        <path d="M10 15h20v17c0 2-2 4-4 4H14c-2 0-4-2-4-4V15Z" fill="#fbf8ee" stroke="#c6bfac" strokeWidth="1.3"/>
+        <rect x="9" y="10" width="22" height="5.5" rx="1.5" fill="#6a9ac0" stroke="#4a7799" strokeWidth="1.1"/>
+        <path d="M10 22h20v6H10z" fill="#f2d061"/>
+        <path d="M13 17v3" stroke="#ffffff" strokeWidth="1.4"/>
+      </>}
+      {figure === "yeast" && <>
+        <path d="M9 9h22l-1 25H10L9 9Z" fill="#f1e2c0" stroke="#c3aa76" strokeWidth="1.2"/>
+        <path d="M9 12h22M12 9v3m4-3v3m4-3v3m4-3v3m4-3v3" stroke="#c3aa76" strokeWidth=".9"/>
+        <rect x="13" y="17" width="14" height="12" rx="2" fill="#fffaf0" stroke="#d7c49a" strokeWidth=".8"/>
+        <g fill="#e2c48a"><circle cx="17" cy="23" r="2"/><circle cx="22" cy="21" r="1.4"/><circle cx="23" cy="25.5" r="1.6"/></g>
+      </>}
+      {figure === "pickle" && <>
+        <path d="M10 13h20v19c0 2-2 4-4 4H14c-2 0-4-2-4-4V13Z" fill="#e3efdf" stroke="#93ae91" strokeWidth="1.3"/>
+        <path d="M11 18h18v14c0 2-2 3-3 3H14c-1 0-3-1-3-3V18Z" fill="#cfe2b0" opacity=".8"/>
+        <rect x="9" y="8.5" width="22" height="5" rx="1.5" fill="#c7b38a" stroke="#9c8862" strokeWidth="1.1"/>
+        <g fill="#6f9e4f" stroke="#4c7a3a" strokeWidth=".9"><rect x="13" y="19" width="4.5" height="14" rx="2.2"/><rect x="18.5" y="20" width="4.5" height="13" rx="2.2"/><rect x="24" y="18.5" width="3.8" height="14" rx="1.9"/></g>
+        <path d="M12 15v3" stroke="#ffffff" strokeWidth="1.4"/>
+      </>}
+      {figure === "flatbread" && <>
+        <ellipse cx="20" cy="23" rx="15" ry="10" fill="#f1d9a8" stroke="#c79f62" strokeWidth="1.3"/>
+        <path d="M5.5 22c4 4 10 6 17 4s10-6 12-9" fill="#f7e6c2" stroke="#c79f62" strokeWidth="1.1"/>
+        <g fill="#cf9150"><circle cx="13" cy="19" r="1.3"/><circle cx="21" cy="17" r="1"/><circle cx="27" cy="21" r="1.4"/><circle cx="17" cy="29" r="1.1"/><circle cx="25" cy="29" r=".9"/></g>
       </>}
       {figure === "plate" && <>
         <ellipse cx="20" cy="21" rx="15" ry="12" fill="#f2eee7" stroke="#a7afa5" strokeWidth="1.2" />

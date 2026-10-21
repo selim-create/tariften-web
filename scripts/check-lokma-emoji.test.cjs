@@ -35,10 +35,10 @@ test('key Turkish ingredients receive recognizable food icons rather than false 
  assert.equal(lokmaIngredient('bilinmeyen gurme malzeme').art,undefined);
 });
 
-test('visual gallery showcases all 90 exact SVG figures with stable names and category filters', () => {
+test('visual gallery showcases all 131 exact SVG figures with stable names and category filters', () => {
   const items = shim.exports.LOKMA_ICON_SAMPLES;
-  assert.equal(items.length, 90);
-  assert.equal(new Set(items.map(item => item.figure)).size, 90);
+  assert.equal(items.length, 131);
+  assert.equal(new Set(items.map(item => item.figure)).size, 131);
   const icon = fs.readFileSync(path.join(__dirname, '..', 'src/components/lokma/LokmaIngredientIcon.tsx'), 'utf8');
   const gallery = fs.readFileSync(path.join(__dirname, '..', 'src/app/lokma/ikonlar/page.tsx'), 'utf8');
   items.forEach(item => {
