@@ -1,51 +1,79 @@
-// src/app/blog/page.tsx
-
-import { getBlogPosts } from "@/lib/api";
 import Link from "next/link";
-import { FaChevronRight } from "react-icons/fa6";
 import { Metadata } from "next";
+import { ChevronRight } from "lucide-react";
+import { getBlogCategories, getBlogPosts } from "@/lib/api";
 import BlogList from "@/components/blog/BlogList";
 
 export const metadata: Metadata = {
   title: 'Blog & Mutfak Sırları | Tariften',
-  description: 'Mutfak tüyoları, beslenme önerileri, yemek kültürü ve en güncel gastronomi haberleri Tariften blog sayfasında.',
+  description: 'Mutfak tüyoları, teknikler, malzemeler ve mutfağın arkasındaki küçük bilimler Tariften blogunda.',
   openGraph: {
-      title: 'Blog & Mutfak Sırları | Tariften',
-      description: 'Mutfak tüyoları, beslenme önerileri ve en güncel gastronomi haberleri.',
-      type: 'website',
-      url: 'https://tariften.com/blog',
-  }
+    title: 'Blog & Mutfak Sırları | Tariften',
+    description: 'Mutfak tüyoları, teknikler ve mutfağın arkasındaki küçük bilimler.',
+    type: 'website',
+    url: 'https://tariften.com/blog',
+    images: ['/og-image.jpg'],
+  },
+  alternates: { canonical: 'https://tariften.com/blog' },
 };
 
-export default async function BlogPage() {
-  // İlk yüklemede 9 yazı getir
-  const { data: posts, totalPages } = await getBlogPosts(1, 9);
+export default async function BlogPage({ searchParams }: { searchParams: Promise<{ kategori?: string }> }) {
+  const params = await searchParams;
+  const categories = await getBlogCategories();
+  const active = categories.find(c => c.slug === params?.kategori) || null;
+  const { data: posts, totalPages, total } = await getBlogPosts(1, 9, active?.id);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Breadcrumb & Header */}
-      <div className="mb-10 border-b border-gray-100 pb-8 text-center md:text-left">
-        <nav className="flex items-center justify-center md:justify-start text-xs text-gray-400 mb-4 font-medium gap-2">
-            <Link href="/" className="hover:text-[#db4c3f]">Anasayfa</Link>
-            <FaChevronRight className="text-[10px]" />
-            <span className="text-gray-800">Blog</span>
-        </nav>
-        <h1 className="text-4xl font-bold text-slate-900 font-heading mb-2">Mutfak Sırları & Blog İçerikleri</h1>
-        <p className="text-gray-500 max-w-2xl">
-              Mutfak deneyiminizi zenginleştirecek en güncel yazılar, ipuçları ve gastronomi dünyasından haberler ve trendler.
-        </p>
-      </div>
+    <main className="min-h-screen bg-[#fcfcfc] pb-24">
+      <section className="border-b border-gray-100 bg-[radial-gradient(ellipse_at_top,#fdf1ea_0%,#fcfcfc_65%)] px-4 pb-12 pt-6 sm:pb-16">
+        <div className="mx-auto max-w-6xl">
+          <nav aria-label="Sayfa konumu" className="mb-10 flex items-center gap-1.5 text-xs text-gray-500 sm:mb-14">
+            <Link href="/" className="transition hover:text-brand">Anasayfa</Link>
+            <ChevronRight className="h-3 w-3 text-gray-300" aria-hidden />
+            <span className="font-medium text-slate-700">Blog</span>
+          </nav>
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-brand">
+            Mutfaktan blog{total > 0 ? ` · ${total} yazı` : ""}
+          </p>
+          <h1 className="max-w-4xl font-heading text-[40px] font-bold leading-[1.03] tracking-[-0.035em] text-slate-900 sm:text-6xl">
+            Tabaktan önce <span className="italic text-brand">okumalık.</span>
+          </h1>
+          <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-slate-500 sm:text-lg">
+            Teknikler, malzemeler ve mutfağın arkasındaki küçük bilimler. Kısa okumalar, uzun lezzetler.
+          </p>
 
-      {posts.length > 0 ? (
-        // Client Component'e verileri aktar
-        <BlogList initialPosts={posts} totalPages={totalPages} />
-      ) : (
-        <div className="text-center py-24 bg-gray-50 rounded-3xl border border-gray-100">
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-2xl">📝</div>
-            <h3 className="text-xl font-bold text-slate-900">Henüz yazı eklenmemiş.</h3>
-            <p className="text-gray-500 mt-2">Çok yakında harika içeriklerle buradayız!</p>
+          {categories.length > 1 && (
+            <nav aria-label="Kategoriler" className="-mx-4 mt-8 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+              <Link href="/blog" aria-current={!active ? "page" : undefined}
+                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${!active ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 bg-white text-slate-600 hover:border-gray-300 hover:text-slate-900"}`}>
+                Tümü
+              </Link>
+              {categories.map(category => {
+                const current = active?.id === category.id;
+                return (
+                  <Link key={category.id} href={`/blog?kategori=${encodeURIComponent(category.slug)}`} aria-current={current ? "page" : undefined}
+                    className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${current ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 bg-white text-slate-600 hover:border-gray-300 hover:text-slate-900"}`}>
+                    {category.name} <span className={current ? "text-white/60" : "text-gray-400"}>{category.count}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
         </div>
-      )}
-    </div>
+      </section>
+
+      <section className="px-4 pt-12 sm:pt-16">
+        <div className="mx-auto max-w-6xl">
+          {posts.length > 0 ? (
+            <BlogList key={active?.id ?? "all"} initialPosts={posts} totalPages={totalPages} categoryId={active?.id} />
+          ) : (
+            <div className="rounded-3xl border border-gray-200 bg-white p-10 text-center">
+              <p className="font-heading text-xl font-semibold text-slate-900">Bu bölümde henüz yazı yok.</p>
+              <Link href="/blog" className="mt-3 inline-block text-sm font-semibold text-brand hover:text-brand-dark">Tüm yazılara dön</Link>
+            </div>
+          )}
+        </div>
+      </section>
+    </main>
   );
 }

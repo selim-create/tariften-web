@@ -204,6 +204,8 @@ export interface BlogPost {
       source_url: string;
       alt_text: string;
     }>;
-    // Author verisine artık ihtiyacımız yok ama embedded içinde gelmeye devam edebilir
+    'wp:term'?: Array<Array<{ id: number; name: string; slug: string; taxonomy: string }>>;
+    author?: Array<{ id: number; name: string; slug?: string }>;
   };
+  modified?: string;
 }

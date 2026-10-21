@@ -549,51 +549,58 @@ export async function subscribeNewsletter(email: string): Promise<{ success: boo
 
 // --- BLOG İŞLEMLERİ ---
 
-export async function getBlogPosts(page: number = 1, perPage: number = 9): Promise<{ data: BlogPost[], totalPages: number }> {
+export async function getBlogPosts(
+  page: number = 1, perPage: number = 9, categoryId?: number,
+): Promise<{ data: BlogPost[], totalPages: number, total: number }> {
   try {
-    const res = await fetch(`${API_URL}/wp/v2/posts?_embed&page=${page}&per_page=${perPage}`, {
-      // Geliştirme aşamasında 0 yapabilirsin, canlıda 60 (1 dakika) idealdir.
-      next: { revalidate: 60 } 
+    const category = categoryId && categoryId > 0 ? `&categories=${categoryId}` : "";
+    const res = await fetch(`${API_URL}/wp/v2/posts?_embed&page=${page}&per_page=${perPage}${category}`, {
+      next: { revalidate: 60 }
     });
 
     if (!res.ok) throw new Error("Blog yazıları getirilemedi");
 
     const totalPages = parseInt(res.headers.get('X-WP-TotalPages') || '1');
+    const total = parseInt(res.headers.get('X-WP-Total') || '0');
     const data = await res.json();
+    const list: BlogPost[] = Array.isArray(data) ? data : [];
 
-    return { data, totalPages };
+    return { data: list, totalPages, total: total || list.length };
   } catch (error) {
     console.error("Blog Fetch Error:", error);
-    return { data: [], totalPages: 0 };
+    return { data: [], totalPages: 0, total: 0 };
   }
 }
 
-// src/lib/api.ts içindeki getBlogPost fonksiyonu
+export type BlogCategory = { id: number; name: string; slug: string; count: number };
+
+/** Categories that actually have posts, largest first. */
+export async function getBlogCategories(): Promise<BlogCategory[]> {
+  try {
+    const res = await fetch(`${API_URL}/wp/v2/categories?per_page=50&hide_empty=true`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+    return (data as BlogCategory[])
+      .filter(c => c && c.count > 0 && !/^(genel|uncategorized|kategorisiz)$/i.test(c.slug))
+      .map(c => ({ id: c.id, name: c.name, slug: c.slug, count: c.count }))
+      .sort((a, b) => b.count - a.count);
+  } catch {
+    return [];
+  }
+}
 
 export async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    // Konsola hangi slug'ı aradığımızı yazdıralım
-    console.log(`🔍 Blog aranıyor: ${slug}`);
-    
-    // URL'yi encode edelim (Türkçe karakter veya boşluk varsa patlamasın)
-    const url = `${API_URL}/wp/v2/posts?_embed&slug=${encodeURIComponent(slug)}`;
-    console.log(`📡 İstek atılıyor: ${url}`);
-
-    const res = await fetch(url, {
+    const res = await fetch(`${API_URL}/wp/v2/posts?_embed&slug=${encodeURIComponent(slug)}`, {
       next: { revalidate: 3600 }
     });
-
     if (!res.ok) {
-        console.error("❌ API Hatası:", res.status, res.statusText);
-        return null;
+      console.error("Blog post API error:", res.status, slug);
+      return null;
     }
-
     const data = await res.json();
-    
-    // Sonucu görelim
-    console.log(`✅ API Yanıtı (${slug}):`, data.length > 0 ? "Bulundu" : "BULUNAMADI");
-
-    return data.length > 0 ? data[0] : null;
+    return Array.isArray(data) && data.length > 0 ? data[0] : null;
   } catch (error) {
     console.error("Single Blog Fetch Error:", error);
     return null;
