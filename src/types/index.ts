@@ -11,16 +11,29 @@ export interface User {
   token?: string;
 }
 
+export type RecipeSocialMetricsOrigin =
+  | "public_instagram_extractor"
+  | "public_tiktok_extractor"
+  | "public_youtube_data_api";
+
+/**
+ * Original social video of an imported recipe. All counts are a snapshot
+ * taken when the recipe was imported (metrics_captured_at), never live.
+ * Unknown values are null and must stay hidden.
+ */
 export interface RecipeSocialSource {
-  platform: "instagram" | "youtube";
+  platform: "instagram" | "tiktok" | "youtube";
   video_id: string;
   url: string;
   creator_handle: string | null;
   creator_verified?: boolean;
+  creator_name?: string | null;
+  creator_profile_url?: string | null;
   view_count?: number | null;
   like_count?: number | null;
   follower_count?: number | null;
-  metrics_origin?: "public_instagram_extractor" | null;
+  comment_count?: number | null;
+  metrics_origin?: RecipeSocialMetricsOrigin | null;
   metrics_captured_at?: string | null;
 }
 
