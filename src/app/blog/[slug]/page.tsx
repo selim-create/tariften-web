@@ -62,6 +62,9 @@ export default async function BlogPostPage({ params }: Props) {
 
   const title = postTitle(post);
   const excerpt = postExcerpt(post);
+  // WordPress auto-excerpts are the first words cut with "[…]": fine on a
+  // card, but a truncated standfirst reads broken, so only a written one shows.
+  const standfirst = /(\[&hellip;\]|\[…\]|&hellip;|…)\s*(<\/p>)?\s*$/.test(post.excerpt?.rendered || "") ? null : excerpt;
   const image = postImage(post);
   const category = postCategory(post);
   const author = postAuthor(post);
@@ -115,8 +118,8 @@ export default async function BlogPostPage({ params }: Props) {
           <h1 className="font-heading text-[34px] font-bold leading-[1.08] tracking-[-0.03em] text-slate-900 text-balance sm:text-5xl lg:text-[56px]">
             {title}
           </h1>
-          {excerpt && (
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-500 text-pretty sm:text-xl">{excerpt}</p>
+          {standfirst && (
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-500 text-pretty sm:text-xl">{standfirst}</p>
           )}
           <p className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-gray-500 tabular-nums">
             {author && <><span className="font-semibold text-slate-800">{author}</span><span aria-hidden>·</span></>}
