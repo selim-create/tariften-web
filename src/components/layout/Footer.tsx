@@ -77,7 +77,7 @@ export default function Footer() {
                 <ul className="space-y-3 text-sm font-medium text-slate-600">
                   <li><Link href="/recipes" className="transition hover:text-[#db4c3f]">Tarifler</Link></li>
                   <li><Link href="/menus" className="transition hover:text-[#db4c3f]">Menüler</Link></li>
-                  <li><Link href="/pantry" className="transition hover:text-[#db4c3f]">Dolap Asistanı</Link></li>
+                  <li><Link href="/pantry" className="transition hover:text-[#db4c3f]">Dolap Modu</Link></li>
                   <li><Link href="/cookbook" className="transition hover:text-[#db4c3f]">Tarif Defterim</Link></li>
                 </ul>
               </div>

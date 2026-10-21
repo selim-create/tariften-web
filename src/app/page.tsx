@@ -1,224 +1,119 @@
 import Link from "next/link";
-import Image from "next/image";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { getRecipes } from "@/lib/api";
-import { FaArrowRight, FaFire, FaAward } from "react-icons/fa";
-import { FaUtensils, FaClock, FaEarthAmericas, FaLeaf, FaBed, FaHeart, FaCandyCane, FaPepperHot, FaMugHot } from "react-icons/fa6";
 import Hero from "@/components/home/Hero";
 import HomeCTA from "@/components/home/HomeCTA";
-import MenuShowcase from "@/components/home/MenuShowcase"; // YENİ
+import MenuShowcase from "@/components/home/MenuShowcase";
 import BlogShowcase from "@/components/home/BlogShowcase";
+import RecipeCard from "@/components/recipes/RecipeCard";
 import { Suspense } from "react";
 
 export const dynamic = 'force-dynamic';
 
+// Links use the live taxonomy names (GET /tariften/v1/terms).
+const ASIAN = ['Çin Mutfağı', 'Japon Mutfağı', 'Kore Mutfağı', 'Hint Mutfağı'];
+const CUISINES = [
+  { name: "Türk Mutfağı", note: "Ev yemekleri, zeytinyağlılar, hamur işleri", href: `/recipes?cuisine=${encodeURIComponent("Türk Mutfağı")}` },
+  { name: "İtalyan Mutfağı", note: "Makarna, risotto, fırın yemekleri", href: `/recipes?cuisine=${encodeURIComponent("İtalyan Mutfağı,İtalyan")}` },
+  { name: "Asya Mutfağı", note: "Çin, Japon, Kore ve Hint mutfakları", href: `/recipes?cuisine=${encodeURIComponent(ASIAN.join(","))}` },
+  { name: "Meksika Mutfağı", note: "Tortilla, salsa, baharatlı tencere", href: `/recipes?cuisine=${encodeURIComponent("Meksika Mutfağı")}` },
+];
+const SHORTCUTS = [
+  { label: "Kolay tarifler", href: "/recipes?difficulty=Kolay" },
+  { label: "Düşük karbonhidrat", href: `/recipes?diet=${encodeURIComponent("Düşük Karbonhidrat")}` },
+  { label: "Kahvaltı", href: `/recipes?meal_type=${encodeURIComponent("Kahvaltı")}` },
+  { label: "Çorbalar", href: `/recipes?meal_type=${encodeURIComponent("Çorba")}` },
+  { label: "Tatlılar", href: `/recipes?meal_type=${encodeURIComponent("Tatlı")}` },
+  { label: "Vegan", href: "/recipes?diet=Vegan" },
+  { label: "Özel gün", href: `/recipes?difficulty=${encodeURIComponent("Şef")}` },
+];
+
+function SectionHeader({ title, href, linkLabel }: { title: string; href?: string; linkLabel?: string }) {
+  return (
+    <div className="mb-6 flex items-end justify-between gap-4">
+      <h2 className="font-heading text-2xl font-bold tracking-[-0.01em] text-slate-900 sm:text-[28px]">{title}</h2>
+      {href && (
+        <Link href={href} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand hover:text-brand-dark">
+          {linkLabel} <ArrowRight className="h-4 w-4" aria-hidden />
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default async function Home() {
-  const popularRecipes = await getRecipes({ collection: ['Popüler'] });
-  const editorRecipes = await getRecipes({ collection: ['Editörün Seçimi'] });
-
-  // Asya Mutfağı için çoklu seçim parametrelerini oluştur
-  const asianCuisines = ['Çin Mutfağı', 'Japon Mutfağı', 'Kore Mutfağı', 'Tayland Mutfağı'];
-  const asianParams = new URLSearchParams();
-  // Çoklu seçimde sadece ilkinin (Çin) seçili gelmesini engellemek için,
-  // parametreleri virgülle birleştirerek tek bir 'cuisine' parametresi olarak gönderiyoruz.
-  asianParams.set('cuisine', asianCuisines.join(','));
-  const asianLink = `/recipes?${asianParams.toString()}`;
-
-  // Kategori verileri
-  const cuisineCategories = [
-    { 
-      name: "Türk Mutfağı", 
-      link: "/recipes?cuisine=Türk%20Mutfağı", 
-      img: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=400&auto=format&fit=crop", 
-      flag: "🇹🇷" 
-    },
-    { 
-      name: "İtalyan Mutfağı", 
-      link: "/recipes?cuisine=İtalyan%20Mutfağı", 
-      img: "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?q=80&w=400&auto=format&fit=crop", 
-      flag: "🇮🇹" 
-    },
-    { 
-      name: "Asya Mutfağı", 
-      link: asianLink, 
-      img: "https://images.unsplash.com/photo-1552590635-27c2c2128abf?q=80&w=400&auto=format&fit=crop", 
-      flag: "🌏" 
-    },
-    { 
-      name: "Meksika Mutfağı", 
-      link: "/recipes?cuisine=Meksika%20Mutfağı", 
-      img: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?q=80&w=400&auto=format&fit=crop", 
-      flag: "🇲🇽" 
-    },
-  ];
-
-  // Placeholder görsel (eğer resim yoksa kullanılacak)
-  const fallbackImage = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop";
+  const [featured, editors] = await Promise.all([
+    getRecipes({ collection: ['Popüler'] }),
+    getRecipes({ collection: ['Editörün Seçimi'] }),
+  ]);
+  const featuredRecipes = (featured?.data || []).slice(0, 3);
+  const editorRecipes = (editors?.data || []).slice(0, 4);
 
   return (
-    <main className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#fcfcfc]">
-      
-      {/* 1. HERO */}
+    <main className="flex min-h-[calc(100vh-4rem)] flex-col bg-[#fcfcfc]">
       <Hero />
 
-      {/* 2. MUTFAKLAR (Pasaportsuz Dünya Turu) */}
-      <section className="py-16 border-t border-gray-100">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 font-heading flex items-center gap-2">
-              <FaEarthAmericas className="text-blue-500" /> Vizesiz Dünya Turu
-            </h2>
-            <Link href="/recipes" className="text-sm font-bold text-brand hover:underline flex items-center gap-1">
-              Tümünü Gör <FaArrowRight />
-            </Link>
+      {featuredRecipes.length > 0 && (
+        <section className="px-4 pt-14 sm:pt-16">
+          <div className="mx-auto max-w-6xl">
+            <SectionHeader title="Öne çıkan tarifler" href="/recipes" linkLabel="Tüm tarifler" />
+            <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredRecipes.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} />)}
+            </div>
           </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {cuisineCategories.map((cuisine) => (
-              <Link href={cuisine.link} key={cuisine.name} className="group relative h-40 md:h-52 rounded-2xl overflow-hidden cursor-pointer shadow-md">
-                <Image 
-                   src={cuisine.img} 
-                   alt={cuisine.name}
-                   fill
-                   unoptimized={true}
-                   className="object-cover group-hover:scale-110 transition duration-700" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 flex flex-col justify-end">
-                  <span className="text-2xl mb-1">{cuisine.flag}</span>
-                  <span className="text-white font-bold text-lg">{cuisine.name}</span>
-                </div>
+        </section>
+      )}
+
+      <section className="px-4 pt-14 sm:pt-16">
+        <div className="mx-auto max-w-6xl">
+          <SectionHeader title="Mutfaklara göz at" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {CUISINES.map(cuisine => (
+              <Link key={cuisine.name} href={cuisine.href}
+                className="group flex min-h-[128px] flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 transition hover:border-gray-300 hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                <span className="flex items-start justify-between gap-3">
+                  <span className="font-heading text-lg font-semibold text-slate-900">{cuisine.name}</span>
+                  <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-400 transition group-hover:text-brand" aria-hidden />
+                </span>
+                <span className="text-sm leading-snug text-gray-500">{cuisine.note}</span>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* 3. POPÜLER TARİFLER */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 font-heading flex items-center justify-center gap-2">
-              <FaFire className="text-orange-500 animate-bounce-slow" /> Şu An Herkes Bunu Pişiriyor
-            </h2>
-            <p className="text-gray-500 mt-2">Topluluğumuzun en çok sevdiği tarifler.</p>
+      {editorRecipes.length > 0 && (
+        <section className="px-4 pt-14 sm:pt-16">
+          <div className="mx-auto max-w-6xl">
+            <SectionHeader title="Editörün seçimi" />
+            <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+              {editorRecipes.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" />)}
+            </div>
           </div>
+        </section>
+      )}
 
-          {popularRecipes.data.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {popularRecipes.data.slice(0, 3).map((recipe) => (
-                <Link href={`/recipe/${recipe.slug}`} key={recipe.id} className="bg-white rounded-2xl border border-gray-100 hover:shadow-xl transition group overflow-hidden flex flex-col h-full">
-                  <div className="aspect-[4/3] overflow-hidden relative">
-                    <Image 
-                      src={recipe.image || fallbackImage} 
-                      alt={recipe.title} 
-                      fill
-                      unoptimized={true}
-                      className="object-cover group-hover:scale-105 transition duration-500" 
-                    />
-                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-brand shadow-sm flex items-center gap-1">
-                      <FaFire /> Popüler
-                    </div>
-                  </div>
-                  <div className="p-5 flex flex-col flex-grow">
-                    <h3 className="font-bold text-lg text-slate-900 mb-1 group-hover:text-brand transition">{recipe.title}</h3>
-                    <div className="mt-auto pt-2 text-xs text-gray-500 flex items-center gap-2">
-                      <FaClock className="text-brand" /> Hazırlama: {recipe.prep_time}dk
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-             <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-               <p className="text-gray-500">Henüz popüler tarif eklenmemiş.</p>
-             </div>
-          )}
+      <section className="px-4 pt-14 sm:pt-16">
+        <div className="mx-auto max-w-6xl">
+          <SectionHeader title="Ne arıyorsun?" />
+          <div className="flex flex-wrap gap-2">
+            {SHORTCUTS.map(item => (
+              <Link key={item.label} href={item.href}
+                className="rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-gray-300 hover:text-slate-900">
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* 4. EDİTÖRÜN SEÇİMİ */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 font-heading mb-8 flex items-center gap-2">
-            <FaAward className="text-purple-500" /> Şefin Tavsiyesi
-          </h2>
-          
-          {editorRecipes.data.length > 0 ? (
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {editorRecipes.data.slice(0, 4).map((recipe) => (
-                   <Link href={`/recipe/${recipe.slug}`} key={recipe.id} className="group relative h-64 rounded-2xl overflow-hidden shadow-lg">
-                      <Image 
-                        src={recipe.image || fallbackImage} 
-                        alt={recipe.title} 
-                        fill
-                        unoptimized={true}
-                        className="object-cover group-hover:scale-110 transition duration-700" 
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-5 flex flex-col justify-end">
-                        <h4 className="font-bold text-white text-lg leading-tight group-hover:text-brand-300 transition">{recipe.title}</h4>
-                        <div className="flex gap-2 mt-2 text-xs text-gray-300">
-                           <span className="flex items-center gap-1"><FaUtensils /> {recipe.difficulty[0] || 'Orta'}</span>
-                        </div>
-                      </div>
-                   </Link>
-                ))}
-             </div>
-          ) : (
-            <div className="text-center py-10 bg-white border border-gray-100 rounded-2xl">
-               <p className="text-gray-500">Editör henüz seçim yapmamış.</p>
-            </div>
-          )}
-        </div>
-      </section>
-      
-      {/* --- YENİ EKLENEN BLOG ALANI --- */}
-      <Suspense fallback={<div className="h-96 bg-gray-50 animate-pulse"></div>}>
+      <Suspense fallback={null}>
         <BlogShowcase />
       </Suspense>
 
       <MenuShowcase />
-      {/* 5. KATEGORİLER (Moods) */}
-      <section className="py-20 relative overflow-hidden bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50">
-        {/* Dekoratif Arkaplan Efektleri */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-orange-200 rounded-full blur-[120px] opacity-30 pointer-events-none animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-pink-200 rounded-full blur-[100px] opacity-40 pointer-events-none animate-pulse delay-1000"></div>
-        
-        <div className="container mx-auto px-4 text-center relative z-10">
-            <div className="mb-10 animate-fade-in-up">
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 font-heading">Hangi Moddasın?</h2>
-              <p className="text-slate-600 text-lg">Ruh haline göre tarifini seç!</p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-4 max-w-5xl mx-auto">
-               <Link href="/recipes?diet=Düşük Karbonhidrat" className="group px-8 py-4 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <FaLeaf className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
-                 <span className="text-sm">Fit & Sağlıklı</span>
-               </Link>
-               <Link href="/recipes?difficulty=Kolay" className="group px-8 py-4 bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <FaBed className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
-                 <span className="text-sm">Üşengeç Şef</span>
-               </Link>
-               <Link href="/recipes?difficulty=Şef" className="group px-8 py-4 bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <FaHeart className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
-                 <span className="text-sm">Ziyafet</span>
-               </Link>
-               <Link href="/recipes?meal_type=Tatlı" className="group px-8 py-4 bg-gradient-to-r from-pink-400 to-rose-500 hover:from-pink-500 hover:to-rose-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <FaCandyCane className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
-                 <span className="text-sm">Tatlı Krizi</span>
-               </Link>
-               <Link href="/recipes?cuisine=Meksika%20Mutfağı" className="group px-8 py-4 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <FaPepperHot className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
-                 <span className="text-sm">Acı Sever</span>
-               </Link>
-               <Link href="/recipes?meal_type=Kahvaltı" className="group px-8 py-4 bg-gradient-to-r from-indigo-400 to-purple-500 hover:from-indigo-500 hover:to-purple-600 text-white rounded-2xl font-bold transition-all transform hover:scale-105 hover:shadow-2xl">
-                 <FaMugHot className="text-2xl mb-2 group-hover:scale-110 transition-transform mx-auto" />
-                 <span className="text-sm">Pazar Kahvaltısı</span>
-               </Link>
-            </div>
-        </div>
-      </section>
 
-      {/* 6. AKILLI BANNER */}
       <HomeCTA />
-
     </main>
   );
 }

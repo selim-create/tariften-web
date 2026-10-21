@@ -75,3 +75,14 @@ test('unknown words never become food by accident', () => {
   assert.equal(key('unlu mamul'), '🍽️', '"un" must not match inside unrelated words');
   assert.equal(key('suşi pirinci'), '🍚');
 });
+
+test('dish titles pick an illustration for photo-less recipe cards', () => {
+  const {lokmaDishName} = shim.exports;
+  const dish = title => key(lokmaDishName(title));
+  assert.equal(dish('Kuru Domates ve Badem Pestolu Gnocchi'), '🍝');
+  assert.equal(dish('Parmesanlı Mantarlı Risotto'), '🍚');
+  assert.equal(dish('Çikolatalı Sufle'), '🍫');
+  assert.equal(dish('Fırında Karnıyarık'), '🍆');
+  assert.equal(dish('Menemen'), '🥚');
+  assert.equal(key('Tuzlu tereyağı'), '🧈', 'the -lı fallback never applies to ingredient lists');
+});
