@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ArrowUpRight, CheckCircle2, ChefHat, Clock3, LoaderCircle, Plus, RefreshCw, ShieldAlert, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CheckCircle2, Clock3, LoaderCircle, Plus, RefreshCw, ShieldAlert } from "lucide-react";
+import PageIntro from "@/components/account/PageIntro";
+import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
+import { lokmaDishName } from "@/lib/lokma-emoji";
+import { parseTransferDate as parseDate, transferPlatform as platformOf, transferWhen as whenLabel } from "@/lib/video-transfer-display";
 import { useAuth } from "@/context/AuthContext";
 import { needsRightsConfirmation } from "@/lib/video-recipe-import";
 
@@ -23,7 +27,7 @@ const ACTIVE = new Set(["queued", "pull_ready", "dispatching", "processing"]);
 
 function delayed(item: Transfer): boolean {
   if (item.status !== "queued" && item.status !== "pull_ready" && item.status !== "processing") return false;
-  const date = Date.parse(item.created_at.replace(" ", "T") + (item.created_at.includes("Z") ? "" : "Z"));
+  const date = parseDate(item.created_at);
   return Number.isFinite(date) && Date.now() - date > 10 * 60 * 1000;
 }
 
@@ -146,96 +150,105 @@ export default function MyRecipeTransfers() {
   }, [jobs, highlight, router]);
 
   return (
-    <main className="min-h-[75vh] bg-[#fffbf8] pb-20">
-      <div className="mx-auto max-w-[1100px] px-4 pt-9 sm:px-6">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="mb-2 inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#d25745]">
-              <Sparkles className="h-4 w-4" /> Tariften mutfak atölyesi
-            </p>
-            <h1 className="font-heading text-3xl font-extrabold tracking-tight text-[#182c27] sm:text-4xl">Tarif Aktarımlarım</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#72766f]">Bağlantıyı bir kez gönder, gerisini Tariften hazırlasın. Tarifler burada takip edilir; hazır olduğunda haber veririz.</p>
-          </div>
-          <Link href="/recipe/aktar" className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[#df5042] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#c94336]">
-            <Plus className="h-4 w-4" /> Yeni tarif aktar
+    <main className="min-h-[75vh] bg-[#fcfcfc] pb-20">
+      <PageIntro crumb="Tarif Aktarımlarım" kicker="Tariften mutfak atölyesi" title="Tarif *aktarımlarım*"
+        actions={(
+          <Link href="/recipe/aktar" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-brand px-5 text-[15px] font-semibold text-white transition hover:bg-brand-dark">
+            <Plus className="h-4 w-4" aria-hidden /> Yeni tarif aktar
           </Link>
-        </div>
+        )}>
+        Bağlantıyı bir kez gönder, gerisini Tariften hazırlasın. Hazır olduğunda haber veririz.
+      </PageIntro>
+      <div className="mx-auto max-w-6xl px-4 pt-8 sm:pt-10">
         {!loading && !user && (
-          <div className="rounded-3xl border border-[#eedfd4] bg-white p-7 text-sm text-[#625c55]">
-            Aktarımlarını görmek için <Link className="font-bold text-[#c34a3c] underline" href="/login">giriş yap</Link>.
+          <div className="rounded-3xl bg-white p-7 text-[15px] text-slate-600 ring-1 ring-black/5">
+            Aktarımlarını görmek için <Link className="font-semibold text-brand underline underline-offset-4" href="/login">giriş yap</Link>.
           </div>
         )}
         {(loading || fetching) && user && (
-          <div className="flex items-center gap-3 rounded-3xl border border-[#eedfd4] bg-white p-8 text-sm text-[#64716a]">
-            <LoaderCircle className="h-5 w-5 animate-spin" /> Tarif aktarımların getiriliyor…
+          <div className="flex items-center gap-3 rounded-3xl bg-white p-8 text-sm text-slate-500 ring-1 ring-black/5">
+            <LoaderCircle className="h-5 w-5 animate-spin text-brand" aria-hidden /> Tarif aktarımların getiriliyor…
           </div>
         )}
         {error && user && (
-          <p role="alert" className="mb-5 flex items-center gap-2 rounded-2xl border border-[#f3d8d1] bg-[#fff1ed] p-4 text-sm text-[#9b4538]">
-            <ShieldAlert className="h-5 w-5" /> {error}
+          <p role="alert" className="mb-5 flex items-center gap-2 rounded-2xl bg-[#fdf0ec] p-4 text-sm text-brand-dark ring-1 ring-[#f3cfc5]">
+            <ShieldAlert className="h-5 w-5 shrink-0" aria-hidden /> {error}
           </p>
         )}
         {!fetching && user && jobs.length === 0 && !error && (
-          <div className="rounded-3xl border border-[#eedfd4] bg-white p-10 text-center">
-            <ChefHat className="mx-auto h-10 w-10 text-[#d25745]" />
-            <h2 className="mt-4 font-heading text-xl font-bold text-[#182c27]">Henüz aktarılmış tarifin yok</h2>
-            <p className="mt-2 text-sm text-[#72766f]">Sosyal medyadan ilk yemek bağlantını ekleyebilirsin.</p>
+          <div className="rounded-3xl bg-white px-6 py-14 text-center ring-1 ring-black/5">
+            <span className="mx-auto grid h-20 w-20 place-items-center rounded-[28px] bg-[#f6efe8]"><LokmaIngredientIcon name="tabak" size="xl" /></span>
+            <h2 className="mt-5 font-heading text-2xl font-bold text-slate-900">Henüz aktarılmış tarifin yok</h2>
+            <p className="mx-auto mt-2 max-w-sm text-[15px] text-slate-500">Kaydettiğin bir yemek videosu var mı? Bağlantısını yapıştır, tarifini çıkaralım.</p>
+            <Link href="/recipe/aktar" className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800">
+              İlk tarifini aktar <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
           </div>
         )}
-        <div className="grid gap-3 sm:grid-cols-2">
-          {jobs.map(item => {
-            const state = itemState(item);
-            const statusText = state.tone === "success" ? "text-emerald-700 bg-emerald-50"
-              : state.tone === "error" ? "text-red-700 bg-red-50"
-              : state.tone === "review" ? "text-amber-800 bg-amber-50"
-              : "text-[#a85841] bg-[#fff0e9]";
-            const title = item.title || `Tarif aktarımı #${item.id}`;
-            return (
-              <article key={item.id} className={`rounded-[25px] border bg-white p-5 shadow-[0_12px_30px_rgba(55,37,24,0.035)] sm:p-6 ${highlight === item.id ? "border-[#e19b88]" : "border-[#ede0d7]"}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-bold ${statusText}`}>
-                    {state.tone === "success" ? <CheckCircle2 className="h-3.5 w-3.5" />
-                      : state.tone === "progress" ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                      : state.tone === "error" ? <ShieldAlert className="h-3.5 w-3.5" />
-                      : <Clock3 className="h-3.5 w-3.5" />}
-                    {state.label}
+        {jobs.length > 0 && (
+          <ul className="divide-y divide-gray-100 overflow-hidden rounded-3xl bg-white ring-1 ring-black/5">
+            {jobs.map(item => {
+              const state = itemState(item);
+              const statusText = state.tone === "success" ? "text-emerald-700 bg-emerald-50"
+                : state.tone === "error" ? "text-red-700 bg-red-50"
+                : state.tone === "review" ? "text-amber-800 bg-amber-50"
+                : "text-brand-dark bg-[#fdf1ea]";
+              const platform = platformOf(item.source_url);
+              const title = item.title || `${platform} videosu`;
+              const when = whenLabel(item.created_at);
+              return (
+                <li key={item.id} id={`aktarim-${item.id}`}
+                  className={`flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-5 sm:p-6 ${highlight === item.id ? "bg-[#fdf6f1]" : ""}`}>
+                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#f6efe8]" aria-hidden>
+                    {item.title ? <LokmaIngredientIcon name={lokmaDishName(item.title)} size="xl" className="scale-[0.8]" /> : <LokmaIngredientIcon name="tabak" size="xl" className="scale-[0.8]" />}
                   </span>
-                  <span className="text-xs font-semibold text-[#b2a49a]">#{item.id}</span>
-                </div>
-                <h2 className="mt-5 min-h-[48px] font-heading text-[18px] font-bold leading-snug text-[#1f302a]">{title}</h2>
-                <p className="mt-2 text-xs leading-5 text-[#777069]">{state.hint}</p>
-                <div className="mt-6 border-t border-[#f3ebe6] pt-4">
-                  {item.status === "published" && item.recipe_slug ? (
-                    <Link href={`/recipe/${encodeURIComponent(item.recipe_slug)}`}
-                      className="inline-flex items-center gap-2 text-sm font-extrabold text-[#c84b3d] hover:underline">
-                      Tarifi görüntüle <ArrowUpRight className="h-4 w-4" />
-                    </Link>
-                  ) : item.status === "needs_review" ? (
-                    <Link href={`/recipe/aktar?job=${item.id}`}
-                      className="inline-flex items-center gap-2 text-sm font-bold text-[#bd674b] hover:underline">
-                      Tarifini kontrol et <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  ) : item.status === "failed" && item.retryable ? (
-                    <button type="button" onClick={() => void retry(item)} disabled={retrying !== null}
-                      className="inline-flex items-center gap-2 text-sm font-extrabold text-[#c84b3d] hover:underline disabled:opacity-50">
-                      {retrying === item.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                      Yeniden dene
-                    </button>
-                  ) : item.status === "failed" || item.status === "uncertain" ? (
-                    <a href={item.source_url} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-xs font-semibold text-[#9b8a7d] hover:underline">
-                      Orijinal paylaşımı aç <ArrowUpRight className="h-3.5 w-3.5" />
-                    </a>
-                  ) : (
-                    <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#9b8a7d]">
-                      <RefreshCw className="h-3.5 w-3.5" /> Durumu otomatik güncelleniyor
-                    </span>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusText}`}>
+                        {state.tone === "success" ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                          : state.tone === "progress" ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                          : state.tone === "error" ? <ShieldAlert className="h-3.5 w-3.5" aria-hidden />
+                          : <Clock3 className="h-3.5 w-3.5" aria-hidden />}
+                        {state.label}
+                      </span>
+                      <span className="text-xs text-gray-400">{platform}{when ? ` · ${when}` : ""}</span>
+                    </div>
+                    <h2 className="mt-2 line-clamp-2 font-heading text-lg font-bold leading-snug text-slate-900">{title}</h2>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-500">{state.hint}</p>
+                  </div>
+                  <div className="shrink-0 sm:text-right">
+                    {item.status === "published" && item.recipe_slug ? (
+                      <Link href={`/recipe/${encodeURIComponent(item.recipe_slug)}`}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-800 ring-1 ring-gray-200 transition hover:text-brand hover:ring-brand/40">
+                        Tarifi görüntüle <ArrowUpRight className="h-4 w-4" aria-hidden />
+                      </Link>
+                    ) : item.status === "needs_review" ? (
+                      <Link href={`/recipe/aktar?job=${item.id}`}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand px-4 text-sm font-semibold text-white transition hover:bg-brand-dark">
+                        Tarifini kontrol et <ArrowRight className="h-4 w-4" aria-hidden />
+                      </Link>
+                    ) : item.status === "failed" && item.retryable ? (
+                      <button type="button" onClick={() => void retry(item)} disabled={retrying !== null}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-800 ring-1 ring-gray-200 transition hover:text-brand disabled:opacity-50">
+                        {retrying === item.id ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <RefreshCw className="h-4 w-4" aria-hidden />}
+                        Yeniden dene
+                      </button>
+                    ) : item.status === "failed" || item.status === "uncertain" ? (
+                      <a href={item.source_url} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-brand">
+                        Orijinal paylaşımı aç <ArrowUpRight className="h-4 w-4" aria-hidden />
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 text-xs font-medium text-gray-400">
+                        <RefreshCw className="h-3.5 w-3.5" aria-hidden /> Durumu otomatik güncelleniyor
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </main>
   );

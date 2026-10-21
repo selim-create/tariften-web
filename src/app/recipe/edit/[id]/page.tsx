@@ -10,11 +10,15 @@ import { useAuth } from "@/context/AuthContext";
 import { getRecipeById, getTerms } from "@/lib/api";
 import { getRecipeReviewStatusClient, type RecipeReviewStatus } from "@/lib/recipe-write-client";
 import { updateRecipeClient } from "@/lib/recipe-write-client";
-import { uploadRecipeImage } from "@/lib/recipe-media-upload"; 
-import { 
-  FaArrowRight, FaArrowLeft, FaCheck, FaPlus, FaTrash, 
-  FaClock, FaFire, FaImage, FaUtensils, FaVideo, FaCloudArrowUp, FaLink, FaXmark, FaSpinner
-} from "react-icons/fa6";
+import { uploadRecipeImage } from "@/lib/recipe-media-upload";
+import { isPlaceholderImage } from "@/lib/utils";
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Clock3, LoaderCircle, LockKeyhole, TriangleAlert } from "lucide-react";
+import {
+  AddRowButton, CATEGORY_LABELS, MediaPicker, NumberField, OptionDialog, StepsEditor, StudioPreview, StudioSection,
+  studioInput, studioLabel, youtubeThumbnail, type MediaMode,
+} from "@/components/recipe-studio/StudioParts";
+
+const STEPS = ["Tarif bilgileri", "Malzemeler", "Hazırlanış"] as const;
 
 export default function EditRecipePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -39,21 +43,17 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     return () => clearTimeout(timer);
   }, [step]);
   const [mediaUploading, setMediaUploading] = useState(false);
-  const [mediaType, setMediaType] = useState<'upload' | 'url' | 'video'>('url');
+  const [mediaType, setMediaType] = useState<MediaMode>('url');
   const [previewUrl, setPreviewUrl] = useState("");
   const [reviewStatus, setReviewStatus] = useState<RecipeReviewStatus | null>(null);
 
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'success' | 'error' | 'input'>('success');
-  const [modalMessage, setModalMessage] = useState("");
+  const [optionDialog, setOptionDialog] = useState<keyof typeof CATEGORY_LABELS | null>(null);
   const [notice, setNotice] = useState("");
   useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(""), 4800);
     return () => window.clearTimeout(timer);
   }, [notice]);
-  const [inputValue, setInputValue] = useState("");
-  const [inputCallback, setInputCallback] = useState<(val: string) => void>(() => {});
 
   const [formData, setFormData] = useState({
     title: "",
@@ -129,16 +129,16 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                     ? recipe.ingredients.map(ing => ({ ...ing, amount: String(ing.amount) })) 
                     : [{ name: "", amount: "", unit: "" }],
                  steps: (recipe.steps && recipe.steps.length > 0) 
-                    ? (typeof recipe.steps[0] === 'string' ? recipe.steps as string[] : (recipe.steps as any[]).map(s => s.content)) 
+                    ? (typeof recipe.steps[0] === 'string' ? recipe.steps as string[] : (recipe.steps as unknown as { content: string }[]).map(s => s.content)) 
                     : [""],
                  chef_tip: recipe.chef_tip || "",
                  serving_weight: recipe.serving_weight ? String(recipe.serving_weight) : "",
              });
              
              const img = recipe.image || "";
-             if (img.includes("youtube.com") || img.includes("youtu.be")) {
+             if (youtubeThumbnail(img)) {
                  setMediaType('video');
-                 setPreviewUrl(`https://img.youtube.com/vi/${img.split("v=")[1]?.split("&")[0] || img.split("youtu.be/")[1]}/hqdefault.jpg`);
+                 setPreviewUrl(youtubeThumbnail(img));
              }
              else if (img.startsWith('http')) {
                  setMediaType('url');
@@ -208,20 +208,14 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     setNotice(msg);
   };
   
-  const showInput = (title: string, callback: (val: string) => void) => {
-    setModalMessage(title);
-    setModalType('input');
-    setInputCallback(() => callback);
-    setShowModal(true);
+  const addCategoryOption = (category: keyof typeof options, newCat: string) => {
+    setOptions(prev => ({ ...prev, [category]: [...prev[category], newCat] }));
+    handleInputChange(category, [newCat]);
   };
 
   const handleCategoryChange = (category: keyof typeof options, value: string) => {
     if (value === "new") {
-      showInput(`Yeni ${category} ekle:`, (newCat) => {
-        if (!newCat.trim()) return;
-        setOptions(prev => ({ ...prev, [category]: [...prev[category], newCat] }));
-        handleInputChange(category, [newCat]);
-      });
+      setOptionDialog(category);
     } else {
       handleInputChange(category, [value]);
     }
@@ -242,6 +236,13 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   };
   const addStep = () => setFormData(prev => ({ ...prev, steps: [...prev.steps, ""] }));
   const removeStep = (index: number) => setFormData(prev => ({ ...prev, steps: prev.steps.filter((_, i) => i !== index) }));
+  const moveStep = (index: number, direction: -1 | 1) => setFormData(prev => {
+    const target = index + direction;
+    if (target < 0 || target >= prev.steps.length) return prev;
+    const steps = [...prev.steps];
+    [steps[index], steps[target]] = [steps[target], steps[index]];
+    return { ...prev, steps };
+  });
 
   const goNext = () => {
     const issue = validateManualRecipeStage(formData, step as ManualRecipeStage);
@@ -294,229 +295,215 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     }
   };
 
-  if (authLoading || loading) return <div className="min-h-screen flex items-center justify-center text-gray-500"><FaSpinner className="animate-spin text-3xl mr-2"/> Düzenleme yetkisi kontrol ediliyor...</div>;
+  if (authLoading || loading) return (
+    <main className="grid min-h-[70vh] place-items-center bg-[#fcfcfc] text-sm text-slate-500">
+      <span className="inline-flex items-center gap-2"><LoaderCircle className="h-5 w-5 animate-spin text-brand" aria-hidden /> Düzenleme yetkisi kontrol ediliyor…</span>
+    </main>
+  );
   if (permissionError || !authorizedToken || authorizedToken !== user?.token) return (
-    <main className="min-h-[65vh] bg-[#fffaf5] px-4 py-20">
-      <div role="alert" className="mx-auto max-w-xl rounded-[28px] border border-[#f2ded1] bg-white p-8 text-center shadow-sm">
-        <h1 className="font-heading text-2xl font-extrabold text-[#263640]">Bu tarifi düzenleyemezsin</h1>
-        <p className="mt-3 text-sm leading-6 text-[#786c64]">{permissionError || "Yalnızca kendi tariflerini düzenleyebilirsin."}</p>
-        <Link href={user ? "/profile" : "/login"} className="mt-6 inline-flex rounded-xl bg-[#db4c3f] px-5 py-3 text-sm font-bold text-white">
+    <main className="grid min-h-[70vh] place-items-center bg-[#fcfcfc] px-4 py-16">
+      <div role="alert" className="max-w-md text-center">
+        <span className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-[#f6efe8] text-brand"><LockKeyhole className="h-6 w-6" aria-hidden /></span>
+        <h1 className="font-heading text-2xl font-bold text-slate-900">Bu tarifi düzenleyemezsin</h1>
+        <p className="mt-3 text-[15px] leading-relaxed text-slate-500">{permissionError || "Yalnızca kendi tariflerini düzenleyebilirsin."}</p>
+        <Link href={user ? "/profile" : "/login"} className="mt-6 inline-flex min-h-12 items-center rounded-xl bg-brand px-6 font-semibold text-white transition hover:bg-brand-dark">
           {user ? "Profilime dön" : "Giriş yap"}
         </Link>
       </div>
     </main>
   );
 
+  const imageValue = typeof formData.image === "string" ? formData.image : "";
+  // The "photo pending" placeholder is not the cook's photo; offer the upload instead.
+  const preview = isPlaceholderImage(previewUrl || imageValue) ? "" : previewUrl || imageValue;
+
   return (
-    <main className="min-h-screen bg-[#fffaf5] px-4 py-8 sm:py-12 relative">
-      {notice && <div role="alert" className="fixed bottom-5 right-5 left-5 z-[180] max-w-sm rounded-2xl border border-[#f1cbc2] bg-white px-5 py-4 text-sm font-semibold text-[#b64b3d] shadow-2xl sm:left-auto">{notice}</div>}
-      <div className="mx-auto max-w-4xl">
-        
-        <header ref={editorTopRef} className="scroll-mt-6 mb-8 rounded-[30px] border border-[#f0e2d7] bg-white px-5 py-7 shadow-[0_16px_45px_-30px_rgba(79,46,35,0.3)] sm:px-9 sm:py-9">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#b35744]">TARİFTEN · MUTFAK STÜDYOSU</p>
-          <h1 className="mt-2 font-heading text-[30px] font-extrabold leading-tight tracking-tight text-[#203038] sm:text-[38px]">Tarifini düzenle.</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#82776e]">Aynı mutfak stüdyosunda, tarifinin bilgilerini ve hazırlanışını güncelle. Gönderdiğin değişiklikler incelenir.</p>
-          <nav aria-label="Tarif oluşturma yöntemleri" className="mt-5 flex flex-wrap gap-2 text-xs font-bold">
-            <span aria-current="page" className="rounded-full bg-[#fce9e3] px-4 py-2 text-[#9e4136]">Tarifini düzenliyorsun</span>
-            <Link href="/recipes?quick=1" className="rounded-full border border-[#ecdccf] px-4 py-2 text-[#584b43] transition hover:border-[#db4c3f] hover:text-[#b34336]">AI ile hızlı oluştur</Link>
-            <Link href="/recipe/import" className="rounded-full border border-[#ecdccf] px-4 py-2 text-[#584b43] transition hover:border-[#db4c3f] hover:text-[#b34336]">Tarif notlarımı aktar</Link>
+    <main className="min-h-screen bg-[#fcfcfc] pb-28 text-slate-800 sm:pb-20">
+      {notice && <div role="alert" className="fixed inset-x-4 bottom-24 z-[130] mx-auto max-w-sm rounded-2xl bg-slate-900 px-5 py-4 text-sm font-medium text-white shadow-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:mx-0">{notice}</div>}
+
+      <section className="border-b border-gray-100 bg-[radial-gradient(ellipse_at_top,#fdf1ea_0%,#fcfcfc_65%)] px-4 pb-8 pt-6 sm:pb-10">
+        <div className="mx-auto max-w-6xl">
+          <nav aria-label="Sayfa konumu" className="mb-8 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-gray-500">
+            <Link href="/" className="transition hover:text-brand">Anasayfa</Link>
+            <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" aria-hidden />
+            <Link href="/profile" className="transition hover:text-brand">Profilim</Link>
+            <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" aria-hidden />
+            <span className="truncate font-medium text-slate-700">Düzenle</span>
           </nav>
-          <ol aria-label="Tarif oluşturma adımları" className="mt-7 grid grid-cols-3 gap-2">
-            {(["Tarif bilgileri", "Malzemeler", "Hazırlanış"] as const).map((label, index) => (
-              <li key={label} aria-current={step === index + 1 ? "step" : undefined}
-                className={`rounded-xl border px-2 py-3 text-center text-[11px] font-bold sm:px-3 sm:text-xs ${step === index + 1 ? "border-[#db4c3f] bg-[#fcece7] text-[#a43b32]" : step > index + 1 ? "border-[#b5d2c0] bg-[#edf7ef] text-[#37634a]" : "border-[#eee4da] bg-[#fcfaf8] text-[#9c9188]"}`}>
-                <span className="block text-sm font-black">{index + 1}</span>{label}
-              </li>
-            ))}
-          </ol>
-        </header>
-
-        {reviewStatus?.status === 'pending' && (
-          <div role="status" className="mb-5 rounded-2xl border border-[#e9c993] bg-[#fff5e4] p-4 text-sm text-[#765426]">
-            <strong>Değişikliklerin onay bekliyor.</strong> Yayındaki tarifin eski hâli korunuyor.
-          </div>
-        )}
-        {reviewStatus?.status === 'rejected' && (
-          <div role="status" className="mb-5 rounded-2xl border border-[#e8b8b0] bg-[#fff0ed] p-4 text-sm text-[#aa433b]">
-            <strong>Son düzenleme isteğin onaylanmadı.</strong>
-            {reviewStatus.note && <span className="block mt-1">Yönetici notu: {reviewStatus.note}</span>}
-            <span className="block mt-1">Düzenleyip yeniden gönderebilirsin.</span>
-          </div>
-        )}
-        {reviewStatus?.status === 'approved' && (
-          <p role="status" className="mb-5 rounded-2xl border border-[#bfddcc] bg-[#f0f8ef] p-4 text-sm font-bold text-[#477457]">Son düzenlemen onaylandı.</p>
-        )}
-        {formError && <div role="alert" className="mb-5 rounded-2xl border border-[#efc6b7] bg-[#fff0e9] px-5 py-4 text-sm font-semibold leading-6 text-[#a33d35]">{formError}</div>}
-         <div className="rounded-[28px] border border-[#efe3d9] bg-white p-5 shadow-[0_20px_55px_-36px_rgba(65,46,36,0.35)] sm:p-9">
-           
-           {step === 1 && (
-             <div className="space-y-6 animate-fade-in">
-                
-                <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Tarifinin adı *</label>
-                    <input type="text" value={formData.title} onChange={(e) => handleInputChange("title", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 font-bold text-lg focus:outline-none focus:border-[#db4c3f]" placeholder="Örn: Avokado Tost" />
-                </div>
-                <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Tarifinin kısa tanıtımı · Spot</label>
-                    <textarea value={formData.excerpt} onChange={(e) => handleInputChange("excerpt", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-24 resize-none" placeholder="Tarifiniz hakkında kısa ve iştah açıcı bir özet..." />
-                </div>
-                
-                <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Şefin İpucu (Opsiyonel)</label>
-                    <textarea value={formData.chef_tip} onChange={(e) => handleInputChange("chef_tip", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-20 resize-none" placeholder="Bu tarife özel bir ipucu... (Boş bırakılırsa otomatik oluşturulur)" />
-                </div>
-                
-                <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-2">Görsel / Video</label>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        <button onClick={() => setMediaType('upload')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${mediaType === 'upload' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'}`}><FaCloudArrowUp className="inline mr-1"/> Dosya</button>
-                        <button onClick={() => setMediaType('url')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${mediaType === 'url' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'}`}><FaLink className="inline mr-1"/> URL</button>
-                        <button onClick={() => setMediaType('video')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${mediaType === 'video' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'}`}><FaVideo className="inline mr-1"/> Video</button>
-                    </div>
-                    
-                    <div className="border-2 border-dashed border-[#e9dbcf] rounded-xl p-6 text-center hover:border-brand/50 transition bg-[#fffcf8] relative overflow-hidden">
-                        {(previewUrl || (typeof formData.image === 'string' && formData.image)) ? (
-                            <div className="relative h-48 w-full group">
-                                <img src={previewUrl || (typeof formData.image === 'string' ? formData.image : '')} alt="Tarif fotoğrafı önizlemesi" className="h-full w-full object-contain rounded-lg" />
-                                <button onClick={() => { handleInputChange("image", ""); setPreviewUrl(""); }} className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg hover:scale-110 transition"><FaTrash /></button>
-                                {mediaUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold rounded-lg">Yükleniyor...</div>}
-                            </div>
-                        ) : (
-                            <>
-                                {mediaType === 'upload' && (
-                                    <div className="flex flex-col items-center py-4 cursor-pointer relative">
-                                        <FaCloudArrowUp className="text-4xl text-gray-300 mb-2" />
-                                        <p className="text-sm text-gray-500">Görseli buraya sürükleyin veya tıklayın</p>
-                                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                    </div>
-                                )}
-                                {mediaType === 'url' && (
-                                    <input 
-                                      type="text" 
-                                      value={typeof formData.image === 'string' ? formData.image : ''}
-                                      onChange={(e) => { handleInputChange("image", e.target.value); setPreviewUrl(e.target.value); }} 
-                                      className="w-full bg-white border border-[#e9dbcf] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#db4c3f]" 
-                                      placeholder="https://ornek.com/resim.jpg" 
-                                    />
-                                )}
-                                {mediaType === 'video' && (
-                                    <input 
-                                        type="text" 
-                                        value={typeof formData.image === 'string' ? formData.image : ''}
-                                        onChange={(e) => {
-                                           let url = e.target.value;
-                                           if(url.includes("youtube.com") || url.includes("youtu.be")) {
-                                              handleInputChange("image", url); // Video URL'sini kaydet
-                                              // Önizleme için thumbnail
-                                              let videoId = "";
-                                              if (url.includes("v=")) videoId = url.split("v=")[1].split("&")[0];
-                                              else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1];
-                                              setPreviewUrl(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
-                                           }
-                                        }} 
-                                        className="w-full bg-white border border-[#e9dbcf] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#db4c3f]" 
-                                        placeholder="Youtube linki..." 
-                                    />
-                                )}
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Hazırlama (dk)</label><input type="number" min={0} max={720} step={1} value={formData.prep_time} onChange={(e) => handleInputChange("prep_time", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Pişirme (dk)</label><input type="number" min={0} max={720} step={1} value={formData.cook_time} onChange={(e) => handleInputChange("cook_time", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Kalori</label><input type="number" min={0} max={3000} step={1} value={formData.calories} onChange={(e) => handleInputChange("calories", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 mb-1">Kaç kişilik? *</label><input type="number" min={1} max={36} aria-label="Tarifin kaç kişilik olduğu" value={formData.servings} onChange={(e) => handleInputChange("servings", e.target.value)} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f]" /></div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {Object.keys(options).map((catKey) => (
-                        <div key={catKey}>
-                            <RecipeSelect
-                               label={({ cuisine: "Mutfak", meal_type: "Öğün türü", difficulty: "Zorluk", diet: "Beslenme tercihi" } as Record<string, string>)[catKey]}
-                               value={formData[catKey as keyof typeof options][0] || ""}
-                               options={(options as Record<string, string[]>)[catKey]}
-                               onChange={value => handleCategoryChange(catKey as keyof typeof options, value)}
-                               onCreateOption={() => handleCategoryChange(catKey as keyof typeof options, "new")}
-                             />
-                        </div>
-                    ))}
-                </div>
-             </div>
-           )}
-
-           {step === 2 && (
-             <div className="space-y-6 animate-fade-in">
-                 <p className="text-[11px] font-black uppercase tracking-widest text-[#b35744]">2 · TARİFİN İÇİNDEKİLER</p>
-                  <h2 className="border-b border-[#efe7df] pb-4 font-heading text-2xl font-extrabold text-[#23333a]">Malzemeler</h2>
-                 <div className="space-y-3">
-                     {formData.ingredients.map((ing, idx) => (
-                         <RecipeIngredientRow key={idx} index={idx} ingredient={ing}
-                            onChange={(field, value) => { setFormError(""); updateIngredient(idx, field, value); }}
-                            onRemove={() => { setFormError(""); removeIngredient(idx); }} />
-                     ))}
-                     <button type="button" onClick={() => { setFormError(""); addIngredient(); }} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Malzeme Ekle</button>
-                 </div>
-             </div>
-           )}
-
-           {step === 3 && (
-             <div className="space-y-6 animate-fade-in">
-                 <p className="text-[11px] font-black uppercase tracking-widest text-[#b35744]">3 · MUTFAKTA ADIM ADIM</p>
-                  <h2 className="border-b border-[#efe7df] pb-4 font-heading text-2xl font-extrabold text-[#23333a]">Nasıl yapılır?</h2>
-                 <div className="space-y-4">
-                     {formData.steps.map((st, idx) => (
-                         <div key={idx} className="flex gap-3 sm:gap-4">
-                             <div className="flex-shrink-0 w-8 h-8 bg-[#db4c3f] text-white rounded-full flex items-center justify-center font-bold text-sm mt-1">{idx + 1}</div>
-                             <div className="flex-grow">
-                                 <textarea aria-label={`${idx + 1}. hazırlanış adımı`} value={st} onChange={(e) => { setFormError(""); updateStep(idx, e.target.value); }} className="w-full bg-[#fffcf8] border border-[#e9dbcf] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] h-24 resize-none" placeholder="Bu adımda ne yapılıyor?" />
-                             </div>
-                             <button type="button" aria-label={`${idx + 1}. adımı kaldır`} onClick={() => { setFormError(""); removeStep(idx); }} className="text-gray-400 hover:text-red-500 self-center"><FaTrash /></button>
-                         </div>
-                     ))}
-                     <button type="button" onClick={() => { setFormError(""); addStep(); }} className="w-full py-3 border-2 border-dashed border-[#e9dbcf] rounded-xl text-gray-500 hover:border-brand hover:text-brand transition font-bold flex items-center justify-center gap-2"><FaPlus /> Yeni Adım Ekle</button>
-                 </div>
-             </div>
-           )}
-
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-brand">TARİFTEN · MUTFAK STÜDYOSU</p>
+          <h1 className="max-w-3xl font-heading text-[34px] font-bold leading-[1.05] tracking-[-0.035em] text-slate-900 text-balance sm:text-[52px]">
+            Tarifini <span className="italic text-brand">düzenle.</span>
+          </h1>
+          <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-slate-500">
+            Değişikliklerin yönetici onayından sonra yayına girer; o zamana kadar tarifin bugünkü hâliyle görünür.
+          </p>
+          <nav aria-label="Tarif oluşturma yöntemleri" className="mt-6 flex flex-wrap gap-2 text-[13px] font-semibold">
+            <span aria-current="page" className="inline-flex min-h-10 items-center rounded-full bg-slate-900 px-4 text-white">Tarifini düzenliyorsun</span>
+            {formData.title && <Link href={`/recipe/${recipeId}`} className="inline-flex min-h-10 items-center rounded-full bg-white px-4 text-slate-600 ring-1 ring-gray-200 transition hover:text-brand hover:ring-brand/40">Yayındaki tarife dön</Link>}
+          </nav>
         </div>
+      </section>
 
-        <div className="mt-6 flex flex-col gap-3">
-          {formError && <p role="alert" className="rounded-xl border border-[#f1c9b8] bg-[#fff0e9] p-3 text-sm font-bold text-[#a83f35]">{formError}</p>}
-          <div className="flex items-center justify-between gap-3">
-          <button type="button" onClick={() => { setFormError(""); setStep(s => Math.max(1, s - 1)); }} disabled={step === 1 || saving} className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-[#eaded2] bg-white px-5 py-3 text-sm font-bold text-[#5d5149] transition hover:border-[#db4c3f] disabled:opacity-50"><FaArrowLeft /> Geri</button>
-          {step < 3 ? (
-            <button type="button" onClick={goNext} disabled={saving || mediaUploading} className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[#db4c3f] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#db4c3f]/15 transition hover:bg-[#b74135] disabled:opacity-50">Devam Et <FaArrowRight /></button>
-          ) : (
-            <button type="button" onClick={() => void handleUpdate()} disabled={saving || reviewStatus?.status === 'pending'} className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[#db4c3f] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#db4c3f]/15 transition hover:bg-[#b74135] disabled:opacity-70">
-              {saving ? <><FaSpinner className="animate-spin" /> Gönderiliyor</> : reviewStatus?.status === 'pending' ? <><FaCheck /> Onay bekleniyor</> : <><FaCheck /> Yönetici onayına gönder</>}
-            </button>
-          )}
-        </div>
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 pt-8 lg:grid-cols-12 lg:gap-10">
+        <div className="min-w-0 lg:col-span-8">
+          <header ref={editorTopRef} className="scroll-mt-24">
+            <ol aria-label="Tarif düzenleme adımları" className="grid grid-cols-3 gap-2">
+              {STEPS.map((label, index) => {
+                const current = step === index + 1;
+                const done = step > index + 1;
+                return (
+                  <li key={label} aria-current={current ? "step" : undefined}>
+                    <button type="button" disabled={!done || saving} onClick={() => { setFormError(""); setStep(index + 1); }}
+                      className={`w-full border-t-2 pt-3 text-left transition ${current ? "border-brand" : done ? "border-slate-900 hover:border-brand" : "border-gray-200"}`}>
+                      <span className={`flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] tabular-nums ${current ? "text-brand" : done ? "text-slate-900" : "text-gray-400"}`}>
+                        {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className={`mt-0.5 block text-sm font-semibold sm:text-[15px] ${current || done ? "text-slate-900" : "text-gray-400"}`}>{label}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </header>
 
-          </div>
-        {/* Modal */}
-        {showModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-               <div className="bg-white p-8 rounded-3xl w-full max-w-sm text-center relative">
-                   <button onClick={() => setShowModal(false)} className="absolute top-4 right-4"><FaXmark /></button>
-                   <h3 className="font-bold text-xl mb-4">{modalType === 'input' ? modalMessage : (modalType === 'success' ? 'Başarılı' : 'Hata')}</h3>
-                   {modalType === 'input' ? (
-                       <>
-                         <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} className="w-full border p-3 rounded-xl mb-4" placeholder="Değer giriniz..." />
-                         <button onClick={() => { if(inputValue) inputCallback(inputValue); setShowModal(false); setInputValue(""); }} className="w-full bg-brand text-white py-3 rounded-xl font-bold">Ekle</button>
-                       </>
-                   ) : (
-                       <>
-                         <p className="text-gray-500 mb-6">{modalMessage}</p>
-                         <button onClick={() => setShowModal(false)} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold">Tamam</button>
-                       </>
-                   )}
-               </div>
+          {reviewStatus?.status === 'pending' && (
+            <div role="status" className="mt-6 flex gap-3 rounded-2xl bg-[#fff6e6] px-4 py-3.5 text-sm leading-6 text-[#7a5520] ring-1 ring-[#f0d9ab]">
+              <Clock3 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              <p><strong className="font-semibold">Değişikliklerin onay bekliyor.</strong> Yayındaki tarifin eski hâli korunuyor.</p>
             </div>
-        )}
-       </div>
+          )}
+          {reviewStatus?.status === 'rejected' && (
+            <div role="status" className="mt-6 rounded-2xl bg-[#fdf0ec] px-4 py-3.5 text-sm leading-6 text-brand-dark ring-1 ring-[#f3cfc5]">
+              <strong className="font-semibold">Son düzenleme isteğin onaylanmadı.</strong>
+              {reviewStatus.note && <span className="mt-1 block">Yönetici notu: {reviewStatus.note}</span>}
+              <span className="mt-1 block">Düzenleyip yeniden gönderebilirsin.</span>
+            </div>
+          )}
+          {reviewStatus?.status === 'approved' && (
+            <p role="status" className="mt-6 flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3.5 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200">
+              <Check className="h-4 w-4" aria-hidden /> Son düzenlemen onaylandı.
+            </p>
+          )}
+          {formError && (
+            <div role="alert" className="mt-6 flex gap-3 rounded-2xl bg-[#fdf0ec] px-4 py-3.5 text-sm font-medium leading-6 text-brand-dark ring-1 ring-[#f3cfc5]">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {formError}
+            </div>
+          )}
+
+          <div className="mt-6 space-y-5">
+            {step === 1 && (
+              <>
+                <StudioSection title="Tarifin kimliği" hint="Adı ve kısa tanıtımı; listelerde ve paylaşımlarda bu görünür.">
+                  <div className="space-y-5">
+                    <div>
+                      <label htmlFor="studio-title" className={studioLabel}>Tarifinin adı<span className="text-brand"> *</span></label>
+                      <input id="studio-title" type="text" value={formData.title} maxLength={180} onChange={(e) => handleInputChange("title", e.target.value)}
+                        className={`${studioInput} font-heading text-lg font-semibold`} placeholder="Örn. Anneannemin kuru fasulyesi" />
+                    </div>
+                    <div>
+                      <label htmlFor="studio-excerpt" className={studioLabel}>Kısa tanıtım <span className="font-normal text-gray-400">· isteğe bağlı</span></label>
+                      <textarea id="studio-excerpt" value={formData.excerpt} rows={3} onChange={(e) => handleInputChange("excerpt", e.target.value)}
+                        className={`${studioInput} resize-y leading-relaxed`} placeholder="Bu tarifi özel yapan ne? İki cümle yeter." />
+                    </div>
+                  </div>
+                </StudioSection>
+
+                <StudioSection title="Fotoğraf" hint="Kendi çektiğin bir fotoğraf tarifini en iyi anlatır.">
+                  <MediaPicker mode={mediaType} onModeChange={setMediaType} preview={preview} uploading={mediaUploading}
+                    accept="image/jpeg,image/png,image/webp" onFile={handleFileUpload} urlValue={isPlaceholderImage(imageValue) ? "" : imageValue}
+                    onUrl={(value) => { handleInputChange("image", value); setPreviewUrl(value); }}
+                    onVideo={(value) => { const thumb = youtubeThumbnail(value); if (thumb) { handleInputChange("image", value); setPreviewUrl(thumb); } }}
+                    onClear={() => { handleInputChange("image", ""); setPreviewUrl(""); }} />
+                </StudioSection>
+
+                <StudioSection title="Süre ve porsiyon" hint="Bilmediğin alanı boş bırak; tahmin yazmana gerek yok.">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <NumberField label="Kaç kişilik?" suffix="kişi" required min={1} max={36} ariaLabel="Tarifin kaç kişilik olduğu"
+                      value={formData.servings} onChange={(v) => handleInputChange("servings", v)} />
+                    <NumberField label="Hazırlık" suffix="dk" min={0} max={720} value={formData.prep_time} onChange={(v) => handleInputChange("prep_time", v)} />
+                    <NumberField label="Pişirme" suffix="dk" min={0} max={720} value={formData.cook_time} onChange={(v) => handleInputChange("cook_time", v)} />
+                    <NumberField label="Kalori" suffix="kcal" min={0} max={3000} value={formData.calories} onChange={(v) => handleInputChange("calories", v)} hint="Kişi başına" />
+                  </div>
+                </StudioSection>
+
+                <StudioSection title="Etiketler" hint="Tarifini doğru rafa koyalım; aramalarda ve filtrelerde böyle bulunur.">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {Object.keys(options).map((catKey) => (
+                      <RecipeSelect key={catKey}
+                        label={CATEGORY_LABELS[catKey].label}
+                        value={formData[catKey as keyof typeof options][0] || ""}
+                        options={(options as Record<string, string[]>)[catKey]}
+                        onChange={value => handleCategoryChange(catKey as keyof typeof options, value)}
+                        onCreateOption={() => handleCategoryChange(catKey as keyof typeof options, "new")}
+                      />
+                    ))}
+                  </div>
+                </StudioSection>
+
+                <StudioSection title="Şefin notu" hint="Bu tarifte işe yarayan küçük bir sır varsa yaz. Boş bırakabilirsin.">
+                  <textarea aria-label="Şefin notu" value={formData.chef_tip} rows={3} onChange={(e) => handleInputChange("chef_tip", e.target.value)}
+                    className={`${studioInput} resize-y leading-relaxed`} placeholder="Örn. Fasulyeyi pişirirken tuzu en sona ekle, kabuğu yumuşak kalır." />
+                </StudioSection>
+              </>
+            )}
+
+            {step === 2 && (
+              <StudioSection title="Malzemeler" hint="Her satıra bir malzeme. Miktar ve birim isteğe bağlı; yarım limon gibi durumlar için boş bırakabilirsin.">
+                <div className="space-y-3">
+                  {formData.ingredients.map((ing, idx) => (
+                    <RecipeIngredientRow key={idx} index={idx} ingredient={ing}
+                      onChange={(field, value) => { setFormError(""); updateIngredient(idx, field, value); }}
+                      onRemove={() => { setFormError(""); removeIngredient(idx); }} />
+                  ))}
+                </div>
+                <AddRowButton onClick={() => { setFormError(""); addIngredient(); }} disabled={formData.ingredients.length >= 40}>Malzeme ekle</AddRowButton>
+              </StudioSection>
+            )}
+
+            {step === 3 && (
+              <StudioSection title="Hazırlanış" hint="Mutfakta yanında biri varmış gibi anlat: sırayla, net, birer iş.">
+                <StepsEditor steps={formData.steps}
+                  onChange={(idx, value) => { setFormError(""); updateStep(idx, value); }}
+                  onAdd={() => { setFormError(""); addStep(); }}
+                  onRemove={(idx) => { setFormError(""); removeStep(idx); }}
+                  onMove={(idx, direction) => moveStep(idx, direction)} />
+              </StudioSection>
+            )}
+          </div>
+
+          <div className="studio-actionbar fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:static sm:mt-8 sm:border-0 sm:p-0 sm:backdrop-blur-none">
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+              <button type="button" onClick={() => { setFormError(""); setStep(s => Math.max(1, s - 1)); }} disabled={step === 1 || saving}
+                className="inline-flex min-h-12 items-center gap-2 rounded-xl px-4 text-[15px] font-semibold text-slate-600 transition hover:bg-black/5 disabled:invisible">
+                <ArrowLeft className="h-4 w-4" aria-hidden /> Geri
+              </button>
+              <span className="text-xs text-gray-400 tabular-nums sm:hidden">{step} / 3</span>
+              {step < 3 ? (
+                <button type="button" onClick={goNext} disabled={saving || mediaUploading}
+                  className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-brand px-6 text-[15px] font-semibold text-white transition hover:bg-brand-dark disabled:opacity-50">
+                  {STEPS[step]} <ArrowRight className="h-4 w-4" aria-hidden />
+                </button>
+              ) : (
+                <button type="button" onClick={() => void handleUpdate()} disabled={saving || reviewStatus?.status === 'pending'}
+                  className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-brand px-6 text-[15px] font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60">
+                  {saving ? <><LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> Gönderiliyor</> : reviewStatus?.status === 'pending' ? <><Clock3 className="h-4 w-4" aria-hidden /> Onay bekleniyor</> : <><Check className="h-4 w-4" aria-hidden /> Yönetici onayına gönder</>}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <aside className="hidden lg:col-span-4 lg:block">
+          <div className="sticky top-24">
+            <StudioPreview data={formData} image={preview} />
+          </div>
+        </aside>
+      </div>
+
+      {optionDialog && (
+        <OptionDialog label={CATEGORY_LABELS[optionDialog].add} onClose={() => setOptionDialog(null)}
+          onSubmit={(value) => addCategoryOption(optionDialog as keyof typeof options, value)} />
+      )}
     </main>
   );
 }
