@@ -206,7 +206,8 @@ test('separate transfers page handles stalled jobs and automatic publication wit
   assert.match(tracker, /Tarif Aktarımlarım/);
   assert.match(tracker, /Date\.now\(\) - date > 10 \* 60 \* 1000/);
   assert.match(tracker, /bu kaydı henüz tamamlamadı/);
-  assert.match(tracker, /setInterval\(\(\) => \{ void load\(\); \}, 20000\)/);
+  // Adaptive polling: 3 s while a transfer is active, 20 s otherwise.
+  assert.match(tracker, /busy \? 3000 : 20000/);
   assert.match(tracker, /item\.status === "published"/);
   assert.match(importPage, /router\.push\(\`\/recipe\/aktarimlarim\?job=/);
   assert.match(notice, /ready\.status === "published"/);
@@ -233,3 +234,26 @@ test('social card shows only measured and timestamped counts, never synthetic va
   assert.match(card, /güncel veya resmî hesap istatistiği değildir/);
   assert.match(types, /metrics_captured_at\?: string/);
 });
+
+test('video pipeline v2: TikTok links, consent for social video, short-link guidance', () => {
+  const lib = read('src/lib/video-recipe-import.ts');
+  const start = read('src/app/api/recipe-social/video/start/route.ts');
+  const page = read('src/app/recipe/import/page.tsx');
+  assert.match(lib, /export function isTikTokVideoLink/);
+  assert.match(lib, /isYouTubeVideoLink\(value\) \|\| isInstagramReelLink\(value\) \|\| isTikTokVideoLink\(value\)/);
+  assert.match(start, /needsRightsConfirmation\(p\.source_url\)/);
+  assert.match(page, /isTikTokShortLink\(url\)/);
+  assert.match(page, /needsRightsConfirmation\(socialUrl\) && \(/);
+});
+
+test('video pipeline v2: failed transfers show the server reason and can be retried once more', () => {
+  const tracker = read('src/app/recipe/aktarimlarim/page.tsx');
+  const page = read('src/app/recipe/import/page.tsx');
+  assert.match(tracker, /item\.status === "failed" && item\.retryable/);
+  assert.match(tracker, /Yeniden dene/);
+  assert.match(tracker, /hint: item\.message \|\|/);
+  assert.match(tracker, /request_id: crypto\.randomUUID\(\)/);
+  assert.doesNotMatch(tracker, /yeni bir AI hakkı harcanmadı/);
+  assert.match(page, /existing\.status === "failed" && existing\.retryable === true/);
+});
+

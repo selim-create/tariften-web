@@ -21,7 +21,7 @@ import {
 import type {
   GroundedImportPreview, ImportEditor, EditableIngredient, EditableStep,
 } from "@/lib/recipe-text-import";
-import { isInstagramReelLink, isInstagramPostLink, isVideoRecipeLink, parseVideoJob, videoEditorFromJob } from "@/lib/video-recipe-import";
+import { isInstagramPostLink, isTikTokShortLink, isVideoRecipeLink, needsRightsConfirmation, parseVideoJob, videoEditorFromJob } from "@/lib/video-recipe-import";
 
 type VideoHistoryEntry = {
   id: number;
@@ -298,12 +298,15 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
       if (found.status === "unsupported_post")
         throw new Error("Bu Instagram gönderisinin Reels videosu olduğu doğrulanamadı. Aynı kısa kodla yayımlanmış bir tarif de bulunmuyor. Bu bağlantı için ücretli analiz başlatılmadı.");
       let job: ReturnType<typeof parseVideoJob>;
-      if (found.status === "existing") {
-        job = parseVideoJob(found.job);
-      } else if (found.status === "new" && found.can_start === true && isVideoRecipeLink(url)) {
+      const existing = found.status === "existing" ? parseVideoJob(found.job) : null;
+      // A failed transfer that can be retried is restarted by the same start call.
+      const retry = !!existing && existing.status === "failed" && existing.retryable === true;
+      if (existing && !retry) {
+        job = existing;
+      } else if ((retry && isVideoRecipeLink(url)) || (found.status === "new" && found.can_start === true && isVideoRecipeLink(url))) {
         const response = await fetch("/api/recipe-social/video/start", {
           method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify(isInstagramReelLink(url)
+          body: JSON.stringify(needsRightsConfirmation(url)
             ? { source_url: url, request_id: requestId, rights_confirmed: true }
             : { source_url: url, request_id: requestId }),
           signal: controller.signal, cache: "no-store",
@@ -347,9 +350,13 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   const requestSocialPreview = async () => {
     if (!token || busy) return;
     const url = socialUrl.trim();
+    if (isTikTokShortLink(url)) {
+      setError("Kısa TikTok bağlantısını tarayıcıda açıp adres çubuğundaki tam video bağlantısını (tiktok.com/@kullanici/video/...) yapıştır.");
+      return;
+    }
     if (isVideoRecipeLink(url)) {
-      if (isInstagramReelLink(url) && !instagramRightsConfirmed) {
-        setError("Instagram videosunu analiz etmek için gerekli kullanım iznine sahip olduğunu onayla.");
+      if (needsRightsConfirmation(url) && !instagramRightsConfirmed) {
+        setError("Videoyu analiz etmek için gerekli kullanım iznine sahip olduğunu onayla.");
         return;
       }
       await requestVideoPreview(url);
@@ -561,7 +568,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               className="min-h-12 w-full rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-4 text-sm text-slate-800 outline-none focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10" />
             <p className="mt-3 text-xs leading-6 text-[#86766b]">
               YouTube Shorts, TikTok, Instagram Reels, Facebook veya Pinterest bağlantısı yapıştır.
-              Instagram Reels ve YouTube videolarında özellik etkinse görüntü ve ses incelenir. Diğer desteklenen paylaşımlarda erişilebilir açıklama kullanılır.
+              Instagram Reels, TikTok ve YouTube videolarında görüntü, ekrandaki yazılar, ses ve açıklama birlikte incelenir. Diğer desteklenen paylaşımlarda erişilebilir açıklama kullanılır.
             </p>
             {isInstagramPostLink(socialUrl) && (
               <Notice warning>
@@ -571,7 +578,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
                 fotoğraf veya galeri videoymuş gibi işlenmeyecek ve AI hakkı kullanılmayacak.
               </Notice>
             )}
-            {isInstagramReelLink(socialUrl) && (
+            {needsRightsConfirmation(socialUrl) && (
               <label className="mt-2 flex cursor-pointer items-start gap-2 text-[11px] leading-4 text-[#6f625b]">
                 <input type="checkbox" checked={instagramRightsConfirmed}
                   onChange={event => setInstagramRightsConfirmed(event.target.checked)}
@@ -595,7 +602,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               <button type="button" onClick={() => void requestSocialPreview()}
                 disabled={!!busy || quotas.loading || !!quotas.error || !quotas.data
                   || (quotaReached(quotas.data, "recipe_ai_day") && !isVideoRecipeLink(socialUrl))
-                   || (isInstagramReelLink(socialUrl) && !instagramRightsConfirmed) || !socialUrl.trim()}
+                   || (needsRightsConfirmation(socialUrl) && !instagramRightsConfirmed) || !socialUrl.trim()}
                 className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300">
                 {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {isVideoRecipeLink(socialUrl) ? "Tarif aktarılıyor…" : "Kaynak inceleniyor…"}</>
                   : <><Sparkles className="h-4 w-4" /> {isInstagramPostLink(socialUrl) ? "Mevcut tarifi bul" : "Tarifi aktar"} <ArrowRight className="h-4 w-4" /></>}

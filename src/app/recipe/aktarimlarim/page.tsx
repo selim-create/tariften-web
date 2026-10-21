@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowUpRight, CheckCircle2, ChefHat, Clock3, LoaderCircle, Plus, RefreshCw, ShieldAlert, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { needsRightsConfirmation } from "@/lib/video-recipe-import";
 
 type Transfer = {
   id: number;
@@ -13,7 +14,12 @@ type Transfer = {
   source_url: string;
   created_at: string;
   recipe_slug?: string;
+  message?: string;
+  retryable?: boolean;
+  error_code?: string;
 };
+
+const ACTIVE = new Set(["queued", "pull_ready", "dispatching", "processing"]);
 
 function delayed(item: Transfer): boolean {
   if (item.status !== "queued" && item.status !== "pull_ready" && item.status !== "processing") return false;
@@ -26,14 +32,16 @@ function itemState(item: Transfer) {
     return { label: "Tarif yayımlandı", hint: "Tarifin hazır, artık Tariften'de.", tone: "success" };
   if (item.status === "needs_review")
     return { label: "Ek kontrol gerekiyor", hint: "Bazı bilgiler netleştirilmeli. Tarifin saklanıyor; ikinci analiz başlamadı.", tone: "review" };
-  if (item.status === "failed" || item.status === "uncertain")
-    return { label: "Aktarım tamamlanamadı", hint: "Bu işlem otomatik tekrarlanmayacak; yeni bir AI hakkı harcanmadı.", tone: "error" };
+  if (item.status === "failed")
+    return { label: "Aktarım tamamlanamadı", hint: item.message || "Tarif çıkarılırken bir sorun oluştu.", tone: "error" };
+  if (item.status === "uncertain")
+    return { label: "Sonuç doğrulanamadı", hint: "Bu işlem otomatik tekrarlanmayacak. Destek ekibimiz kaydı inceleyebilir.", tone: "error" };
   if (item.status === "pending")
     return { label: "Yayımlama kontrol ediliyor", hint: "Aynı video için ikinci tarif oluşturulmayacak.", tone: "review" };
   if (delayed(item))
     return { label: "Aktarım beklenenden uzun sürüyor", hint: "İşleyici bu kaydı henüz tamamlamadı. Aynı bağlantıyı tekrar göndermene gerek yok.", tone: "review" };
   if (item.status === "processing")
-    return { label: "Tarif hazırlanıyor", hint: "Görüntü ve ses işleniyor; sayfayı açık tutmana gerek yok.", tone: "progress" };
+    return { label: "Tarif hazırlanıyor", hint: "Video, ekrandaki yazılar, ses ve açıklama birlikte inceleniyor. Genellikle 15–40 saniye sürer.", tone: "progress" };
   return { label: "Sıraya alındı", hint: "Tarif aktarma isteğin kaydedildi. İşleyici devreye girdiğinde hazırlanacak.", tone: "progress" };
 }
 
@@ -44,6 +52,36 @@ export default function MyRecipeTransfers() {
   const [error, setError] = useState("");
   const [fetching, setFetching] = useState(true);
   const [highlight, setHighlight] = useState<number | null>(null);
+  const [refresh, setRefresh] = useState(0);
+  const [retrying, setRetrying] = useState<number | null>(null);
+
+  const retry = async (item: Transfer) => {
+    if (!user?.token || retrying) return;
+    setRetrying(item.id);
+    setError("");
+    try {
+      const response = await fetch("/api/recipe-social/video/start", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${user.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(needsRightsConfirmation(item.source_url)
+          ? { source_url: item.source_url, request_id: crypto.randomUUID(), rights_confirmed: true }
+          : { source_url: item.source_url, request_id: crypto.randomUUID() }),
+        cache: "no-store",
+      });
+      const payload: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = payload && typeof payload === "object" && "message" in payload && typeof payload.message === "string"
+          ? payload.message : "Aktarım yeniden başlatılamadı.";
+        throw new Error(message);
+      }
+      setHighlight(item.id);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Aktarım yeniden başlatılamadı.");
+    } finally {
+      setRetrying(null);
+      setRefresh(n => n + 1);
+    }
+  };
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("job");
@@ -58,8 +96,14 @@ export default function MyRecipeTransfers() {
     }
     const token = user.token;
     let active = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    // Fast polling while something is in progress, slow otherwise.
+    const schedule = (busy: boolean) => {
+      if (timer) clearTimeout(timer);
+      if (active) timer = setTimeout(() => { void load(); }, busy ? 3000 : 20000);
+    };
     const load = async () => {
-      if (document.visibilityState === "hidden") return;
+      if (document.visibilityState === "hidden") { schedule(false); return; }
       try {
         const result = await fetch("/api/recipe-social/video/history", {
           headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
@@ -76,21 +120,22 @@ export default function MyRecipeTransfers() {
           typeof (item as Transfer).created_at === "string"
         );
         if (active) { setJobs(next); setError(""); setFetching(false); }
+        schedule(next.some(item => ACTIVE.has(item.status) && !delayed(item)));
       } catch (cause) {
         if (active) { setError(cause instanceof Error ? cause.message : "Bir sorun oluştu."); setFetching(false); }
+        schedule(false);
       }
     };
     void load();
-    const timer = setInterval(() => { void load(); }, 20000);
     document.addEventListener("visibilitychange", load);
     window.addEventListener("focus", load);
     return () => {
       active = false;
-      clearInterval(timer);
+      if (timer) clearTimeout(timer);
       document.removeEventListener("visibilitychange", load);
       window.removeEventListener("focus", load);
     };
-  }, [user?.token]);
+  }, [user?.token, refresh]);
 
   useEffect(() => {
     if (!highlight) return;
@@ -170,6 +215,17 @@ export default function MyRecipeTransfers() {
                       className="inline-flex items-center gap-2 text-sm font-bold text-[#bd674b] hover:underline">
                       Tarifini kontrol et <ArrowRight className="h-4 w-4" />
                     </Link>
+                  ) : item.status === "failed" && item.retryable ? (
+                    <button type="button" onClick={() => void retry(item)} disabled={retrying !== null}
+                      className="inline-flex items-center gap-2 text-sm font-extrabold text-[#c84b3d] hover:underline disabled:opacity-50">
+                      {retrying === item.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                      Yeniden dene
+                    </button>
+                  ) : item.status === "failed" || item.status === "uncertain" ? (
+                    <a href={item.source_url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs font-semibold text-[#9b8a7d] hover:underline">
+                      Orijinal paylaşımı aç <ArrowUpRight className="h-3.5 w-3.5" />
+                    </a>
                   ) : (
                     <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#9b8a7d]">
                       <RefreshCw className="h-3.5 w-3.5" /> Durumu otomatik güncelleniyor

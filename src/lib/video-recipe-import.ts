@@ -13,6 +13,9 @@ export type VideoJob = {
   message: string;
   requires_approval: true;
   preview?: unknown;
+  error_code?: string;
+  retryable?: boolean;
+  refunded?: boolean;
 };
 
 export function isYouTubeVideoLink(value: string): boolean {
@@ -37,6 +40,29 @@ export function isInstagramReelLink(value: string): boolean {
   } catch { return false; }
 }
 
+/** Canonical public TikTok video URL (short vm./vt. links must be opened first). */
+export function isTikTokVideoLink(value: string): boolean {
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === "https:" && !u.username && !u.password && !u.port
+      && ["tiktok.com", "www.tiktok.com", "m.tiktok.com"].includes(u.hostname.toLowerCase())
+      && /^\/@[A-Za-z0-9._]{2,32}\/video\/[0-9]{15,24}\/?$/.test(u.pathname);
+  } catch { return false; }
+}
+
+/** Short TikTok links cannot be canonicalized server-side without following redirects. */
+export function isTikTokShortLink(value: string): boolean {
+  try {
+    const u = new URL(value.trim());
+    return ["vm.tiktok.com", "vt.tiktok.com"].includes(u.hostname.toLowerCase());
+  } catch { return false; }
+}
+
+/** Social platforms where the user confirms media-processing rights. */
+export function needsRightsConfirmation(value: string): boolean {
+  return isInstagramReelLink(value) || isTikTokVideoLink(value);
+}
+
 /** A /p/ URL can be photo, video or carousel; URL alone cannot identify media type. */
 export function isInstagramPostLink(value: string): boolean {
   try {
@@ -48,7 +74,7 @@ export function isInstagramPostLink(value: string): boolean {
 }
 
 export function isVideoRecipeLink(value: string): boolean {
-  return isYouTubeVideoLink(value) || isInstagramReelLink(value);
+  return isYouTubeVideoLink(value) || isInstagramReelLink(value) || isTikTokVideoLink(value);
 }
 
 export function parseVideoJob(value: unknown): VideoJob {
