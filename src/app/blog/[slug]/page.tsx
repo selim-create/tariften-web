@@ -7,7 +7,6 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import ShareButtons from "@/components/blog/ShareButtons";
 import BlogCard from "@/components/blog/BlogCard";
 import SectionHeading from "@/components/home/SectionHeading";
-import NewsletterForm from "@/components/newsletter/NewsletterForm";
 import { postAuthor, postCategory, postDate, postExcerpt, postImage, postTitle, readingMinutes } from "@/lib/blog";
 
 interface Props {
@@ -169,15 +168,6 @@ export default async function BlogPostPage({ params }: Props) {
           </div>
         </div>
       </article>
-
-      <div className="mx-auto mt-16 max-w-5xl px-4">
-        <NewsletterForm
-          source="tariften_blog_inline"
-          variant="horizontal"
-          title="İyi içerikler mutfak kararına dönüşsün."
-          description="Editör seçkileri, pratik mutfak fikirleri ve öne çıkan tarifler düzenli olarak e-postana gelsin."
-        />
-      </div>
 
       {related.length > 0 && (
         <section className="mx-auto mt-20 max-w-6xl border-t border-gray-200 px-4 pt-14">
