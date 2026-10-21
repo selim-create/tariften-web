@@ -10,10 +10,11 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const inter = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-inter" });
 const poppins = Poppins({ 
   weight: ["400", "500", "600", "700"], 
-  subsets: ["latin"], 
+  style: ["normal", "italic"],
+  subsets: ["latin", "latin-ext"], 
   variable: "--font-poppins" 
 });
 
