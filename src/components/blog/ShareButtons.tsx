@@ -1,68 +1,48 @@
 "use client";
 
+import { useState } from "react";
+import { Check, Link2 } from "lucide-react";
 import { FaFacebookF, FaXTwitter, FaWhatsapp, FaLinkedinIn } from "react-icons/fa6";
 
 interface ShareButtonsProps {
   title: string;
   slug: string;
+  layout?: "row" | "rail";
 }
 
-export default function ShareButtons({ title, slug }: ShareButtonsProps) {
-  // URL'yi dinamik oluşturuyoruz (Domaini env'den veya manuel alabilirsin, şimdilik window.location kullanımı için buton click kullanacağız)
-  // SEO için statik URL yapısı daha sağlıklıdır:
-  const siteUrl = "https://tariften.com"; // Burayı kendi domaininle güncelle
-  const url = `${siteUrl}/blog/${slug}`;
+export default function ShareButtons({ title, slug, layout = "row" }: ShareButtonsProps) {
+  const [copied, setCopied] = useState(false);
+  const url = `https://tariften.com/blog/${slug}`;
 
-  const shareLinks = [
-    {
-      name: "Facebook",
-      icon: <FaFacebookF />,
-      color: "hover:bg-[#1877F2] hover:text-white",
-      bg: "bg-[#1877F2]/10 text-[#1877F2]",
-      url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
-    },
-    {
-      name: "Twitter (X)",
-      icon: <FaXTwitter />,
-      color: "hover:bg-black hover:text-white",
-      bg: "bg-gray-100 text-black",
-      url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`
-    },
-    {
-      name: "WhatsApp",
-      icon: <FaWhatsapp />,
-      color: "hover:bg-[#25D366] hover:text-white",
-      bg: "bg-[#25D366]/10 text-[#25D366]",
-      url: `https://api.whatsapp.com/send?text=${encodeURIComponent(title + " " + url)}`
-    },
-    {
-      name: "LinkedIn",
-      icon: <FaLinkedinIn />,
-      color: "hover:bg-[#0077b5] hover:text-white",
-      bg: "bg-[#0077b5]/10 text-[#0077b5]",
-      url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`
-    }
+  const links = [
+    { name: "WhatsApp", icon: FaWhatsapp, href: `https://api.whatsapp.com/send?text=${encodeURIComponent(`${title} ${url}`)}` },
+    { name: "X", icon: FaXTwitter, href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}` },
+    { name: "Facebook", icon: FaFacebookF, href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
+    { name: "LinkedIn", icon: FaLinkedinIn, href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}` },
   ];
 
-  const handleShare = (link: string) => {
-    window.open(link, '_blank', 'width=600,height=400');
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard blocked */ }
   };
 
+  const button = "grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-slate-500 transition hover:border-slate-900 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  const rail = layout === "rail";
+
   return (
-    <div className="flex flex-col gap-4 py-6 border-y border-gray-100 my-8">
-      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Bu yazıyı paylaş</span>
-      <div className="flex flex-wrap gap-3">
-        {shareLinks.map((item) => (
-          <button
-            key={item.name}
-            onClick={() => handleShare(item.url)}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${item.bg} ${item.color}`}
-            aria-label={`${item.name} ile paylaş`}
-          >
-            {item.icon}
-          </button>
-        ))}
-      </div>
+    <div className={rail ? "flex flex-col items-center gap-2" : "flex flex-wrap items-center gap-2"}>
+      <span className={`text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400 ${rail ? "mb-1 [writing-mode:vertical-rl] rotate-180" : "mr-2"}`}>Paylaş</span>
+      {links.map(({ name, icon: Icon, href }) => (
+        <a key={name} href={href} target="_blank" rel="noopener noreferrer" aria-label={`${name} ile paylaş`} title={name} className={button}>
+          <Icon className="h-3.5 w-3.5" aria-hidden />
+        </a>
+      ))}
+      <button type="button" onClick={copy} aria-label={copied ? "Bağlantı kopyalandı" : "Bağlantıyı kopyala"} title="Bağlantıyı kopyala" className={button}>
+        {copied ? <Check className="h-4 w-4 text-emerald-600" aria-hidden /> : <Link2 className="h-4 w-4" aria-hidden />}
+      </button>
     </div>
   );
 }
