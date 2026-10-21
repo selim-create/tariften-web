@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, ArrowRight, BookOpen, Check, CheckCheck, CheckCircle2,
-  ChefHat, ChevronDown, ClipboardList, FileText, Info, LoaderCircle, LockKeyhole,
-  PenLine, Plus, RotateCcw, ShieldCheck, Sparkles, Trash2,
+  ArrowRight, CheckCheck, CheckCircle2,
+  ChefHat, ChevronDown, ChevronRight, Info, LoaderCircle, LockKeyhole,
+  Plus, RotateCcw, ShieldCheck, Sparkles, Trash2,
   TriangleAlert, WandSparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -19,8 +19,9 @@ import {
   publishValidation, validateRecipeSource,
 } from "@/lib/recipe-text-import";
 import type {
-  GroundedImportPreview, ImportEditor, EditableIngredient, EditableStep,
+  GroundedImportPreview, ImportEditor,
 } from "@/lib/recipe-text-import";
+import { transferPlatform, transferWhen } from "@/lib/video-transfer-display";
 import { isInstagramPostLink, isTikTokShortLink, isVideoRecipeLink, needsRightsConfirmation, parseVideoJob, videoEditorFromJob } from "@/lib/video-recipe-import";
 
 type VideoHistoryEntry = {
@@ -41,7 +42,7 @@ Salçayı ekle, ardından fasulyeleri tencereye al.
 Üzerini geçecek kadar su ekle, yumuşayana kadar pişir.`;
 
 function FormLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
-  return <label htmlFor={htmlFor} className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-500">{children}</label>;
+  return <label htmlFor={htmlFor} className="mb-2 block text-[13px] font-semibold text-slate-700">{children}</label>;
 }
 function Input({ label, value, onChange, placeholder, extraClass = "" }: {
   label: string; value: string; onChange: (value: string) => void; placeholder?: string; extraClass?: string;
@@ -487,56 +488,63 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
 
   return <main className="min-h-[calc(100dvh-4rem)] bg-[#fffbf7] text-slate-800">
     {usageNotice && <div role="status" className="fixed bottom-5 right-5 z-[110] max-w-sm rounded-2xl bg-[#253b30] px-4 py-3 text-xs font-bold text-white shadow-xl">{usageNotice}</div>}
-    <div className="mx-auto max-w-[1460px] px-3 pb-12 pt-5 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[#f0e6dc] bg-white px-4 py-4 text-slate-900 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:px-6">
-        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-          <Link href="/recipe/create" aria-label="Tarif oluşturmaya dön"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fff0ed] text-[#db4c3f] transition hover:bg-[#f8d8cb]">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-heading text-[20px] font-extrabold tracking-tight sm:text-[23px]">Tarif Aktar</h1>
-              <span className="rounded-full border border-[#f0d6ca] bg-[#fdf0e9] px-2 py-0.5 text-[9px] font-black tracking-wide text-[#ba6251]">BETA</span>
-            </div>
-            <p className="mt-1 text-xs leading-5 text-[#847a70]">Bağlantını veya tarif notlarını ekle; Tariften düzenlesin, son kararı sen ver.</p>
+    <div className="mx-auto max-w-6xl px-4 pb-16 pt-2">
+      <header className="px-1 pb-2 pt-3 sm:pt-6">
+        <nav aria-label="Sayfa konumu" className="mb-6 flex items-center gap-1.5 text-xs text-gray-500">
+          <Link href="/" className="transition hover:text-brand">Anasayfa</Link>
+          <ChevronRight className="h-3 w-3 text-gray-300" aria-hidden />
+          <Link href="/recipe/create" className="transition hover:text-brand">Tarif yaz</Link>
+          <ChevronRight className="h-3 w-3 text-gray-300" aria-hidden />
+          <span className="font-medium text-slate-700">Tarif Aktar</span>
+        </nav>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-brand">
+              Tariften · Tarif aktarımı <span className="rounded-full bg-[#fdf1ea] px-2 py-0.5 text-[10px] tracking-[0.14em] ring-1 ring-[#f3d7ca]">Beta</span>
+            </p>
+            <h1 className="font-heading text-[34px] font-bold leading-[1.05] tracking-[-0.035em] text-slate-900 text-balance sm:text-[48px]">
+              İzlediğin tarif, <span className="italic text-brand">senin defterinde.</span>
+            </h1>
+            <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-slate-500">Bir video bağlantısı ya da kendi notların yeter. Tariften malzemeleri ve adımları ayıklar; son kararı sen verirsin.</p>
+          </div>
+          <div className="flex flex-col gap-3 lg:items-end">
+            <nav aria-label="Tarif aktarım adımları" className="flex items-center gap-2 text-[12px] font-semibold text-gray-400">
+              <span className={!editor ? "text-brand" : "text-slate-900"}>01 · {importMethod === "social" ? "Bağlantı" : "Metin"}</span>
+              <span className="h-px w-6 bg-gray-300" aria-hidden />
+              <span className={editor ? "text-brand" : ""}>02 · Kontrol</span>
+              <span className="h-px w-6 bg-gray-300" aria-hidden />
+              <span>03 · Onay</span>
+            </nav>
+            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700">
+              <ShieldCheck className="h-4 w-4" aria-hidden /> Onayın olmadan yayımlanmaz
+            </span>
           </div>
         </div>
-        <nav aria-label="Tarif aktarım adımları" className="hidden items-center gap-2 text-[11px] font-semibold text-[#9a8170] md:flex">
-          <span className="rounded-full bg-[#fce9df] px-3 py-1.5 font-bold text-[#b24e40]">01 · {importMethod === "social" ? "Bağlantı" : "Metin"}</span>
-          <ArrowRight className="h-3 w-3 opacity-50" />
-          <span className={`rounded-lg px-2.5 py-1.5 ${preview ? "bg-[#fce9df] text-[#b24e40]" : ""}`}>02 · Kontrol</span>
-          <ArrowRight className="h-3 w-3 opacity-50" />
-          <span>03 · Onay</span>
-        </nav>
-        <span className="hidden items-center gap-1.5 text-[11px] text-[#619577] xl:inline-flex">
-          <ShieldCheck className="h-4 w-4" /> Onayın olmadan yayımlanmaz
-        </span>
       </header>
       {/* Independent editorial panels; the source remains accessible while the recipe grows. */}
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
-        <section className="flex min-w-0 flex-col rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
+        <section className="flex min-w-0 flex-col rounded-3xl bg-white p-4 ring-1 ring-black/5 sm:p-6 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-[14px] bg-[#ffede3] text-[#be5c49]"><span aria-hidden="true" className="text-2xl">📖</span></div>
-              <div><h2 className="font-heading text-lg font-extrabold">{importMethod === "social" ? "Sosyal medya paylaşımı" : "Senin mutfak notların"}</h2><p className="text-xs text-[#93887a]">{importMethod === "social" ? "İzlediğin tarif artık mutfağında." : "Anneanneden kalma, elinin alıştığı, sana özel…"}</p></div>
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f6efe8]" aria-hidden><LokmaIngredientIcon name={importMethod === "social" ? "tabak" : "un"} size="lg" /></div>
+              <div><h2 className="font-heading text-lg font-bold text-slate-900">{importMethod === "social" ? "Sosyal medya paylaşımı" : "Senin mutfak notların"}</h2><p className="text-xs text-slate-500">{importMethod === "social" ? "Reels, Shorts, TikTok ve daha fazlası" : "Anneanneden kalma, elinin alıştığı, sana özel…"}</p></div>
             </div>
           </div>
 
-          <div className="mb-5 grid grid-cols-2 gap-2 rounded-2xl bg-[#fff6f0] p-1.5" role="tablist" aria-label="Tarif aktarma yöntemi">
+          <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-gray-100 p-1" role="tablist" aria-label="Tarif aktarma yöntemi">
             <button type="button" role="tab" aria-selected={importMethod === "social"} disabled={!!busy}
               onClick={() => { setImportMethod("social"); setError(""); }}
-              className={`rounded-xl px-3 py-2.5 text-xs font-extrabold transition ${importMethod === "social" ? "bg-white text-[#b64d3b] shadow-sm" : "text-[#8c7b6e]"}`}>
-              Video / gönderi bağlantısı
+              className={`min-h-10 rounded-lg px-3 text-[13px] font-semibold transition ${importMethod === "social" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>
+              <span className="sm:hidden">Bağlantı</span><span className="hidden sm:inline">Video / gönderi bağlantısı</span>
             </button>
             <button type="button" role="tab" aria-selected={importMethod === "text"} disabled={!!busy}
               onClick={() => { setImportMethod("text"); setError(""); }}
-              className={`rounded-xl px-3 py-2.5 text-xs font-extrabold transition ${importMethod === "text" ? "bg-white text-[#b64d3b] shadow-sm" : "text-[#8c7b6e]"}`}>
+              className={`min-h-10 rounded-lg px-3 text-[13px] font-semibold transition ${importMethod === "text" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>
               Tarif metni
             </button>
           </div>
           {importMethod === "text" ? <>
-          <FormLabel htmlFor="source-recipe">Hadi, tarifini anlat 🍅</FormLabel>
+          <FormLabel htmlFor="source-recipe">Hadi, tarifini anlat</FormLabel>
           <textarea id="source-recipe" value={source} onChange={e => updateSource(e.target.value)}
             disabled={busy !== null} maxLength={20000} spellCheck
             placeholder={"Örn. 2 yumurta, 1 bardak süt, biraz un. Önce yumurtaları çırp, sütü ekle…"}
@@ -548,13 +556,13 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
 
           {!preview && <button type="button" disabled={busy !== null} onClick={() => updateSource(EXAMPLE)}
             className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[#b44c41] hover:underline disabled:opacity-50">
-            <span aria-hidden="true">🥘</span> Bir örnek tarif dene
+            <LokmaIngredientIcon name="kuru fasulye" size="sm" /> Bir örnek tarif dene
           </button>}
 
           <div className="mt-3 shrink-0 border-t border-slate-100 pt-3">
             <button type="button" onClick={() => void requestPreview()}
               disabled={busy !== null || quotas.loading || !!quotas.error || !quotas.data || quotaReached(quotas.data, "recipe_ai_day") || !!validateRecipeSource(source)}
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
               {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> Tarifin düzenleniyor…</> : <><WandSparkles className="h-5 w-5" /> {preview ? "Önizlemeyi yeniden oluştur" : "Tarifimi güzelleştir"} <ArrowRight className="h-4 w-4" /></>}
             </button>
             <p className="mt-2 text-center text-[10px] text-slate-400">Yalnızca istersen başlar. Görsel üretimi yapılmaz.</p>
@@ -603,7 +611,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
                 disabled={!!busy || quotas.loading || !!quotas.error || !quotas.data
                   || (quotaReached(quotas.data, "recipe_ai_day") && !isVideoRecipeLink(socialUrl))
                    || (needsRightsConfirmation(socialUrl) && !instagramRightsConfirmed) || !socialUrl.trim()}
-                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#c44236] disabled:cursor-not-allowed disabled:bg-slate-300">
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-slate-300">
                 {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {isVideoRecipeLink(socialUrl) ? "Tarif aktarılıyor…" : "Kaynak inceleniyor…"}</>
                   : <><Sparkles className="h-4 w-4" /> {isInstagramPostLink(socialUrl) ? "Mevcut tarifi bul" : "Tarifi aktar"} <ArrowRight className="h-4 w-4" /></>}
               </button>
@@ -613,7 +621,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
           {importMethod === "social" && (
             <div className="mt-5 border-t border-[#f0e6dc] pt-4">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-extrabold text-slate-800">Tarif Aktarımlarım</h3>
+                <h3 className="font-heading text-[15px] font-bold text-slate-900">Tarif Aktarımlarım</h3>
                 <Link href="/recipe/aktarimlarim" className="text-[11px] font-bold text-[#c84b3d] hover:underline">Tümünü gör →</Link>
               </div>
               {videoHistory.length === 0 && <p className="mt-2 text-xs text-slate-500">
@@ -623,17 +631,20 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
                 {videoHistory.slice(0, 8).map(entry => (
                   <button key={entry.id} type="button" disabled={!!busy}
                     onClick={() => void openHistoryJob(entry)}
-                    className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-3 py-2.5 text-left transition hover:border-[#db4c3f] disabled:opacity-50">
+                    className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl bg-[#fcfaf8] px-3.5 py-2.5 text-left ring-1 ring-black/5 transition hover:ring-brand/40 disabled:opacity-50">
                     <span className="min-w-0">
-                      <span className="block truncate text-xs font-bold text-slate-800">
-                        {entry.title || `Tarif aktarımı #${entry.id}`}
+                      <span className="block truncate text-[13px] font-semibold text-slate-800">
+                        {entry.title || `${transferPlatform(entry.source_url)} videosu`}
                       </span>
-                      <span className="mt-1 block text-[11px] text-slate-500">
+                      <span className="mt-1 block text-xs text-slate-500">
                         {entry.status === "published" ? "Yayımlanmış tarife git"
-                          : entry.status === "needs_review" ? "Tarifin hazır"
+                          : entry.status === "needs_review" ? "Tarifin hazır, kontrol et"
                           : entry.status === "processing" ? "Tarif hazırlanıyor"
-                          : entry.status === "queued" || entry.status === "pull_ready"
-                            ? "Hazırlanıyor" : "İnceleme gerekli"}
+                          : entry.status === "queued" || entry.status === "pull_ready" || entry.status === "dispatching" ? "Sırada"
+                          : entry.status === "failed" ? "Aktarım tamamlanamadı"
+                          : entry.status === "pending" ? "Yayımlama kontrol ediliyor"
+                          : "Sonuç doğrulanamadı"}
+                        {transferWhen(entry.created_at) ? ` · ${transferWhen(entry.created_at)}` : ""}
                       </span>
                     </span>
                     <ArrowRight className="h-4 w-4 shrink-0 text-[#b64d3b]" />
@@ -644,25 +655,36 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
           )}
         </section>
 
-        <section className="min-w-0 rounded-[24px] border border-[#f0e6dc] bg-white p-4 shadow-[0_8px_30px_rgba(98,65,43,0.035)] sm:p-6" aria-live="polite">
+        <section className="min-w-0 rounded-3xl bg-white p-4 ring-1 ring-black/5 sm:p-7" aria-live="polite">
           {!!error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium leading-5 text-red-800"><TriangleAlert className="mr-2 inline-block h-4 w-4" />{error}</div>}
           {(!preview && !videoReview) || !editor ? (
-            <div className="flex min-h-[260px] flex-col items-center justify-center px-3 text-center lg:h-full">
-              <div className="mb-3 grid h-16 w-16 place-items-center rounded-[22px] bg-[#fff2e8] text-[#db4c3f]">
-                {busy === "preview" ? <LoaderCircle className="h-7 w-7 animate-spin" /> : <span aria-hidden="true" className="text-4xl">🍲</span>}
+            <div className="flex min-h-[260px] flex-col items-center justify-center px-3 py-6 text-center lg:min-h-[480px]">
+              <div className="relative mb-6 h-28 w-40" aria-hidden>
+                <span className="absolute left-1/2 top-1/2 grid h-20 w-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-[28px] bg-[#f6efe8]">
+                  {busy === "preview" ? <LoaderCircle className="h-7 w-7 animate-spin text-brand" /> : <LokmaIngredientIcon name="tabak" size="xl" />}
+                </span>
+                <span className="lokma-float absolute left-0 top-2 grid h-11 w-11 place-items-center rounded-2xl bg-white ring-1 ring-black/5"><LokmaIngredientIcon name="domates" size="lg" /></span>
+                <span className="lokma-float absolute bottom-0 right-1 grid h-11 w-11 place-items-center rounded-2xl bg-white ring-1 ring-black/5 [animation-delay:1.2s]"><LokmaIngredientIcon name="soğan" size="lg" /></span>
               </div>
-              <span className="mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-[#db4c3f]">Tariften editör masası</span>
-              <h2 className="max-w-sm text-lg font-black leading-tight text-slate-900 md:text-xl">
+              <span className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-brand">Tariften editör masası</span>
+              <h2 className="max-w-sm font-heading text-xl font-bold leading-tight text-slate-900 md:text-2xl">
                 {busy === "preview" ? "Tarifin deftere işleniyor…" : "Tarifin hazır olduğunda burada düzenleyebilirsin"}
               </h2>
-              <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
+              <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
                 {busy === "preview" ? "Malzemeler, adımlar ve kanıt parçaları karşılaştırılıyor. Bu işlem biraz sürebilir." :
-                  "Bağlantını girerek tarifi aktar. Sayfada beklemene gerek yok; tarif hazır olduğunda haber vereceğiz."}
+                  importMethod === "social" ? "Bağlantını girerek tarifi aktar. Sayfada beklemene gerek yok; tarif hazır olduğunda haber vereceğiz."
+                  : "Notunu yapıştır, “Tarifimi güzelleştir”e bas. Düzenlenmiş hâli burada açılır."}
               </p>
-              <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-                {["Malzemeler", "Hazırlanış", "Editoryal spot"].map(x =>
-                  <span key={x} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-semibold text-slate-500">{x}</span>)}
-              </div>
+              {busy !== "preview" && (
+                <ol className="mt-6 grid w-full max-w-md gap-2 text-left sm:grid-cols-3">
+                  {["Kaynağı ver", "Tariften ayıklar", "Sen onaylarsın"].map((label, i) => (
+                    <li key={label} className="rounded-2xl bg-[#fcfaf8] px-3 py-3 ring-1 ring-black/5">
+                      <span className="block font-heading text-sm font-bold text-brand tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="mt-0.5 block text-[13px] font-semibold text-slate-700">{label}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
               {betaUnavailable && <div className="mt-5 max-w-sm"><Notice warning>
                 {routeMissing ? "Akıllı Tarif Aktarımı API yolu bu sunucuda bulunamadı. Core eklentisinin yeni sürümü henüz dağıtılmamış olabilir. Yönetici güncellemesi gerekiyor."
                   : "Akıllı Tarif Aktarımı özelliği sunucuda henüz etkinleştirilmedi."}
@@ -674,7 +696,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><CheckCheck className="h-5 w-5" /></div>
-                  <div><h2 className="font-heading text-xl font-extrabold">Düzenlenmiş tarifin</h2><p className="text-xs text-[#93887a]">{videoReview ? "Videodan önerilen tarif · Kaynağı kontrol et" : "Orijinal metin solda, düzeltme önerileri sağda"}</p></div>
+                  <div><h2 className="font-heading text-xl font-bold text-slate-900">Düzenlenmiş tarifin</h2><p className="text-xs text-[#93887a]">{videoReview ? "Videodan önerilen tarif · Kaynağı kontrol et" : "Orijinal metin solda, düzeltme önerileri sağda"}</p></div>
                 </div>
                 <button type="button" onClick={() => { updateSource(source); setVideoReview(false); }} disabled={!!busy}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 hover:border-[#db4c3f] hover:text-[#db4c3f]">
@@ -748,7 +770,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
 
                 <div className="border-t border-slate-100 pt-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="flex items-center gap-2 font-heading text-lg font-black"><LokmaIngredientIcon name="domates" size="sm" /> Malzemeler <span className="text-sm font-normal text-slate-400">{editor.ingredients.length}</span></h3>
+                    <h3 className="flex items-center gap-2 font-heading text-lg font-bold text-slate-900"><LokmaIngredientIcon name="domates" size="sm" /> Malzemeler <span className="text-sm font-normal text-slate-400">{editor.ingredients.length}</span></h3>
                     <Link href="/lokma/ikonlar" target="_blank" rel="noopener noreferrer" className="ml-auto mr-3 text-[11px] font-semibold text-[#a75b4b] underline decoration-[#dfc5b8] underline-offset-4 hover:text-[#db4c3f]">Tüm ikonları gör</Link>
                     <button type="button" aria-label="Malzeme ekle" disabled={editor.ingredients.length >= 40}
                       onClick={() => { setActiveIngredient(editor.ingredients.length); updateEditor(old => ({ ...old, ingredients: [...old.ingredients, { name: "", amount: "", unit: "", original_span: "", source_verified: false, userEdited: true }] })); }}
@@ -793,7 +815,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
 
                 <div className="border-t border-slate-100 pt-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="flex items-center gap-2 font-heading text-lg font-black"><ChefHat className="h-4 w-4 text-[#db4c3f]" /> Yapılışı <span className="text-sm font-normal text-slate-400">{editor.steps.length}</span></h3>
+                    <h3 className="flex items-center gap-2 font-heading text-lg font-bold text-slate-900"><ChefHat className="h-4 w-4 text-[#db4c3f]" /> Yapılışı <span className="text-sm font-normal text-slate-400">{editor.steps.length}</span></h3>
                     <button type="button" aria-label="Adım ekle" disabled={editor.steps.length >= 40}
                       onClick={() => { setActiveStep(editor.steps.length); updateEditor(old => ({ ...old, steps: [...old.steps, { content: "", original_span: "", source_verified: false, userEdited: true }] })); }}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#db4c3f] disabled:opacity-50"><Plus className="h-4 w-4" /> Ekle</button>

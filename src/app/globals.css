@@ -93,6 +93,40 @@ body {
   @apply text-slate-400;
 }
 
+/* Editorial intro bands (PageIntro, studio): the light radial wash must not
+   stay behind light dark-mode headings. */
+.dark [class*="bg-[radial-gradient("] {
+  background-image: none;
+  @apply bg-slate-900;
+}
+
+/* Brand kickers are paragraphs; keep them brand red over the generic p rule. */
+.dark p.text-brand {
+  @apply text-brand;
+}
+
+/* Warm off-white surfaces used for nested rows and the outer footer band. */
+.dark [class~="bg-[#fcfaf8]"] {
+  @apply bg-slate-900/60;
+}
+.dark [class~="bg-[#fbfaf8]"] {
+  @apply bg-slate-900;
+}
+
+/* Studio action bar: a frosted bar on phones, part of the page from sm up. */
+.studio-actionbar {
+  background-color: rgb(255 255 255 / 0.95);
+}
+.dark .studio-actionbar {
+  background-color: rgb(15 23 42 / 0.95);
+}
+@media (min-width: 640px) {
+  .studio-actionbar,
+  .dark .studio-actionbar {
+    background-color: transparent;
+  }
+}
+
 @layer components {
   /* --- WORDPRESS GUTENBERG UYUMLULUĞU --- */
 

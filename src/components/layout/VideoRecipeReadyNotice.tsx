@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BellRing, Check, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -17,6 +18,7 @@ function stored(userId: number): number[] {
 export default function VideoRecipeReadyNotice() {
   const { user } = useAuth();
   const [ready, setReady] = useState<ReadyItem | null>(null);
+  const pathname = usePathname() || "";
 
   useEffect(() => {
     const token = user?.token;
@@ -54,6 +56,10 @@ export default function VideoRecipeReadyNotice() {
   }, [user?.id, user?.token]);
 
   if (!ready || !user?.id) return null;
+  // Transfer pages already list this; cooking mode must not be interrupted.
+  if (["/recipe/aktarimlarim", "/recipe/aktar", "/recipe/social"].some(path => pathname.startsWith(path)) || pathname.startsWith("/pilot/")) return null;
+  // Pages with a fixed bottom action bar on phones: sit above it.
+  const lifted = pathname === "/recipe/create" || pathname.startsWith("/recipe/edit/");
 
   const acknowledge = () => {
     const seen = stored(user.id);
@@ -66,17 +72,17 @@ export default function VideoRecipeReadyNotice() {
 
   return (
     <aside role="status" aria-live="polite" aria-label="Hazır tarif bildirimi"
-      className="fixed bottom-5 right-5 z-[105] w-[min(390px,calc(100vw-40px))] overflow-hidden rounded-[22px] border border-[#f0ded4] bg-white p-4 shadow-[0_22px_65px_rgba(31,44,37,0.23)]">
+      className={`fixed right-5 z-[105] w-[min(390px,calc(100vw-40px))] overflow-hidden rounded-3xl bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.18)] ring-1 ring-black/5 ${lifted ? "bottom-24 sm:bottom-5" : "bottom-5"}`}>
       <div className="flex items-start gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-[15px] bg-[#fce7de] text-[#d44e3e]">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#fdf1ea] text-brand">
           <BellRing className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#ba6e55]">Tariften&apos;den haber var</p>
-          <h3 className="mt-1 font-heading text-base font-extrabold text-[#26382f]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">Tariften&apos;den haber var</p>
+          <h3 className="mt-1 font-heading text-base font-bold text-slate-900">
             {ready.status === "published" ? "Tarifin yayımlandı!" : "Tarifin için kontrol gerekiyor"}
           </h3>
-          <p className="mt-1 text-xs leading-5 text-[#756e67]">
+          <p className="mt-1 hidden text-[13px] leading-5 text-slate-500 sm:block">
             {ready.status === "published"
               ? (ready.title ? `${ready.title} yayında. Afiyet olsun!` : "Tarifin hazır ve yayında.")
               : "Bazı ayrıntılar netleştirilmeli. Taslağını inceleyebilirsin."}
@@ -84,12 +90,12 @@ export default function VideoRecipeReadyNotice() {
           <Link href={ready.status === "published" && ready.recipe_slug
             ? `/recipe/${encodeURIComponent(ready.recipe_slug)}`
             : `/recipe/aktar?job=${ready.id}`} onClick={acknowledge}
-            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#e35143] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#c94537]">
+            className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl bg-brand px-4 text-[13px] font-semibold text-white transition hover:bg-brand-dark">
             <Check className="h-3.5 w-3.5" /> {ready.status === "published" ? "Tarifi aç" : "Taslağı incele"}
           </Link>
         </div>
         <button type="button" onClick={acknowledge} aria-label="Bildirimi kapat"
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#817c76] hover:bg-[#f7f1ec]">
+          className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-slate-700">
           <X className="h-4 w-4" />
         </button>
       </div>
