@@ -92,7 +92,7 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🌰", label: "Kuruyemiş", tint: "sand", patterns: ["badem", "fındık", "ceviz", "kestane", "pecan", "hindistan cevizi", "antep fıstığı", "fıstık", "kaju"] },
   { emoji: "🥜", label: "Yer fıstığı", tint: "sand", patterns: ["yer fıstığı", "fıstık ezmesi", "peanut"] },
   { emoji: "🧀", label: "Peynir", tint: "yellow", patterns: ["parmesan", "peynir", "mozzarella", "kaşar", "feta", "ricotta"] },
-  { emoji: "🥚", label: "Yumurta", tint: "sand", patterns: ["yumurta", "egg"] },
+  { emoji: "🥚", label: "Yumurta", tint: "sand", patterns: ["yumurta", "egg", "menemen", "omlet", "çılbır"] },
   { emoji: "🥛", label: "Süt", tint: "blue", patterns: ["süt", "milk", "krema", "kaymak"] },
   { emoji: "🧈", label: "Tereyağı", tint: "yellow", patterns: ["tereyağı", "tereyagi", "margarin", "butter"] },
   { emoji: "🫒", label: "Zeytin", tint: "sage", patterns: ["zeytinyağı", "zeytin yağı", "zeytin yagı", "zeytin", "olive"] },
@@ -100,14 +100,14 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🧂", label: "Baharat", tint: "sand", patterns: ["karabiber", "tuz", "deniz tuzu", "kaya tuzu", "kimyon", "zerdeçal", "tarçın", "köri", "sumak", "pul biber", "yenibahar", "muskat", "safran", "isot", "karanfil", "kakule", "zencefil", "toz zencefil", "kırmızı toz biber"] },
   { emoji: "🌶️", art: "pepper", label: "Acı biber", tint: "rose", patterns: ["acı biber", "aci biber", "chili", "jalapeño"] },
   { emoji: "🌶️", art: "sweetpepper", label: "Biber", tint: "sage", patterns: ["biber"] },
-  { emoji: "🍆", label: "Patlıcan", tint: "lavender", patterns: ["patlıcan", "aubergine"] },
+  { emoji: "🍆", label: "Patlıcan", tint: "lavender", patterns: ["patlıcan", "aubergine", "karnıyarık", "imam bayıldı", "musakka"] },
   { emoji: "🥒", label: "Salatalık", tint: "sage", patterns: ["salatalık", "kornişon", "kabak", "zucchini"] },
   { emoji: "🥬", label: "Yeşillik", tint: "sage", patterns: ["marul", "ıspanak", "lahana", "pazı", "kale"] },
   { emoji: "🥦", label: "Brokoli", tint: "sage", patterns: ["brokoli", "broccoli"] },
   { emoji: "🍄", label: "Mantar", tint: "sand", patterns: ["mantar", "shiitake", "istiridye mantarı"] },
   { emoji: "🫘", label: "Bakliyat", tint: "sand", patterns: ["fasulye", "nohut", "mercimek", "barbunya", "börülce", "bezelye"] },
   { emoji: "🌽", label: "Mısır", tint: "yellow", patterns: ["mısır", "corn"] },
-  { emoji: "🍚", label: "Pirinç", tint: "sand", patterns: ["pirinç", "bulgur", "quinoa", "kinoa", "kus kus"] },
+  { emoji: "🍚", label: "Pirinç", tint: "sand", patterns: ["pirinç", "bulgur", "quinoa", "kinoa", "kus kus", "kuskus", "risotto", "pilav", "pilaf"] },
   { emoji: "🍝", label: "Makarna", tint: "orange", patterns: ["gnocchi", "makarna", "spagetti", "penne", "erişte", "noodle", "lazanya"] },
   { emoji: "🍞", label: "Ekmek", tint: "sand", patterns: ["ekmek", "un", "galeta", "hamur", "lavaş", "panko", "yufka", "tortilla"] },
   { emoji: "🍗", label: "Tavuk", tint: "orange", patterns: ["tavuk", "hindi", "chicken"] },
@@ -195,6 +195,18 @@ export function lokmaIngredient(name: string): FoodSymbol {
   const rule = resolve(main) || resolve(raw);
   if (rule) return { emoji: rule.emoji, label: rule.label, tint: rule.tint, ...(rule.art ? { art: rule.art } : {}) };
   return { emoji: "🍽️", label: "Malzeme", tint: "sand" };
+}
+
+/**
+ * Name to illustrate a whole dish by its title ("Çikolatalı Sufle",
+ * "Fıstıklı Baklava"). Titles describe the dish with "-lı/-li/-lu/-lü"
+ * adjectives, which ingredient lists must not use for matching ("tuzlu
+ * tereyağı" is butter), so this fallback lives only here.
+ */
+export function lokmaDishName(title: string): string {
+  if (lokmaIngredient(title).emoji !== "🍽️") return title;
+  const stripped = title.split(/\s+/).map(word => word.replace(/(?:lı|li|lu|lü)$/iu, "")).join(" ");
+  return lokmaIngredient(stripped).emoji !== "🍽️" ? stripped : title;
 }
 
 export function lokmaIngredientClasses(tint: string): string {

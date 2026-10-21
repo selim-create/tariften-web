@@ -1,3 +1,6 @@
+import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
+import { lokmaDishName } from "@/lib/lokma-emoji";
+
 /**
  * Editorial stand-in for a recipe that has no photograph yet.
  * A typographic cover reads as a deliberate design choice, not a broken
@@ -6,11 +9,12 @@
 export default function RecipeCover({ title, kicker, compact = false }: { title: string; kicker?: string; compact?: boolean }) {
   const length = title.length;
   if (compact) {
-    // Card titles already sit under the image; the cover stays a quiet brand surface.
+    // List cards: the dish's own Lokma illustration on the brand cream, so a
+    // grid of recipes without photos still reads as designed, not as loading.
     return (
-      <div className="absolute inset-0 flex flex-col items-start justify-end bg-[#f6efe8] p-4">
-        <span className="mb-2 block h-[2px] w-6 rounded-full bg-[#db4c3f]" aria-hidden />
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9a8b7e]">Fotoğraf hazırlanıyor</span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#f6efe8]">
+        <LokmaIngredientIcon name={lokmaDishName(title)} size="xl" />
+        <span className="absolute bottom-3 left-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#a89a8d]">Görsel hazırlanıyor</span>
         <span className="sr-only">{title}</span>
       </div>
     );
