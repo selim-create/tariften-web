@@ -101,11 +101,11 @@ export default function Hero() {
         ))}
       </div>
 
-      <div className="relative mx-auto w-full max-w-3xl text-center">
+      <div className="relative mx-auto w-full max-w-4xl text-center">
         <p className="mb-5 h-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-brand" aria-live="off">
           {greeting}
         </p>
-        <h1 className="font-heading text-[44px] font-bold leading-[1.02] tracking-[-0.035em] text-slate-900 sm:text-7xl">
+        <h1 className="mx-auto max-w-3xl font-heading text-[44px] font-bold leading-[1.02] tracking-[-0.035em] text-slate-900 sm:text-7xl">
           Bugün ne <span className="italic text-brand">pişiriyoruz?</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-[17px] leading-relaxed text-slate-500 sm:text-lg">
@@ -127,7 +127,7 @@ export default function Hero() {
               className="peer w-full bg-transparent py-3.5 text-base font-medium text-slate-800 focus:outline-none sm:text-lg"
             />
             {!query && (
-              <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 flex items-center overflow-hidden whitespace-nowrap text-base text-slate-400 sm:text-lg">
+              <span aria-hidden className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-nowrap text-base text-slate-400 sm:text-lg [mask-image:linear-gradient(to_right,black_85%,transparent)]">
                 {typed}<span className="ml-px inline-block h-[1.1em] w-[2px] translate-y-[1px] animate-pulse bg-brand" />
               </span>
             )}
@@ -138,10 +138,10 @@ export default function Hero() {
           </button>
         </form>
 
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="-mx-4 mt-6 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0">
           {PILLS.map(pill => (
             <button key={pill.text} type="button" onClick={() => go(pill.text)}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white py-1.5 pl-1.5 pr-4 text-sm font-medium text-slate-600 transition hover:-translate-y-0.5 hover:border-brand/40 hover:text-slate-900">
+              className="inline-flex shrink-0 snap-start items-center gap-2 rounded-full border border-gray-200 bg-white py-1.5 pl-1.5 pr-4 text-sm font-medium text-slate-600 transition hover:-translate-y-0.5 hover:border-brand/40 hover:text-slate-900">
               <span className="grid h-7 w-7 place-items-center rounded-full bg-[#f6efe8]"><LokmaIngredientIcon name={pill.icon} size="sm" /></span>
               {pill.text}
             </button>
