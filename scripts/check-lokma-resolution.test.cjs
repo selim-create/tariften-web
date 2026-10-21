@@ -57,13 +57,13 @@ test('variety names beat the generic family noun', () => {
   assert.equal(key('Kapya biber'), 'kapiapepper');
   assert.equal(key('Bal kabağı'), 'pumpkin');
   assert.equal(key('Taze fasulye'), 'greenbean');
-  assert.equal(key('Karabiber'), '🧂', 'black pepper is a spice, never a pepper pod');
+  assert.equal(key('Karabiber'), 'blackpepper', 'black pepper is peppercorns, never a pepper pod');
 });
 
 test('this recipe: Kuru Domates ve Badem Pestolu Gnocchi has no wrong icon', () => {
   const recipe = {
     'Kuru domates (yağda veya yumuşatılmış)': '🍅', 'Çiğ badem': 'almond', 'Kırmızı acı biber (chili)': 'pepper',
-    'Parmesan peyniri (veya Grana Padano / Pecorino)': '🧀', 'Tuz': 'salt', 'Taze çekilmiş karabiber': '🧂',
+    'Parmesan peyniri (veya Grana Padano / Pecorino)': '🧀', 'Tuz': 'salt', 'Taze çekilmiş karabiber': 'blackpepper',
     'Zeytinyağı': 'oliveoil', 'Patates gnocchi': '🍝', 'Tereyağı': '🧈', 'Gnocchi haşlama suyu': '🫗',
     'Taze feslegen yaprakları': '🌿',
   };

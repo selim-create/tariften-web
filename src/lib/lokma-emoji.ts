@@ -38,6 +38,7 @@ const RULES: readonly FoodRule[] = [
   { emoji: "🌶️", art: "carliston", label: "Çarliston biber", tint: "sage", patterns: ["çarliston","carliston","çarliston biber"] },
   { emoji: "🌶️", art: "sivri", label: "Sivri biber", tint: "sage", patterns: ["sivri biber","sivri"] },
   { emoji: "🌶️", art: "sweetpepper", label: "Biber", tint: "sage", patterns: ["yeşil biber","yesil biber"] },
+  { emoji: "🧂", art: "blackpepper", label: "Karabiber", tint: "sand", patterns: ["karabiber","kara biber","tane karabiber","black pepper"] },
   { emoji: "🧂", art: "salt", label: "Tuz", tint: "sand", patterns: ["tuz","kaya tuzu","deniz tuzu","iri tuz"] },
   { emoji: "🧂", art: "cumin", label: "Kimyon", tint: "sand", patterns: ["kimyon","cumin"] },
   { emoji: "🧂", art: "cinnamon", label: "Çubuk tarçın", tint: "sand", patterns: ["çubuk tarçın","tarçın çubuğu","cinnamon stick"] },
@@ -474,7 +475,7 @@ export const LOKMA_ICON_SAMPLES = [
   },
   {
     "category": "Otlar, baharatlar ve soslar",
-    "name": "Karabiber",
+    "name": "Zerdeçal",
     "figure": "spice"
   },
   {
@@ -646,5 +647,10 @@ export const LOKMA_ICON_SAMPLES = [
     "category": "Meyveler",
     "name": "Yeşil elma",
     "figure": "greenapple"
+  },
+  {
+    "category": "Otlar, baharatlar ve soslar",
+    "name": "Karabiber (tane)",
+    "figure": "blackpepper"
   }
 ] as const;
