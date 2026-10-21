@@ -2,116 +2,122 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { BookmarkCheck, ChefHat, Loader2, Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getUserInteractions } from "@/lib/api";
 import { Recipe } from "@/types";
-import { FaClock, FaFire, FaPlus, FaBookOpen, FaCheckDouble, FaSpinner } from "react-icons/fa6";
-import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
-import { isPlaceholderImage } from "@/lib/utils";
+import PageIntro from "@/components/account/PageIntro";
+import RecipeCard from "@/components/recipes/RecipeCard";
+import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
+
+type Tab = "favorite" | "cooked";
+
+const TABS: { id: Tab; label: string; icon: typeof BookmarkCheck }[] = [
+  { id: "favorite", label: "Kaydettiklerim", icon: BookmarkCheck },
+  { id: "cooked", label: "Pişirdiklerim", icon: ChefHat },
+];
+
+const EMPTY: Record<Tab, { title: string; text: string }> = {
+  favorite: { title: "Defterin henüz bomboş.", text: "Beğendiğin tarifleri kaydet; aklında tutmak zorunda kalma." },
+  cooked: { title: "Daha hiçbir şey pişmemiş.", text: "Bir tarifi pişirdiğinde işaretle, burada birikmeye başlasın." },
+};
 
 export default function CookbookPage() {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'favorite' | 'cooked'>('favorite');
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const { user, loading: authLoading } = useAuth();
+  const [activeTab, setActiveTab] = useState<Tab>("favorite");
+  const [lists, setLists] = useState<Record<Tab, Recipe[]>>({ favorite: [], cooked: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
-      if (!user || !user.token) {
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
+    if (authLoading) return;
+    const token = user?.token;
+    if (!token) return;
+    let cancelled = false;
+    async function fetchData(token: string) {
       try {
-        const data = await getUserInteractions(user.token, activeTab);
-        setRecipes(data);
+        const [favorite, cooked] = await Promise.all([
+          getUserInteractions(token, "favorite"),
+          getUserInteractions(token, "cooked"),
+        ]);
+        if (!cancelled) setLists({ favorite: Array.isArray(favorite) ? favorite : [], cooked: Array.isArray(cooked) ? cooked : [] });
       } catch (error) {
         console.error("Veri çekme hatası:", error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    fetchData();
-  }, [user, activeTab]);
+    void fetchData(token);
+    return () => { cancelled = true; };
+  }, [user, authLoading]);
 
-  if (!user) return <div className="p-10 text-center">Lütfen giriş yapın.</div>;
+  if (authLoading) {
+    return <main role="status" className="flex min-h-[60vh] items-center justify-center gap-2 text-sm text-gray-500">
+      <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Defter açılıyor…
+    </main>;
+  }
 
-  return (
-    <main className="min-h-screen bg-[#fcfcfc] py-8 px-4">
-      <div className="container mx-auto max-w-5xl">
-        
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h1 className="text-3xl font-bold text-slate-900 font-heading">Tarif Defterim</h1>
-          
-          {/* Tüm butonlar aynı satırda */}
-          <div className="flex flex-wrap gap-2 items-center">
-            <button 
-              onClick={() => setActiveTab('favorite')}
-              className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition flex items-center gap-2 ${activeTab === 'favorite' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'bg-gray-100 text-slate-600 hover:bg-gray-200'}`}
-            >
-              <FaBookOpen /> Kaydettiklerim
-            </button>
-            <button 
-              onClick={() => setActiveTab('cooked')}
-              className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition flex items-center gap-2 ${activeTab === 'cooked' ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' : 'bg-gray-100 text-slate-600 hover:bg-gray-200'}`}
-            >
-              <FaCheckDouble /> Pişirdiklerim
-            </button>
-            <Link href="/recipe/create" className="bg-white border border-gray-200 hover:border-brand text-slate-700 hover:text-brand px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition">
-              <FaPlus /> Yeni Tarif Ekle
-            </Link>
+  if (!user) {
+    return (
+      <main className="min-h-screen bg-[#fcfcfc] pb-24">
+        <PageIntro crumb="Tarif Defterim" kicker="Tarif defterim" title="Sevdiğin tarifler *tek yerde.*">
+          Kaydettiklerin ve pişirdiklerin burada birikir; telefonda da bilgisayarda da aynı defter.
+        </PageIntro>
+        <div className="mx-auto max-w-6xl px-4 pt-10">
+          <div className="flex flex-col items-center rounded-3xl border border-gray-200 bg-white px-6 py-14 text-center">
+            <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#f6efe8]"><LokmaIngredientIcon name="limon" size="xl" /></span>
+            <p className="font-heading text-xl font-semibold text-slate-900">Defterini açmak için giriş yap.</p>
+            <p className="mt-1 max-w-sm text-sm text-gray-500">Hesabın yoksa bir dakikada açılıyor. Söz, tarif kadar uzun sürmeyecek.</p>
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <Link href="/login" className="inline-flex h-11 items-center rounded-xl bg-brand px-5 font-semibold text-white transition hover:bg-brand-dark">Giriş yap</Link>
+              <Link href="/register" className="inline-flex h-11 items-center rounded-xl border border-gray-200 px-5 font-semibold text-slate-700 transition hover:border-gray-300">Hesap oluştur</Link>
+            </div>
           </div>
         </div>
+      </main>
+    );
+  }
 
-        {/* Liste Grid */}
+  const recipes = lists[activeTab];
+
+  return (
+    <main className="min-h-screen bg-[#fcfcfc] pb-24">
+      <PageIntro crumb="Tarif Defterim" kicker="Tarif defterim" title="Sevdiğin tarifler *tek yerde.*"
+        actions={
+          <Link href="/recipe/create" className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-brand/40 hover:text-brand">
+            <Plus className="h-4 w-4" aria-hidden /> Yeni tarif ekle
+          </Link>
+        }>
+        Kaydettiklerin ve pişirdiklerin burada birikir. Bir dahaki “bu akşam ne yesek?” krizinde ilk bakılacak yer.
+      </PageIntro>
+
+      <div className="mx-auto max-w-6xl px-4 pt-8">
+        <div role="tablist" aria-label="Tarif listeleri" className="mb-8 inline-flex rounded-2xl border border-gray-200 bg-white p-1">
+          {TABS.map(({ id, label, icon: Icon }) => {
+            const active = activeTab === id;
+            return (
+              <button key={id} type="button" role="tab" aria-selected={active} onClick={() => setActiveTab(id)}
+                className={`inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${active ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}>
+                <Icon className="h-4 w-4" aria-hidden /> {label}
+                {!loading && <span className={`tabular-nums text-xs ${active ? "text-white/70" : "text-gray-400"}`}>{lists[id].length}</span>}
+              </button>
+            );
+          })}
+        </div>
+
         {loading ? (
-           <div className="flex justify-center py-20 text-gray-400"><FaSpinner className="animate-spin text-3xl"/></div>
+          <div role="status" className="flex items-center justify-center gap-2 py-20 text-sm text-gray-500"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Tarifler yükleniyor…</div>
         ) : recipes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recipes.map((recipe) => (
-              <Link 
-                href={`/recipe/${recipe.slug}`} 
-                key={recipe.id}
-                className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full"
-              >
-                <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                  {isPlaceholderImage(recipe.image) ? (
-                    <ImagePlaceholder title={recipe.title} variant="card" />
-                  ) : (
-                    <Image 
-                      src={recipe.image} 
-                      alt={recipe.title} 
-                      fill
-                      unoptimized={true}
-                      className="object-cover group-hover:scale-105 transition duration-500" 
-                    />
-                  )}
-                  {recipe.cuisine?.[0] && (
-                    <span className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2 py-1 rounded-md text-[10px] font-bold text-slate-700 shadow-sm uppercase tracking-wide">
-                        {recipe.cuisine[0]}
-                    </span>
-                  )}
-                </div>
-                <div className="p-5 flex flex-col flex-grow">
-                  <h3 className="font-bold text-slate-800 text-lg mb-2 group-hover:text-brand transition line-clamp-2">{recipe.title}</h3>
-                  <div className="mt-auto flex items-center gap-4 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><FaClock className="text-brand" /> {recipe.prep_time}dk</span>
-                    <span className="flex items-center gap-1"><FaFire className="text-brand" /> {recipe.calories} kcal</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+          <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {recipes.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
           </div>
         ) : (
-           <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-             <p className="text-gray-500">Henüz bu listede tarif yok.</p>
-             <Link href="/recipes" className="text-brand font-bold text-sm hover:underline mt-2 inline-block">Tarif Keşfet</Link>
-           </div>
+          <div className="flex flex-col items-center rounded-3xl border border-dashed border-gray-300 bg-white px-6 py-14 text-center">
+            <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#f6efe8]"><LokmaIngredientIcon name={activeTab === "cooked" ? "makarna" : "domates"} size="xl" /></span>
+            <p className="font-heading text-xl font-semibold text-slate-900">{EMPTY[activeTab].title}</p>
+            <p className="mt-1 max-w-sm text-sm text-gray-500">{EMPTY[activeTab].text}</p>
+            <Link href="/recipes" className="mt-6 inline-flex h-11 items-center rounded-xl bg-brand px-5 font-semibold text-white transition hover:bg-brand-dark">Tarifleri keşfet</Link>
+          </div>
         )}
-
       </div>
     </main>
   );

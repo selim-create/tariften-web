@@ -1,24 +1,40 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react"; 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { FaArrowLeft, FaCamera, FaFloppyDisk, FaSpinner, FaCheck, FaTriangleExclamation, FaTrashCan } from "react-icons/fa6"; 
-import { updateProfile, uploadAvatar, deleteAccount } from "@/lib/auth-client"; 
+import { ArrowLeft, Camera, Check, CircleAlert, Loader2, Save, Trash2, TriangleAlert, X } from "lucide-react";
+import { updateProfile, uploadAvatar, deleteAccount } from "@/lib/auth-client";
 import { useAuth } from "@/context/AuthContext";
+import PageIntro from "@/components/account/PageIntro";
+import AccountAvatar from "@/components/account/AccountAvatar";
+
+const FIELD = "w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] text-slate-800 transition focus:border-brand/40 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand/10";
+const LABEL = "mb-1.5 block text-sm font-medium text-slate-700";
+const CONFIRM = "HESABIMI SIL";
+
+function Card({ id, title, hint, children }: { id: string; title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section aria-labelledby={id} className="rounded-3xl border border-gray-200 bg-white p-5 sm:p-7">
+      <h2 id={id} className="font-heading text-lg font-bold text-slate-900">{title}</h2>
+      {hint && <p className="mt-1 text-sm text-gray-500">{hint}</p>}
+      <div className="mt-5 space-y-5">{children}</div>
+    </section>
+  );
+}
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const { user, login, logout, loading: authLoading } = useAuth(); 
-  
+  const { user, login, logout, loading: authLoading } = useAuth();
+
   const [loading, setLoading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -39,40 +55,47 @@ export default function EditProfilePage() {
         ...prev,
         fullname: user.user_display_name || "",
         email: user.user_email || "",
-        bio: user.bio || "", 
+        bio: user.bio || "",
         diet: user.diet || "",
         experience: user.experience || "",
       }));
     }
   }, [user]);
 
+  // Giriş yoksa login'e (middleware de yönlendirir; bu istemci tarafı güvence)
+  useEffect(() => {
+    if (!authLoading && !user) router.replace("/login");
+  }, [authLoading, user, router]);
+
+  useEffect(() => {
+    if (!showDeleteModal) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && !deleteLoading) { setShowDeleteModal(false); setDeleteConfirmText(""); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showDeleteModal, deleteLoading]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewImage(objectUrl);
-    
+    setPreviewImage(URL.createObjectURL(file));
+    setError(null);
     try {
-        setLoading(true);
-        // Token kontrolü: user.token varsa onu kullan, yoksa localStorage'a bak
-        const token = user?.token || localStorage.getItem('tariften_token');
-        
-        if (token) {
-            const avatarUrl = await uploadAvatar(token, file);
-            // Avatar hemen güncellensin diye preview'ı URL ile değiştir
-            setPreviewImage(avatarUrl); 
-            
-            // Context'i güncelle (Opsiyonel: Sayfa yenilenmeden avatarın her yerde değişmesi için)
-            if (user) {
-                login({ ...user, avatar_url: avatarUrl, token });
-            }
-        }
+      setAvatarUploading(true);
+      const token = user?.token || localStorage.getItem("tariften_token");
+      if (token) {
+        const avatarUrl = await uploadAvatar(token, file);
+        setPreviewImage(avatarUrl);
+        // Avatar sayfa yenilenmeden her yerde değişsin
+        if (user) login({ ...user, avatar_url: avatarUrl, token });
+      }
     } catch (err) {
-        console.error(err);
-        setError("Fotoğraf yüklenirken hata oluştu.");
+      console.error(err);
+      setPreviewImage(null);
+      setError("Fotoğraf yüklenemedi. Başka bir fotoğrafla tekrar dener misin?");
     } finally {
-        setLoading(false);
+      setAvatarUploading(false);
     }
   };
 
@@ -83,337 +106,253 @@ export default function EditProfilePage() {
     setSuccess(false);
 
     if (formData.password && formData.password !== formData.confirmPassword) {
-        setError("Şifreler eşleşmiyor.");
-        setLoading(false);
-        return;
+      setError("Şifreler eşleşmiyor.");
+      setLoading(false);
+      return;
     }
 
     try {
-        const token = user?.token || localStorage.getItem('tariften_token');
-        if (!token) throw new Error("Oturum bulunamadı.");
+      const token = user?.token || localStorage.getItem("tariften_token");
+      if (!token) throw new Error("Oturum bulunamadı.");
 
-        const updateData = {
-            fullname: formData.fullname,
-            email: formData.email,
-            diet: formData.diet,
-            experience: formData.experience,
-            bio: formData.bio,
-            ...(formData.password ? { password: formData.password } : {})
-        };
+      const updateData = {
+        fullname: formData.fullname,
+        email: formData.email,
+        diet: formData.diet,
+        experience: formData.experience,
+        bio: formData.bio,
+        ...(formData.password ? { password: formData.password } : {})
+      };
 
-        const response = await updateProfile(token, updateData);
-        
-        // Context güncellemesi: Dönen yeni user objesiyle login'i tetikle
-        if(response.user) {
-             login({ 
-                 ...response.user, 
-                 token: token, 
-                 // API yanıt yapısına göre map ediyoruz
-                 user_display_name: response.user.fullname || response.user.user_display_name, 
-                 user_email: response.user.email || response.user.user_email
-             });
-        }
-        
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Güncelleme başarısız.");
+      const response = await updateProfile(token, updateData);
+
+      if (response.user) {
+        login({
+          ...response.user,
+          token: token,
+          user_display_name: response.user.fullname || response.user.user_display_name,
+          user_email: response.user.email || response.user.user_email
+        });
+      }
+
+      setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 4000);
+    } catch (err: unknown) {
+      console.error(err);
+      setError(err instanceof Error && err.message ? err.message : "Güncelleme başarısız.");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== "HESABIMI SIL") return;
-    
+    if (deleteConfirmText !== CONFIRM) return;
+
     setDeleteLoading(true);
     try {
-        const token = user?.token || localStorage.getItem('tariften_token');
-        if (!token) throw new Error("Oturum bulunamadı.");
-        
-        await deleteAccount(token);
-        
-        // Logout yap ve anasayfaya yönlendir
-        logout();
-        router.push('/');
-    } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Hesap silinirken bir hata oluştu.");
-        setShowDeleteModal(false);
+      const token = user?.token || localStorage.getItem("tariften_token");
+      if (!token) throw new Error("Oturum bulunamadı.");
+
+      await deleteAccount(token);
+
+      logout();
+      router.push("/");
+    } catch (err: unknown) {
+      console.error(err);
+      setError(err instanceof Error && err.message ? err.message : "Hesap silinirken bir hata oluştu.");
+      setShowDeleteModal(false);
     } finally {
-        setDeleteLoading(false);
+      setDeleteLoading(false);
     }
   };
 
-  // Auth verisi yükleniyorsa bekle
-  if (authLoading) {
-      return <div className="min-h-screen flex items-center justify-center text-slate-400"><FaSpinner className="animate-spin text-2xl mr-2" /> Yükleniyor...</div>;
+  if (authLoading || !user) {
+    return <main role="status" className="flex min-h-[60vh] items-center justify-center gap-2 text-sm text-gray-500">
+      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+      {authLoading ? "Yükleniyor…" : "Giriş sayfasına yönlendiriliyorsun…"}
+    </main>;
   }
 
-  // Kullanıcı yoksa login'e yönlendir (Middleware hallediyor ama client-side için ek güvenlik)
-  if (!user) {
-      if (typeof window !== 'undefined') router.push('/login');
-      return null;
-  }
-
-  // Avatar URL'sini belirle
-  const avatarUrl = previewImage || user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullname || "User")}&background=random&color=fff`;
+  const name = formData.fullname || user.user_display_name || user.user_nicename || "";
+  const set = (key: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setFormData(prev => ({ ...prev, [key]: e.target.value }));
 
   return (
-    <main className="min-h-screen bg-[#fcfcfc] pb-20">
-      
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-30">
-        <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/profile" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 text-slate-600 transition">
-                <FaArrowLeft />
-            </Link>
-            <h1 className="font-heading font-bold text-lg text-slate-800">Profili Düzenle</h1>
-            <div className="w-10"></div> 
-        </div>
-      </header>
+    <main className="min-h-screen bg-[#fcfcfc] pb-24">
+      <PageIntro crumb="Hesap ayarları" kicker="Hesap ayarları" title="Mutfağın, *senin kuralların.*"
+        actions={
+          <Link href="/profile" className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-gray-300">
+            <ArrowLeft className="h-4 w-4" aria-hidden /> Profile dön
+          </Link>
+        }>
+        Adın, fotoğrafın ve mutfak tercihlerin. Hepsi burada, tek tencerede.
+      </PageIntro>
 
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        
-        {/* Avatar Yükleme */}
-        <div className="flex flex-col items-center mb-8">
-            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 relative">
-                    <Image 
-                        src={avatarUrl}
-                        alt="Profil" 
-                        fill
-                        className="object-cover"
-                        unoptimized={avatarUrl.includes('ui-avatars.com')} // Next.js optimizasyonunu bypass et
-                    />
-                </div>
-                <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <FaCamera className="text-white text-xl" />
-                </div>
-                <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*"
-                    onChange={handleFileChange}
-                />
-            </div>
-            <p className="text-xs text-gray-400 mt-3">Değiştirmek için fotoğrafa tıkla</p>
-        </div>
-
-        {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm flex items-center gap-3 border border-red-100 mb-6">
-              <FaTriangleExclamation /> {error}
-            </div>
-        )}
-
-        {success && (
-            <div className="bg-green-50 text-green-600 p-4 rounded-xl text-sm flex items-center gap-3 border border-green-100 mb-6 animate-pulse">
-              <FaCheck /> Profil başarıyla güncellendi!
-            </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-            
-            <div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 className="font-bold text-slate-800 text-sm border-b border-gray-100 pb-3 mb-4">Kişisel Bilgiler</h3>
-                
-                <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500 ml-1">Kullanıcı Adı</label>
-                    <div className="flex items-center gap-2">
-                        <span className="text-slate-400 text-sm">@</span>
-                        <input 
-                            type="text" 
-                            value={user?.user_nicename || user?.user_login || ""}
-                            readOnly
-                            disabled
-                            className="flex-1 px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-slate-500 text-sm cursor-not-allowed"
-                        />
-                    </div>
-                    <p className="text-[10px] text-gray-400 ml-1">Kullanıcı adı değiştirilemez</p>
-                </div>
-
-                <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500 ml-1">Ad Soyad</label>
-                    <input 
-                        type="text" 
-                        value={formData.fullname}
-                        onChange={(e) => setFormData({...formData, fullname: e.target.value})}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                    />
-                </div>
-
-                <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500 ml-1">E-posta</label>
-                    <input 
-                        type="email" 
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                    />
-                </div>
-
-                <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500 ml-1">Hakkımda</label>
-                    <textarea 
-                        rows={3}
-                        value={formData.bio}
-                        onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all resize-none"
-                        placeholder="Mutfakta nelerden hoşlanırsın?"
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 className="font-bold text-slate-800 text-sm border-b border-gray-100 pb-3 mb-4">Mutfak Tercihleri</h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-500 ml-1">Beslenme Tipi</label>
-                        <select 
-                            value={formData.diet}
-                            onChange={(e) => setFormData({...formData, diet: e.target.value})}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-brand appearance-none"
-                        >
-                            <option value="">Seçiniz...</option>
-                            <option value="none">Hepçil</option>
-                            <option value="vegan">Vegan</option>
-                            <option value="vegetarian">Vejetaryen</option>
-                            <option value="gluten_free">Glutensiz</option>
-                            <option value="keto">Ketojenik</option>
-                        </select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-500 ml-1">Mutfak Deneyimi</label>
-                        <select 
-                            value={formData.experience}
-                            onChange={(e) => setFormData({...formData, experience: e.target.value})}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-brand appearance-none"
-                        >
-                            <option value="">Seçiniz...</option>
-                            <option value="beginner">Acemi</option>
-                            <option value="intermediate">Orta</option>
-                            <option value="pro">Usta</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 className="font-bold text-slate-800 text-sm border-b border-gray-100 pb-3 mb-4">Güvenlik (Opsiyonel)</h3>
-                
-                <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500 ml-1">Yeni Şifre</label>
-                    <input 
-                        type="password" 
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                        placeholder="Değiştirmek istemiyorsanız boş bırakın"
-                    />
-                </div>
-                 <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500 ml-1">Yeni Şifre (Tekrar)</label>
-                    <input 
-                        type="password" 
-                        value={formData.confirmPassword}
-                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
-                    />
-                </div>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="w-full bg-brand hover:bg-brand-dark text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {loading ? <><FaSpinner className="animate-spin" /> Kaydediliyor...</> : <><FaFloppyDisk /> Değişiklikleri Kaydet</>}
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 pt-10 lg:grid-cols-12 lg:gap-12">
+        {/* Fotoğraf */}
+        <aside className="lg:col-span-4">
+          <div className="flex items-center gap-5 rounded-3xl border border-gray-200 bg-white p-5 lg:sticky lg:top-24 lg:flex-col lg:p-7 lg:text-center">
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={avatarUploading}
+              aria-label="Profil fotoğrafını değiştir"
+              className="group relative shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand">
+              <AccountAvatar url={previewImage || user.avatar_url} name={name} size={112} />
+              <span className={`absolute inset-0 grid place-items-center rounded-full bg-slate-900/40 text-white transition ${avatarUploading ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"}`}>
+                {avatarUploading ? <Loader2 className="h-6 w-6 animate-spin" aria-hidden /> : <Camera className="h-6 w-6" aria-hidden />}
+              </span>
+              <span className="absolute bottom-0 right-0 grid h-9 w-9 place-items-center rounded-full bg-brand text-white ring-4 ring-white">
+                <Camera className="h-4 w-4" aria-hidden />
+              </span>
             </button>
+            <input type="file" ref={fileInputRef} className="sr-only" tabIndex={-1} accept="image/*" onChange={handleFileChange} aria-hidden />
+            <div className="min-w-0">
+              <p className="truncate font-heading text-lg font-bold text-slate-900">{name || "Adını ekle"}</p>
+              {(user.user_nicename || user.user_login) && <p className="truncate text-sm text-gray-500">@{user.user_nicename || user.user_login}</p>}
+              <p className="mt-2 text-xs text-gray-500" aria-live="polite">
+                {avatarUploading ? "Fotoğraf yükleniyor…" : "Değiştirmek için fotoğrafa dokun."}
+              </p>
+            </div>
+          </div>
+        </aside>
 
-        </form>
+        <div className="space-y-6 lg:col-span-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Card id="edit-personal" title="Kişisel bilgiler">
+              <div>
+                <label htmlFor="edit-username" className={LABEL}>Kullanıcı adı</label>
+                <input id="edit-username" type="text" value={user.user_nicename || user.user_login || ""} readOnly disabled
+                  aria-describedby="edit-username-hint"
+                  className="w-full cursor-not-allowed rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-[15px] text-gray-500" />
+                <p id="edit-username-hint" className="mt-1.5 text-xs text-gray-500">Kullanıcı adı değiştirilemez.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="edit-fullname" className={LABEL}>Ad soyad</label>
+                  <input id="edit-fullname" type="text" autoComplete="name" value={formData.fullname} onChange={set("fullname")} className={FIELD} />
+                </div>
+                <div>
+                  <label htmlFor="edit-email" className={LABEL}>E-posta</label>
+                  <input id="edit-email" type="email" autoComplete="email" value={formData.email} onChange={set("email")} className={FIELD} />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="edit-bio" className={LABEL}>Hakkımda</label>
+                <textarea id="edit-bio" rows={3} value={formData.bio} onChange={set("bio")}
+                  className={`${FIELD} resize-none`} placeholder="Mutfakta nelerden hoşlanırsın? Fırından mı çıkmıyorsun, tencereden mi?" />
+              </div>
+            </Card>
 
-        {/* Tehlikeli Bölge - Hesap Silme */}
-        <div className="mt-10 bg-white p-6 rounded-2xl shadow-sm border border-red-200">
-            <h3 className="font-bold text-red-600 text-sm border-b border-red-100 pb-3 mb-4 flex items-center gap-2">
-                <FaTrashCan /> Tehlikeli Bölge
-            </h3>
-            <p className="text-sm text-slate-600 mb-4">
-                Hesabınızı sildiğinizde tüm verileriniz (tarifleriniz, favorileriniz, dolap verileriniz) kalıcı olarak silinir. Bu işlem geri alınamaz.
+            <Card id="edit-kitchen" title="Mutfak tercihleri" hint="Kendini nasıl tarif edersin?">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="edit-diet" className={LABEL}>Beslenme tipi</label>
+                  <select id="edit-diet" value={formData.diet} onChange={set("diet")} className={FIELD}>
+                    <option value="">Seçiniz…</option>
+                    <option value="none">Hepçil</option>
+                    <option value="vegan">Vegan</option>
+                    <option value="vegetarian">Vejetaryen</option>
+                    <option value="gluten_free">Glutensiz</option>
+                    <option value="keto">Ketojenik</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="edit-experience" className={LABEL}>Mutfak deneyimi</label>
+                  <select id="edit-experience" value={formData.experience} onChange={set("experience")} className={FIELD}>
+                    <option value="">Seçiniz…</option>
+                    <option value="beginner">Çırak · yeni başlıyorum</option>
+                    <option value="intermediate">Hevesli aşçı · idare ederim</option>
+                    <option value="pro">Usta şef · gözü kapalı</option>
+                  </select>
+                </div>
+              </div>
+            </Card>
+
+            <Card id="edit-security" title="Şifre" hint="Değiştirmek istemiyorsan boş bırak.">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="edit-password" className={LABEL}>Yeni şifre</label>
+                  <input id="edit-password" type="password" autoComplete="new-password" value={formData.password} onChange={set("password")} className={FIELD} />
+                </div>
+                <div>
+                  <label htmlFor="edit-password-confirm" className={LABEL}>Yeni şifre (tekrar)</label>
+                  <input id="edit-password-confirm" type="password" autoComplete="new-password" value={formData.confirmPassword} onChange={set("confirmPassword")} className={FIELD} />
+                </div>
+              </div>
+            </Card>
+
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div aria-live="polite" className="min-h-5 text-sm">
+                {error && <p className="flex items-start gap-2 text-red-700"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {error}</p>}
+                {success && <p className="flex items-center gap-2 text-emerald-700"><Check className="h-4 w-4" aria-hidden /> Kaydedildi. Mutfağın güncel.</p>}
+              </div>
+              <button type="submit" disabled={loading || avatarUploading}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-brand px-6 font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60">
+                {loading ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Kaydediliyor…</> : <><Save className="h-4 w-4" aria-hidden /> Değişiklikleri kaydet</>}
+              </button>
+            </div>
+          </form>
+
+          {/* Hesap silme */}
+          <section aria-labelledby="edit-danger" className="rounded-3xl border border-red-200 bg-white p-5 sm:p-7">
+            <h2 id="edit-danger" className="font-heading text-lg font-bold text-red-700">Hesabı sil</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Hesabını sildiğinde tariflerin, favorilerin ve dolabın kalıcı olarak silinir. Bu işlem geri alınamaz.
             </p>
-            <button
-                type="button"
-                onClick={() => setShowDeleteModal(true)}
-                className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 rounded-xl border border-red-200 flex items-center justify-center gap-2 transition-all"
-            >
-                <FaTrashCan /> Hesabımı Sil
+            <button type="button" onClick={() => setShowDeleteModal(true)}
+              className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl border border-red-200 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-50">
+              <Trash2 className="h-4 w-4" aria-hidden /> Hesabımı sil
             </button>
+          </section>
         </div>
       </div>
 
-      {/* Hesap Silme Onay Modalı */}
       {showDeleteModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-fade-in">
-                  <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                          <FaTriangleExclamation className="text-red-500 text-xl" />
-                      </div>
-                      <div>
-                          <h3 className="font-bold text-slate-800 text-lg">Hesabı Sil</h3>
-                          <p className="text-xs text-slate-500">Bu işlem geri alınamaz</p>
-                      </div>
-                  </div>
-
-                  <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-4">
-                      <p className="text-sm text-red-700">
-                          Hesabınız ve aşağıdaki verileriniz <strong>kalıcı olarak</strong> silinecektir:
-                      </p>
-                      <ul className="text-xs text-red-600 mt-2 space-y-1 list-disc list-inside">
-                          <li>Profil bilgileri ve fotoğrafınız</li>
-                          <li>Oluşturduğunuz tüm tarifler</li>
-                          <li>Favori ve pişirdiklerim listeniz</li>
-                          <li>Dolap verileriniz</li>
-                          <li>Yorumlarınız</li>
-                      </ul>
-                  </div>
-
-                  <div className="mb-4">
-                      <label className="text-xs font-bold text-slate-500 mb-1 block">
-                          Onaylamak için <span className="text-red-600">HESABIMI SIL</span> yazın:
-                      </label>
-                      <input
-                          type="text"
-                          value={deleteConfirmText}
-                          onChange={(e) => setDeleteConfirmText(e.target.value)}
-                          placeholder="HESABIMI SIL"
-                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all"
-                      />
-                  </div>
-
-                  <div className="flex gap-3">
-                      <button
-                          type="button"
-                          onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }}
-                          className="flex-1 bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold py-3 rounded-xl transition-all"
-                      >
-                          Vazgeç
-                      </button>
-                      <button
-                          type="button"
-                          onClick={handleDeleteAccount}
-                          disabled={deleteConfirmText !== "HESABIMI SIL" || deleteLoading}
-                          className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                          {deleteLoading ? <><FaSpinner className="animate-spin" /> Siliniyor...</> : <><FaTrashCan /> Sil</>}
-                      </button>
-                  </div>
+        <div role="presentation" className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+          onMouseDown={(e) => { if (e.target === e.currentTarget && !deleteLoading) { setShowDeleteModal(false); setDeleteConfirmText(""); } }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="delete-title" className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-red-50 text-red-600"><TriangleAlert className="h-5 w-5" aria-hidden /></span>
+                <div>
+                  <h2 id="delete-title" className="font-heading text-lg font-bold text-slate-900">Hesabı sil</h2>
+                  <p className="text-xs text-gray-500">Bu işlem geri alınamaz</p>
+                </div>
               </div>
-          </div>
-      )}
+              <button type="button" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }} disabled={deleteLoading}
+                aria-label="Kapat" className="grid h-9 w-9 place-items-center rounded-full text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
+            </div>
 
+            <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-800">
+              <p>Hesabın ve şu verilerin <strong>kalıcı olarak</strong> silinecek:</p>
+              <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-red-700">
+                <li>Profil bilgileri ve fotoğrafın</li>
+                <li>Oluşturduğun tüm tarifler</li>
+                <li>Favori ve pişirdiklerim listelerin</li>
+                <li>Dolap verilerin</li>
+                <li>Yorumların</li>
+              </ul>
+            </div>
+
+            <label htmlFor="delete-confirm" className="mb-1.5 block text-sm text-slate-700">
+              Onaylamak için <span className="font-semibold text-red-700">{CONFIRM}</span> yaz:
+            </label>
+            <input id="delete-confirm" type="text" autoComplete="off" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder={CONFIRM}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] focus:border-red-300 focus:outline-none focus:ring-4 focus:ring-red-500/10" />
+
+            <div className="mt-5 flex gap-2">
+              <button type="button" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }} disabled={deleteLoading}
+                className="h-12 flex-1 rounded-xl border border-gray-200 font-semibold text-slate-700 transition hover:border-gray-300">
+                Vazgeç
+              </button>
+              <button type="button" onClick={handleDeleteAccount} disabled={deleteConfirmText !== CONFIRM || deleteLoading}
+                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40">
+                {deleteLoading ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Siliniyor…</> : <><Trash2 className="h-4 w-4" aria-hidden /> Sil</>}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
