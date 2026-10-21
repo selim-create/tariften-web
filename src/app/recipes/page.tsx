@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getRecipes, getTerms } from "@/lib/api";
 import { generateRecipeClient, createRecipeClient } from "@/lib/recipe-write-client"; 
@@ -11,24 +10,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 import SimilarRecipeChoice from "@/components/recipes/SimilarRecipeChoice";
 import { approvedQuickRecipe, quickRecipeFromAI, validateQuickRecipe, type QuickRecipeDraft } from "@/lib/quick-recipe-review";
-// İkonlar - Standart ve Yeni Paket Ayrımı (Hata Önleyici)
-import { FaSortAmountDown } from "react-icons/fa";
-import { 
-  FaClock, FaFire, FaFilter, FaChevronRight, 
-  FaMagnifyingGlass, FaUtensils, FaLeaf, FaWandMagicSparkles, FaSpinner, FaRobot,
-  FaCheck, FaXmark, FaGlobe, FaPlus, FaMinus
-} from "react-icons/fa6";
-import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
-import { isPlaceholderImage } from "@/lib/utils";
+import { Check, ChevronRight, Loader2, Minus, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import RecipeCard from "@/components/recipes/RecipeCard";
 
+// One honest status line; the request has no measurable sub-steps to report.
 const LOADING_MESSAGES = [
-  "Şef malzemeleri kokluyor... 👃",
-  "Eski tarif defterleri karıştırılıyor... 📖",
-  "Sanal fırın ısıtılıyor... 🔥",
-  "Lezzet testi yapılıyor... 👨‍🍳",
-  "Tuzuna bakılıyor... 🧂",
-  "Sunum tabağı hazırlanıyor... 🍽️",
-  "En iyi kombinasyon hesaplanıyor... 🧮"
+  "Tarif hazırlanıyor, bu biraz sürebilir.",
 ];
 
 const QUICK_SUGGESTIONS = [
@@ -40,16 +27,10 @@ const QUICK_SUGGESTIONS = [
 
 function RecipeSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden h-full flex flex-col animate-pulse">
-      <div className="aspect-[4/3] bg-gray-200" />
-      <div className="p-5 space-y-3 flex-grow">
-        <div className="h-6 bg-gray-200 rounded w-3/4" />
-        <div className="h-4 bg-gray-200 rounded w-1/2" />
-        <div className="mt-auto pt-4 flex justify-between">
-          <div className="h-4 bg-gray-200 rounded w-16" />
-          <div className="h-4 bg-gray-200 rounded w-16" />
-        </div>
-      </div>
+    <div className="animate-pulse">
+      <div className="mb-3 aspect-[4/3] rounded-2xl bg-gray-100" />
+      <div className="mb-2 h-3 w-16 rounded bg-gray-100" />
+      <div className="h-5 w-3/4 rounded bg-gray-100" />
     </div>
   );
 }
@@ -67,23 +48,30 @@ function RecipeAICard({
   onNew: () => void;
   onGenerate: () => void;
 }) {
+  const term = query.trim();
   return (
-    <div className="relative flex min-h-[275px] flex-col items-center justify-center overflow-hidden rounded-[28px] border border-[#e9d9cd] bg-[#fff7f0] p-7 text-center shadow-[0_18px_46px_-34px_rgba(79,46,35,0.3)]">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fde7df] text-2xl text-[#d64c3f]">
-        {generating ? <FaSpinner className="animate-spin" /> : <FaWandMagicSparkles />}
+    <div className="flex min-h-[260px] flex-col justify-between rounded-2xl border border-dashed border-gray-300 bg-white p-6">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">AI ile oluştur</p>
+        <h3 className="mt-2 font-heading text-lg font-semibold leading-snug text-slate-900">
+          {term ? <>“{term}” için uygun tarif yok mu?</> : "Aradığını bulamadın mı?"}
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-gray-500">
+          {generating ? loadingMessage : term
+            ? "Bu arama için yeni bir tarif hazırlayabiliriz. Yayımlanmadan önce benzer tarif kontrolü yapılır."
+            : "Bir tarif adı ya da elindeki malzemeleri yaz; senin için bir tarif hazırlayalım."}
+        </p>
       </div>
-      <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#b95346]">Tariften · AI Şef</p>
-      <h3 className="mt-2 font-heading text-xl font-extrabold text-[#25353a]">Aradığın tarif burada yok mu?</h3>
-      <p className="mt-2 mb-6 max-w-sm text-sm leading-6 text-[#7f7167]">
-        {generating ? loadingMessage : `"${query || "Özel"}" için sıfırdan tarif oluşturabiliriz.`}
-      </p>
-      <button type="button" onClick={onGenerate} disabled={generating || saving || uncertain}
-        className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-2xl bg-[#db4c3f] px-5 py-3 text-sm font-extrabold text-white transition-colors hover:bg-[#b64137] disabled:opacity-60">
-        {saving ? "Tarif yayımlanıyor…" : generating ? "Tarif hazırlanıyor…" : reviewReady ? "Tarifini kaydetmeye devam et" : "AI ile tarif oluştur"}
-      </button>
-      {failure && <p role="alert" className="mt-3 max-w-sm rounded-xl bg-[#fff0e8] p-3 text-xs font-bold text-[#ac4339]">{failure}</p>}
-      {uncertain && <p role="alert" className="mt-2 text-xs leading-5 text-[#a85646]">Tarif kaydedilmiş olabilir. Tekrar göndermeden önce Profil &gt; Tariflerim bölümüne bak.</p>}
-      {reviewReady && !saving && <button type="button" onClick={onNew} className="mt-3 text-xs font-bold text-[#aa584b] underline underline-offset-4">Başka bir tarif iste</button>}
+      <div className="mt-5">
+        <button type="button" onClick={onGenerate} disabled={generating || saving || uncertain}
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60">
+          {(generating || saving) && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+          {saving ? "Tarif yayımlanıyor…" : generating ? "Tarif hazırlanıyor…" : reviewReady ? "Tarifini kaydetmeye devam et" : "AI ile tarif oluştur"}
+        </button>
+        {failure && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-medium text-red-700">{failure}</p>}
+        {uncertain && <p role="alert" className="mt-2 text-xs leading-5 text-red-700">Tarif kaydedilmiş olabilir. Tekrar göndermeden önce Profil &gt; Tariflerim bölümüne bak.</p>}
+        {reviewReady && !saving && <button type="button" onClick={onNew} className="mt-3 text-xs font-semibold text-slate-600 underline underline-offset-4">Başka bir tarif iste</button>}
+      </div>
     </div>
   );
 }
@@ -378,171 +366,150 @@ function RecipesContent() {
     void handleGenerateRecipe();
   };
 
-  const renderFilterGroup = (title: string, icon: React.ReactNode, items: string[], current: string[], setFn: (val: string[]) => void, sectionKey: string) => {
+  const renderFilterGroup = (title: string, items: string[], current: string[], setFn: (val: string[]) => void, sectionKey: string) => {
     if (!items || items.length === 0) return null;
     const isExpanded = expandedSections[sectionKey];
     const visibleItems = isExpanded ? items : items.slice(0, 5);
     const hasMore = items.length > 5;
     return (
-      <div className="border-b border-gray-100 pb-6 mb-6 last:border-0 last:pb-0">
-        <h3 className="font-bold text-slate-800 mb-4 font-heading text-sm uppercase tracking-wide flex items-center gap-2">{icon} {title}</h3>
-        <div className="space-y-2">
-          {visibleItems.map((item) => (
-            <label key={item} className="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg -ml-2 transition">
-              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${current.includes(item) ? 'bg-[#db4c3f] border-[#db4c3f]' : 'border-gray-300 bg-white'}`}>
-                {current.includes(item) && <FaCheck className="text-white text-[10px]" />}
-              </div>
-              <input type="checkbox" className="hidden" checked={current.includes(item)} onChange={() => toggleFilter(item, current, setFn)} />
-              <span className={`text-sm group-hover:text-[#db4c3f] transition ${current.includes(item) ? 'font-bold text-[#db4c3f]' : 'text-gray-600'}`}>{item}</span>
-            </label>
-          ))}
+      <fieldset className="border-b border-gray-100 py-5 first:pt-0 last:border-0 last:pb-0">
+        <legend className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">{title}</legend>
+        <div className="space-y-0.5">
+          {visibleItems.map((item) => {
+            const checked = current.includes(item);
+            return (
+              <label key={item} className="-mx-2 flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition hover:bg-gray-50">
+                <input type="checkbox" className="peer sr-only" checked={checked} onChange={() => toggleFilter(item, current, setFn)} />
+                <span className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md border transition peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40 ${checked ? 'border-brand bg-brand text-white' : 'border-gray-300 bg-white'}`}>
+                  {checked && <Check className="h-3 w-3" strokeWidth={3} />}
+                </span>
+                <span className={`text-sm ${checked ? 'font-semibold text-slate-900' : 'text-slate-600'}`}>{item}</span>
+              </label>
+            );
+          })}
         </div>
         {hasMore && (
-          <button onClick={() => toggleSection(sectionKey)} className="text-xs font-bold text-[#db4c3f] mt-3 flex items-center gap-1 hover:underline">
-            {isExpanded ? <><FaMinus /> Daha Az</> : <><FaPlus /> Daha Fazla ({items.length - 5})</>}
+          <button type="button" onClick={() => toggleSection(sectionKey)} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand-dark">
+            {isExpanded ? <><Minus className="h-3 w-3" /> Daha az</> : <><Plus className="h-3 w-3" /> {items.length - 5} tane daha</>}
           </button>
         )}
-      </div>
+      </fieldset>
     );
   };
 
-
+  const anyFilter = selectedCuisines.length > 0 || selectedDiets.length > 0 || selectedMealTypes.length > 0 || selectedDifficulties.length > 0 || !!query;
+  const clearFilters = () => { setQuery(""); setSelectedCuisines([]); setSelectedDiets([]); setSelectedMealTypes([]); setSelectedDifficulties([]); };
+  const activeChips = [
+    ...selectedMealTypes.map(v => ({ v, remove: () => setSelectedMealTypes(selectedMealTypes.filter(x => x !== v)) })),
+    ...selectedCuisines.map(v => ({ v, remove: () => setSelectedCuisines(selectedCuisines.filter(x => x !== v)) })),
+    ...selectedDiets.map(v => ({ v, remove: () => setSelectedDiets(selectedDiets.filter(x => x !== v)) })),
+    ...selectedDifficulties.map(v => ({ v, remove: () => setSelectedDifficulties(selectedDifficulties.filter(x => x !== v)) })),
+  ];
 
   return (
-    <div className="container mx-auto px-4 py-8 relative">
-      {usageNotice && <div role="status" className="fixed bottom-6 right-6 z-[210] max-w-sm rounded-2xl bg-[#253b30] px-5 py-3 text-xs font-bold text-white shadow-xl">{usageNotice}</div>}
-        {/* HEADER */}
-        {/* MOBİL DÜZELTME: items-end yerine items-start */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-gray-100 pb-6">
+    <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-6">
+      {usageNotice && <div role="status" className="fixed bottom-6 right-6 z-[210] max-w-sm rounded-2xl bg-slate-900 px-5 py-3 text-xs font-semibold text-white shadow-xl">{usageNotice}</div>}
+
+        <div className="mb-8 flex flex-col gap-4 border-b border-gray-100 pb-6 md:flex-row md:items-end md:justify-between">
             <div>
-                <nav className="flex items-center text-xs text-gray-400 mb-2 font-medium gap-2"><Link href="/" className="hover:text-[#db4c3f]">Anasayfa</Link><FaChevronRight className="text-[10px]" /><span className="text-gray-800">Tarifler</span></nav>
-                <h1 className="text-3xl font-bold text-slate-900 font-heading">Tarif Kütüphanesi</h1>
-                <p className="text-gray-500 text-sm mt-1">Toplam <strong className="text-[#db4c3f]">{recipes.length}</strong> tarif listeleniyor.</p>
+                <nav aria-label="Sayfa konumu" className="mb-3 flex items-center gap-1.5 text-xs text-gray-500">
+                  <Link href="/" className="transition hover:text-brand">Anasayfa</Link>
+                  <ChevronRight className="h-3 w-3 text-gray-300" aria-hidden />
+                  <span className="font-medium text-slate-700">Tarifler</span>
+                </nav>
+                <h1 className="font-heading text-3xl font-bold tracking-[-0.02em] text-slate-900 sm:text-4xl">Tarifler</h1>
+                {!loading && recipes.length > 0 && (
+                  <p className="mt-1 text-sm text-gray-500 tabular-nums">{recipes.length} tarif gösteriliyor</p>
+                )}
             </div>
-            <button onClick={() => setShowMobileFilters(!showMobileFilters)} className="md:hidden w-full bg-white border border-gray-200 text-slate-700 font-bold py-3 rounded-xl shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50"><FaFilter className="text-[#db4c3f]" /> Filtrele</button>
+            <button type="button" onClick={() => setShowMobileFilters(!showMobileFilters)} aria-expanded={showMobileFilters}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-slate-700 transition hover:border-gray-300 lg:hidden">
+              <SlidersHorizontal className="h-4 w-4" aria-hidden /> {showMobileFilters ? "Filtreleri gizle" : "Ara ve filtrele"}
+            </button>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 relative">
-            <aside className={`lg:block w-full lg:w-1/4 flex-shrink-0 ${showMobileFilters ? 'block' : 'hidden'}`}>
-                <div className="sticky top-24 space-y-8 pr-0 lg:pr-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+        <div className="relative flex flex-col gap-8 lg:flex-row lg:gap-10">
+            <aside className={`w-full flex-shrink-0 lg:block lg:w-64 ${showMobileFilters ? 'block' : 'hidden'}`}>
+                <div className="space-y-6 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
                     <div className="relative">
-                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400"><FaMagnifyingGlass /></div>
-                        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tarif ara..." className="w-full bg-white border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[#db4c3f] transition-colors shadow-sm" />
+                        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden />
+                        <label htmlFor="recipes-search" className="sr-only">Tariflerde ara</label>
+                        <input id="recipes-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tariflerde ara"
+                          className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-slate-800 transition focus:border-brand/40 focus:outline-none focus:ring-4 focus:ring-brand/10" />
                     </div>
-                    <div className="bg-white/50 rounded-2xl border border-gray-100 p-4 shadow-sm">
-                        {renderFilterGroup("Öğün Tipi", <FaUtensils className="text-[#db4c3f]"/>, availableFilters.mealType, selectedMealTypes, setSelectedMealTypes, "mealType")}
-                        {renderFilterGroup("Mutfak", <FaGlobe className="text-blue-500"/>, availableFilters.cuisine, selectedCuisines, setSelectedCuisines, "cuisine")}
-                        {renderFilterGroup("Diyet", <FaLeaf className="text-green-500"/>, availableFilters.diet, selectedDiets, setSelectedDiets, "diet")}
-                        {renderFilterGroup("Zorluk", <FaFire className="text-orange-500"/>, availableFilters.difficulty, selectedDifficulties, setSelectedDifficulties, "difficulty")}
+                    <div>
+                        {renderFilterGroup("Öğün", availableFilters.mealType, selectedMealTypes, setSelectedMealTypes, "mealType")}
+                        {renderFilterGroup("Mutfak", availableFilters.cuisine, selectedCuisines, setSelectedCuisines, "cuisine")}
+                        {renderFilterGroup("Beslenme", availableFilters.diet, selectedDiets, setSelectedDiets, "diet")}
+                        {renderFilterGroup("Zorluk", availableFilters.difficulty, selectedDifficulties, setSelectedDifficulties, "difficulty")}
                     </div>
                 </div>
             </aside>
 
-            <section className="flex-1 min-h-[500px]">
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="flex flex-wrap gap-2 items-center">
-                        {(selectedCuisines.length > 0 || selectedDiets.length > 0 || selectedMealTypes.length > 0 || selectedDifficulties.length > 0 || query) ? (
-                            <>
-                                <span className="text-xs font-bold text-gray-400 mr-1">Filtreler:</span>
-                                {query && <span className="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-1 rounded flex items-center gap-1">"{query}" <button onClick={() => setQuery("")}><FaXmark/></button></span>}
-                                {selectedCuisines.map(c => <span key={c} className="bg-orange-50 text-orange-700 text-xs font-bold px-2 py-1 rounded border border-orange-100">{c}</span>)}
-                                {selectedDiets.map(d => <span key={d} className="bg-green-50 text-green-700 text-xs font-bold px-2 py-1 rounded border border-green-100">{d}</span>)}
-                                <button onClick={() => { setQuery(""); setSelectedCuisines([]); setSelectedDiets([]); setSelectedMealTypes([]); setSelectedDifficulties([]); }} className="text-xs text-red-500 font-bold hover:underline ml-2">Temizle</button>
-                            </>
-                        ) : ( <span className="text-sm text-gray-400 font-medium">Tüm tarifler listeleniyor</span> )}
-                    </div>
-                    <div className="flex items-center gap-2"><FaSortAmountDown className="text-gray-400 text-sm" /><select className="bg-transparent text-slate-700 text-sm font-bold focus:outline-none cursor-pointer"><option>En Yeniler</option><option>Popüler</option></select></div>
-                </div>
+            <section aria-label="Tarif listesi" className="min-h-[500px] flex-1">
+                {anyFilter && (
+                  <div className="mb-6 flex flex-wrap items-center gap-2">
+                    {query && (
+                      <button type="button" onClick={() => setQuery("")} className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white py-1.5 pl-3 pr-2 text-xs font-medium text-slate-700 hover:border-gray-300">
+                        “{query}” <X className="h-3.5 w-3.5 text-gray-400" aria-label="Aramayı kaldır" />
+                      </button>
+                    )}
+                    {activeChips.map(({ v, remove }) => (
+                      <button key={v} type="button" onClick={remove} className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white py-1.5 pl-3 pr-2 text-xs font-medium text-slate-700 hover:border-gray-300">
+                        {v} <X className="h-3.5 w-3.5 text-gray-400" aria-label={`${v} filtresini kaldır`} />
+                      </button>
+                    ))}
+                    <button type="button" onClick={clearFilters} className="ml-1 text-xs font-semibold text-brand hover:text-brand-dark">Temizle</button>
+                  </div>
+                )}
 
                 {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{[1, 2, 3].map((i) => <RecipeSkeleton key={i} />)}</div>
+                    <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((i) => <RecipeSkeleton key={i} />)}</div>
                 ) : recipes.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {recipes.map((recipe) => (
-                            <Link href={`/recipe/${recipe.slug}`} key={recipe.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full">
-                                <div className="aspect-[4/3] overflow-hidden bg-gray-100 relative">
-                                    {isPlaceholderImage(recipe.image) ? (
-                                        <ImagePlaceholder title={recipe.title} variant="card" />
-                                    ) : (
-                                        <div className="relative w-full h-full">
-                                            {/* GÖRSEL DÜZELTME: Image bileşeni ve unoptimized */}
-                                            <Image 
-                                                src={recipe.image} 
-                                                alt={recipe.title} 
-                                                fill
-                                                unoptimized={true}
-                                                className="object-cover group-hover:scale-105 transition duration-700" 
-                                            />
-                                        </div>
-                                    )}
-                                    {recipe.cuisine?.[0] && <span className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2.5 py-1 rounded-md text-xs font-bold text-slate-700 shadow-sm">{recipe.cuisine[0]}</span>}
-                                </div>
-                                <div className="p-5 flex flex-col flex-grow">
-                                    <h2 className="text-lg font-bold text-slate-800 mb-2 leading-tight group-hover:text-[#db4c3f] transition font-heading line-clamp-2">{recipe.title}</h2>
-                                    <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500 font-medium">
-                                        <div className="flex items-center gap-3">
-                                            <span className="flex items-center gap-1"><FaClock className="text-[#db4c3f]" /> {recipe.prep_time || 0}dk</span>
-                                            <span className="flex items-center gap-1"><FaFire className="text-[#db4c3f]" /> {recipe.calories}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
-                        ))}
-                        
-                        {/* SENARYO 2: SONUÇLARIN SONUNA AI KARTI EKLE */}
+                    <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+                        {recipes.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
                         <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} />
-                        
                     </div>
                 ) : (
-                    // SONUÇ YOKSA SADECE AI KARTI
-                    <div className="flex justify-center">
-                        <div className="w-full max-w-md"><RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} /></div>
+                    <div className="mx-auto max-w-md">
+                      <p className="mb-4 text-center text-sm text-gray-500">{anyFilter ? "Bu arama ve filtrelerle eşleşen tarif yok." : "Henüz tarif yok."}</p>
+                      <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} />
                     </div>
                 )}
-                
-                {/* DAHA FAZLA YÜKLE BUTONU */}
+
                 {hasMore && recipes.length > 0 && !loadingMore && (
-                    <div className="mt-10 text-center">
-                        <button onClick={() => fetchRecipes(true)} className="px-8 py-3 bg-white border border-gray-200 text-slate-600 font-bold rounded-xl hover:bg-gray-50 hover:text-brand transition shadow-sm">
-                            Daha Fazla Yükle
+                    <div className="mt-12 text-center">
+                        <button type="button" onClick={() => fetchRecipes(true)} className="h-11 rounded-xl border border-gray-200 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:border-gray-300">
+                            Daha fazla tarif
                         </button>
                     </div>
                 )}
-                {loadingMore && <div className="mt-10 text-center text-gray-400">Yükleniyor...</div>}
-
+                {loadingMore && <p className="mt-12 text-center text-sm text-gray-500">Yükleniyor…</p>}
             </section>
         </div>
 
         {/* AI prompt appears only after an explicit user action; no overlapping automatic modal. */}
         {showPromptModal && (
           <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
-            <div 
-              className="absolute inset-0 bg-[#1e2932]/60" 
-              onClick={() => setShowPromptModal(false)}
-            ></div>
-            <div className="relative z-10 bg-[#fffaf6] rounded-[28px] p-7 w-full max-w-md border border-[#efded0] shadow-[0_28px_90px_rgba(25,28,33,0.25)]">
-              <button 
-                onClick={() => setShowPromptModal(false)} 
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
-              >
-                <FaXmark className="text-xl"/>
+            <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowPromptModal(false)} />
+            <div role="dialog" aria-modal="true" aria-labelledby="ai-prompt-title" className="relative z-10 w-full max-w-md rounded-3xl bg-white p-7 shadow-xl">
+              <button type="button" onClick={() => setShowPromptModal(false)} aria-label="Kapat"
+                className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600">
+                <X className="h-5 w-5" />
               </button>
-              
-              <div className="text-center mb-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-[#db4c3f]/20 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FaWandMagicSparkles className="text-4xl text-[#db4c3f]" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2 font-heading">AI Şef&apos;e Sor!</h3>
-                <p className="text-gray-500">Bir tarif adı yaz veya elindeki malzemeleri listele</p>
-              </div>
-              
-              <div className="space-y-4">
-                <input 
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">AI ile oluştur</p>
+              <h3 id="ai-prompt-title" className="mt-2 font-heading text-2xl font-bold text-slate-900">Ne pişirmek istersin?</h3>
+              <p className="mt-1 text-sm text-gray-500">Bir tarif adı yaz veya elindeki malzemeleri listele</p>
+
+              <div className="mt-6 space-y-4">
+                <label htmlFor="ai-prompt" className="sr-only">Tarif adı ya da malzemeler</label>
+                <input
+                  id="ai-prompt"
                   type="text"
                   value={aiPromptInput}
                   onChange={(e) => setAiPromptInput(e.target.value)}
-                  placeholder="Örn: Fırında tavuk veya domates, peynir, makarna..."
-                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-4 focus:border-[#db4c3f] focus:ring-4 focus:ring-[#db4c3f]/10 outline-none text-lg transition"
+                  placeholder="Örn. fırında tavuk ya da domates, peynir, makarna"
+                  className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-[15px] transition focus:border-brand/40 focus:outline-none focus:ring-4 focus:ring-brand/10"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && aiPromptInput.trim()) {
@@ -550,42 +517,23 @@ function RecipesContent() {
                     }
                   }}
                 />
-                
-                <div className="flex flex-wrap gap-2 items-center">
-                  <span className="text-xs text-gray-400">Hızlı öneriler:</span>
+                <div className="flex flex-wrap gap-2">
                   {QUICK_SUGGESTIONS.map(suggestion => (
-                    <button 
-                      key={suggestion}
-                      onClick={() => setAiPromptInput(suggestion)}
-                      className="text-xs bg-gray-100 hover:bg-[#db4c3f]/10 text-gray-600 hover:text-[#db4c3f] px-3 py-1.5 rounded-full transition"
-                    >
+                    <button type="button" key={suggestion} onClick={() => setAiPromptInput(suggestion)}
+                      className="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-slate-600 transition hover:border-gray-300 hover:text-slate-900">
                       {suggestion}
                     </button>
                   ))}
                 </div>
-                
-                <button 
-                  onClick={handlePromptModalSubmit}
-                  disabled={!aiPromptInput.trim() || isGenerating}
-                  className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#db4c3f]/20"
-                >
-                  {isGenerating ? (
-                    <>
-                      <FaSpinner className="animate-spin" />
-                      Hazırlanıyor...
-                    </>
-                  ) : (
-                    <>
-                      <FaWandMagicSparkles />
-                      Tarif Oluştur
-                    </>
-                  )}
+                <button type="button" onClick={handlePromptModalSubmit} disabled={!aiPromptInput.trim() || isGenerating}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50">
+                  {isGenerating ? <><Loader2 className="h-4 w-4 animate-spin" /> Hazırlanıyor…</> : "Tarif oluştur"}
                 </button>
               </div>
             </div>
           </div>
         )}
-        
+
         {reviewOpen && reviewDraft && similarRecipeId && (
           <SimilarRecipeChoice
             title={reviewDraft.title}
@@ -602,9 +550,9 @@ function RecipesContent() {
         {modal.show && (
             <div className="fixed bottom-5 right-5 left-5 sm:left-auto z-[200] flex items-center justify-center sm:w-[360px]">
                <div className="relative w-full rounded-2xl border border-[#f1d2c7] bg-white p-5 shadow-2xl">
-                   <button onClick={() => setModal({ ...modal, show: false })} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"><FaXmark className="text-xl"/></button>
+                   <button type="button" aria-label="Kapat" onClick={() => setModal({ ...modal, show: false })} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
                    <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-2 text-lg ${modal.type === 'success' ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>
-                      {modal.type === 'success' ? <FaCheck /> : <FaXmark />}
+                      {modal.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                    </div>
                    <h3 className="text-sm font-bold text-slate-900 mb-1">{modal.type === 'success' ? 'Başarılı!' : 'Hata'}</h3>
                    <p className="text-xs leading-5 text-gray-500">{modal.message}</p>
@@ -619,7 +567,7 @@ function RecipesContent() {
 // DÜZELTME: Suspense boundary ile sarmalanmış export
 const RecipesPage = () => {
   return (
-    <Suspense fallback={<div className="container mx-auto p-4 text-center">Yükleniyor...</div>}>
+    <Suspense fallback={<div className="mx-auto max-w-6xl p-4 text-center text-sm text-gray-500">Yükleniyor…</div>}>
       <RecipesContent />
     </Suspense>
   );
