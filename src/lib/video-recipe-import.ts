@@ -60,7 +60,7 @@ export function isTikTokShortLink(value: string): boolean {
 
 /** Social platforms where the user confirms media-processing rights. */
 export function needsRightsConfirmation(value: string): boolean {
-  return isInstagramReelLink(value) || isTikTokVideoLink(value);
+  return isInstagramReelLink(value) || isInstagramPostLink(value) || isTikTokVideoLink(value);
 }
 
 /** A /p/ URL can be photo, video or carousel; URL alone cannot identify media type. */
@@ -74,7 +74,7 @@ export function isInstagramPostLink(value: string): boolean {
 }
 
 export function isVideoRecipeLink(value: string): boolean {
-  return isYouTubeVideoLink(value) || isInstagramReelLink(value) || isTikTokVideoLink(value);
+  return isYouTubeVideoLink(value) || isInstagramReelLink(value) || isInstagramPostLink(value) || isTikTokVideoLink(value);
 }
 
 export function parseVideoJob(value: unknown): VideoJob {
