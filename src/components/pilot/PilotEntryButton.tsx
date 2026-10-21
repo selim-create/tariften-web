@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { CookingPot, Play } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function PilotEntryButton({ slug }: { slug: string }) {
@@ -24,16 +24,16 @@ export default function PilotEntryButton({ slug }: { slug: string }) {
         <Play className="h-4 w-4 fill-current" aria-hidden /> Pişirme rehberini başlat
       </Link>
       {showAuth && (
-        <div role="presentation" className="fixed inset-0 z-[180] flex items-center justify-center bg-[#08101a]/85 p-4"
+        <div role="presentation" className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
           onMouseDown={(event) => { if (event.target === event.currentTarget) setShowAuth(false); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="pilot-sign-in-title"
-            className="w-full max-w-md rounded-[28px] border border-[#db4c3f]/30 bg-[#182231] p-7 text-center shadow-2xl">
-            <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-[#db4c3f]/20 text-3xl text-[#db4c3f]">♨</div>
-            <h2 id="pilot-sign-in-title" className="text-2xl font-extrabold text-white">Tariften Pişirme Rehberi</h2>
-            <p className="mb-6 mt-3 text-sm leading-6 text-[#c4cbd5]">Adım adım sesli pişirme rehberini kullanmak için giriş yap veya Standart Üye olarak kayıt ol.</p>
-            <Link href="/login" className="block rounded-xl bg-[#db4c3f] p-3.5 font-bold text-white">Giriş Yap</Link>
-            <Link href="/register" className="mt-2 block rounded-xl border border-white/25 p-3.5 font-bold text-white">Standart Üye Ol</Link>
-            <button type="button" onClick={() => setShowAuth(false)} className="mt-4 p-2 text-sm text-[#aeb8c4]">Şimdi değil</button>
+            className="w-full max-w-sm rounded-3xl bg-white p-7 text-center shadow-xl">
+            <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-brand/10 text-brand"><CookingPot className="h-7 w-7" /></div>
+            <h2 id="pilot-sign-in-title" className="font-heading text-xl font-bold text-slate-900">Pişirme rehberi</h2>
+            <p className="mb-6 mt-2 text-sm leading-6 text-gray-500">Adım adım, sesli ve eller serbest rehberi kullanmak için giriş yap ya da Standart Üye olarak kayıt ol.</p>
+            <Link href="/login" className="grid h-12 place-items-center rounded-xl bg-brand font-semibold text-white transition hover:bg-brand-dark">Giriş yap</Link>
+            <Link href="/register" className="mt-2 grid h-12 place-items-center rounded-xl border border-gray-200 font-semibold text-slate-800 transition hover:border-gray-300">Standart Üye ol</Link>
+            <button type="button" onClick={() => setShowAuth(false)} className="mt-3 p-2 text-sm text-gray-500 hover:text-slate-800">Şimdi değil</button>
           </section>
         </div>
       )}
