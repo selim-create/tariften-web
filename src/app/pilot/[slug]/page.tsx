@@ -32,7 +32,7 @@ export default async function PilotPage({
       : ["Tarif adımları yüklenemedi, lütfen detay sayfasına bakınız."];
 
   return (
-    <main className="h-screen w-full bg-[#0f172a] text-white overflow-hidden">
+    <main className="h-screen w-full overflow-hidden bg-slate-950 text-slate-100">
       <PilotAccessGate recipe={recipe} steps={finalSteps} hasStoredSteps={storedSteps.length > 0} />
     </main>
   );
