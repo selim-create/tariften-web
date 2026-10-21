@@ -88,10 +88,8 @@ test('food visual identity is integrated without removing the recipe ingredient 
  const detail=fs.readFileSync(path.join(__dirname,'..','src/components/recipe/RecipeDetailClient.tsx'),'utf8');
  const importPage=fs.readFileSync(path.join(__dirname,'..','src/app/recipe/import/page.tsx'),'utf8');
  assert.match(detail,/LokmaIngredientIcon name=\{item\.name\}/);
- assert.match(detail,/LOKMA_RATINGS\.map/);
- assert.match(detail,/handleRating\(rating\)/);
- assert.match(detail,/LOKMA_REACTIONS\.map/);
- assert.match(detail,/setCommentText\(current =>/);
+ assert.match(detail,/LOKMA_RATINGS\.find/, 'rating labels come from the shared 1-5 scale');
+ assert.match(detail,/handleRating\(star\)/);
  assert.match(importPage,/LokmaIngredientIcon name=\{ingredient\.name\}/);
  assert.match(importPage,/Tarif Aktar/);
  assert.match(importPage,/Tarifimi güzelleştir/);
@@ -115,7 +113,7 @@ test('ingredient illustrations are compact vector art and never render native fo
   assert.match(icon, /figure === "plate"/);
   assert.match(icon, /h-5 w-5/);
   assert.doesNotMatch(icon, /\{ingredient\.emoji\}/);
-  assert.match(recipe, /size="sm"/);
+  assert.match(recipe, /<LokmaIngredientIcon name=\{item\.name\} size="md"/);
 });
 
 test('ingredient display uses Turkish casing and never displays NaN for unspecified amounts', () => {

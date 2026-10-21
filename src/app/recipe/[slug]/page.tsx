@@ -1,21 +1,18 @@
 import { getRecipe } from "@/lib/api";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FaClock, FaFire, FaChartSimple, FaChevronRight, FaPlay, FaUtensils, FaLeaf } from "react-icons/fa6";
-import { FaRegClock, FaRegBookmark } from "react-icons/fa";
+import { ChevronRight, Clock3, CookingPot, Flame, Gauge, Users } from "lucide-react";
 import RecipeDetailClient from "@/components/recipe/RecipeDetailClient";
 import SocialRecipeSourceCard from "@/components/recipe/SocialRecipeSourceCard";
 import PilotEntryButton from "@/components/pilot/PilotEntryButton";
-import RecipeActions from "@/components/recipe/RecipeActions"; 
+import RecipeActions from "@/components/recipe/RecipeActions";
 import EditButton from "@/components/recipe/EditButton";
 import RecipeReviewNotice from "@/components/recipe/RecipeReviewNotice";
-import AuthorCard from "@/components/AuthorCard";
+import RecipeCover from "@/components/recipe/RecipeCover";
 import { Metadata } from 'next';
 import RecipeJsonLd from '@/components/RecipeJsonLd';
-import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 import { isPlaceholderImage } from "@/lib/utils";
 import RejindeBanner from '@/components/RejindeBanner';
-import InlineNewsletterPlacement from "@/components/newsletter/InlineNewsletterPlacement";
 
 function getYoutubeVideoId(url: string) {
   if (!url) return null;
@@ -24,14 +21,20 @@ function getYoutubeVideoId(url: string) {
   return (match && match[2].length === 11) ? match[2] : null;
 }
 
-export async function generateMetadata({ 
-  params 
-}: { 
-  params: Promise<{ slug: string }> 
+/** Positive whole number from API data, or null. Never a default. */
+function positiveNumber(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
+}
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params;
   const recipe = await getRecipe(slug);
-  
+
   if (!recipe) {
     return {
       title: 'Tarif Bulunamadı',
@@ -70,10 +73,10 @@ export async function generateMetadata({
   };
 }
 
-export default async function RecipeDetailPage({ 
-  params 
-}: { 
-  params: Promise<{ slug: string }> 
+export default async function RecipeDetailPage({
+  params
+}: {
+  params: Promise<{ slug: string }>
 }) {
   const { slug } = await params;
   const recipe = await getRecipe(slug);
@@ -83,134 +86,136 @@ export default async function RecipeDetailPage({
   }
 
   const videoId = getYoutubeVideoId(recipe.image);
-  const isAiRecipe = recipe.image.includes("placehold.co") || 
-                     recipe.image.includes("images.unsplash.com") || 
-                     recipe.image.includes("pexels.com");
-  
+  const hasPhoto = !videoId && !isPlaceholderImage(recipe.image);
+  // Social imports have a real source; only unsourced stock/placeholder
+  // recipes are labelled as an AI suggestion.
+  const isAiRecipe = !recipe.social_source && (
+    recipe.image.includes("placehold.co") ||
+    recipe.image.includes("images.unsplash.com") ||
+    recipe.image.includes("pexels.com"));
+
+  const prep = positiveNumber(recipe.prep_time);
+  const cook = positiveNumber(recipe.cook_time);
+  const servings = positiveNumber(recipe.servings);
+  const calories = positiveNumber(recipe.calories);
+  const caloriesVerified = recipe.nutrition_status === 'verified';
+  const difficulty = recipe.difficulty?.[0] || null;
+
+  const facts = [
+    prep && { icon: Clock3, label: "Hazırlık", value: `${prep} dk` },
+    cook && { icon: CookingPot, label: "Pişirme", value: `${cook} dk` },
+    servings && { icon: Users, label: "Porsiyon", value: `${servings} kişilik` },
+    calories && {
+      icon: Flame,
+      label: caloriesVerified ? "Kalori" : "Kalori · tahmini",
+      value: `${caloriesVerified ? "" : "≈"}${calories} kcal`,
+      hint: caloriesVerified ? "Doğrulanmış besin analizi" : "AI tahmini; besin veritabanıyla doğrulanmadı",
+    },
+    difficulty && { icon: Gauge, label: "Zorluk", value: difficulty },
+  ].filter(Boolean) as { icon: typeof Clock3; label: string; value: string; hint?: string }[];
+
+  const taxonomy = [
+    ...(recipe.meal_type || []).map(m => ({ label: m, href: `/recipes?meal_type=${encodeURIComponent(m)}` })),
+    ...(recipe.cuisine || []).map(c => ({ label: c, href: `/recipes?cuisine=${encodeURIComponent(c)}` })),
+    ...(recipe.diet || []).map(d => ({ label: d, href: `/recipes?diet=${encodeURIComponent(d)}` })),
+  ];
+
   return (
-    <main className="min-h-screen bg-[#fcfcfc] pb-20 font-sans text-slate-800">
+    <main className="min-h-screen bg-[#fcfcfc] pb-24 font-sans text-slate-800">
       <RecipeJsonLd recipe={recipe} />
-      
-      <div className="container mx-auto max-w-6xl px-4 pt-6 pb-2">
-        <nav className="flex items-center text-xs text-gray-400 gap-2 overflow-hidden whitespace-nowrap">
-          <Link href="/" className="hover:text-brand transition">Anasayfa</Link>
-          <FaChevronRight className="text-[8px]" />
-          <Link href="/recipes" className="hover:text-brand transition">Tarifler</Link>
-          <FaChevronRight className="text-[8px]" />
-          <span className="text-gray-800 font-medium truncate">{recipe.title}</span>
+
+      <div className="container mx-auto max-w-6xl px-4 pt-6">
+        <nav aria-label="Sayfa konumu" className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-gray-500">
+          <Link href="/" className="transition hover:text-brand">Anasayfa</Link>
+          <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" aria-hidden />
+          <Link href="/recipes" className="transition hover:text-brand">Tarifler</Link>
+          <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" aria-hidden />
+          <span className="truncate font-medium text-slate-700">{recipe.title}</span>
         </nav>
       </div>
 
-      <div className="container mx-auto max-w-6xl px-4 py-6">
+      <div className="container mx-auto max-w-6xl px-4 pt-6 sm:pt-8">
         <RecipeReviewNotice recipeId={recipe.id} authorId={recipe.author?.id ?? 0} />
         <RejindeBanner recipeId={recipe.id} />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mb-12 items-start">
-          <div className="relative group rounded-3xl overflow-hidden shadow-lg aspect-[4/3] bg-gray-100">
+
+        <header className="mb-10 grid grid-cols-1 items-center gap-8 md:grid-cols-2 lg:mb-14 lg:gap-14">
+          {/* Without a photo the typographic cover would repeat the H1 directly below it on phones. */}
+          <div className={`group relative aspect-[4/3] overflow-hidden rounded-3xl bg-gray-100 ring-1 ring-black/5 ${!videoId && !hasPhoto ? "hidden md:block" : ""}`}>
             <EditButton authorId={recipe.author?.id} recipeId={recipe.id} />
 
             {videoId ? (
               <iframe
                 src={`https://www.youtube.com/embed/${videoId}?rel=0`}
-                className="w-full h-full object-cover"
+                className="h-full w-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 title={recipe.title}
               />
-            ) : isPlaceholderImage(recipe.image) ? (
-              <ImagePlaceholder title={recipe.title} variant="detail" />
+            ) : hasPhoto ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={recipe.image}
+                alt={recipe.title}
+                className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.02]"
+              />
             ) : (
-              <>
-                <img 
-                  src={recipe.image} 
-                  alt={recipe.title} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60"></div>
-              </>
+              <RecipeCover title={recipe.title} kicker={recipe.cuisine?.[0]} />
             )}
 
             {!videoId && isAiRecipe && (
-              <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-xs font-bold text-brand shadow-sm flex items-center gap-1 z-10">
-                AI Önerisi ✨
-              </div>
+              <span className="absolute bottom-4 left-4 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-black/5 backdrop-blur">
+                AI önerisi
+              </span>
             )}
           </div>
 
-          <div className="flex flex-col h-full justify-center">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {(recipe.meal_type || []).map(m => (
-                 <Link href={`/recipes?meal_type=${encodeURIComponent(m)}`} key={m} className="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider border border-blue-100 hover:bg-blue-100 transition">
-                    {m}
-                 </Link>
-              ))}
-              {(recipe.cuisine || []).map(c => (
-                <Link href={`/recipes?cuisine=${encodeURIComponent(c)}`} key={c} className="bg-orange-50 text-orange-700 text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider border border-orange-100 hover:bg-orange-100 transition">
-                  {c}
-                </Link>
-              ))}
-              {(recipe.diet || []).map(d => (
-                <Link href={`/recipes?diet=${encodeURIComponent(d)}`} key={d} className="bg-green-50 text-green-700 text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider border border-green-100 hover:bg-green-100 transition">
-                  {d}
-                </Link>
-              ))}
-            </div>
+          <div className="flex flex-col">
+            {taxonomy.length > 0 && (
+              <ul className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
+                {taxonomy.map((t, i) => (
+                  <li key={`${t.href}`} className="flex items-center gap-2">
+                    {i > 0 && <span className="h-1 w-1 rounded-full bg-gray-300" aria-hidden />}
+                    <Link href={t.href} className="text-brand transition hover:text-brand-dark">{t.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-            <h1 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4 font-heading leading-tight">
+            <h1 className="mb-5 font-heading text-[34px] font-bold leading-[1.08] tracking-[-0.025em] text-slate-900 text-balance sm:text-5xl">
               {recipe.title}
             </h1>
-            
-            <div className="text-gray-500 text-lg mb-8 font-light leading-relaxed border-l-4 border-brand/20 pl-4">
-              {recipe.excerpt || <span className="italic opacity-60">Lezzeti garanti bir tarif!</span>}
-            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-              <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
-                <FaRegClock className="mx-auto text-brand mb-1 text-lg group-hover:scale-110 transition" />
-                <div className="text-[10px] text-gray-400 font-medium uppercase">Hazırlama</div>
-                <div className="font-bold text-slate-700">{recipe.prep_time || 0} dk</div>
-              </div>
-              <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
-                <FaFire className="mx-auto text-orange-500 mb-1 text-lg group-hover:scale-110 transition" />
-                <div className="text-[10px] text-gray-400 font-medium uppercase">Pişirme</div>
-                <div className="font-bold text-slate-700">{recipe.cook_time || 0} dk</div>
-              </div>
-              <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
-                <FaLeaf className="mx-auto text-green-500 mb-1 text-lg group-hover:scale-110 transition" />
-                <div className="text-[10px] text-gray-400 font-medium uppercase">Kalori</div>
-                <div className="font-bold text-slate-700" title={recipe.nutrition_status === 'verified' ? 'Doğrulanmış kalori' : 'AI tahmini; besin veritabanıyla doğrulanmadı'}>{recipe.calories && Number(recipe.calories) > 0 ? `${recipe.nutrition_status === 'verified' ? '' : '≈'}${recipe.calories}` : "-"}</div>
-              </div>
-              <div className="bg-white p-3 rounded-2xl border border-gray-100 text-center shadow-sm hover:border-brand/30 transition group">
-                <FaChartSimple className="mx-auto text-blue-500 mb-1 text-lg group-hover:scale-110 transition" />
-                <div className="text-[10px] text-gray-400 font-medium uppercase">Zorluk</div>
-                <div className="font-bold text-slate-700">{recipe.difficulty?.[0] || "Orta"}</div>
-              </div>
-            </div>
+            {recipe.excerpt && (
+              <p className="mb-8 max-w-xl text-[17px] leading-relaxed text-gray-500">
+                {recipe.excerpt}
+              </p>
+            )}
 
-            <div className="flex flex-wrap items-center gap-3 mt-auto pt-6 border-t border-gray-100">
+            {facts.length > 0 && (
+              <dl className="mb-8 grid grid-cols-2 overflow-hidden rounded-2xl border border-gray-200 bg-white sm:flex sm:divide-x sm:divide-gray-100">
+                {facts.map(({ icon: Icon, label, value, hint }, i) => (
+                  <div key={label} title={hint}
+                    className={`flex flex-1 flex-col gap-1 px-4 py-3.5 ${i % 2 === 1 ? "border-l border-gray-100 sm:border-l-0" : ""} ${i > 1 ? "border-t border-gray-100 sm:border-t-0" : ""}`}>
+                    <dt className="flex items-center gap-1.5 text-[11px] font-medium text-gray-500">
+                      <Icon className="h-3.5 w-3.5 text-gray-400" aria-hidden strokeWidth={1.75} />
+                      {label}
+                    </dt>
+                    <dd className="text-[15px] font-semibold text-slate-900 tabular-nums">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3">
               <PilotEntryButton slug={recipe.slug} />
               <RecipeActions recipeId={recipe.id} title={recipe.title} />
             </div>
           </div>
-        </div>
+        </header>
 
         {recipe.social_source && <SocialRecipeSourceCard source={recipe.social_source} />}
 
         <RecipeDetailClient recipe={recipe} />
-
-        <InlineNewsletterPlacement
-          source="tariften_recipe_inline"
-          targetHeading="Bu tarifi denedin mi?"
-          title="Yarın ne pişireceğini bugünden düşünme."
-          description="Mevsimlik tarifler, pratik alternatifler ve mutfakta zaman kazandıran seçkiler e-postana gelsin."
-          className="mb-10"
-        />
-
-        {recipe.author && (
-          <div className="container mx-auto max-w-6xl px-4 mt-8">
-            <AuthorCard author={recipe.author} />
-          </div>
-        )}
       </div>
     </main>
   );

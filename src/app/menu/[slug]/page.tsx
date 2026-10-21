@@ -189,7 +189,7 @@ export default async function MenuDetailPage({ params }: { params: Promise<{ slu
 
             {menu.author && (
               <div className="mt-8">
-                <AuthorCard author={menu.author} />
+                <AuthorCard author={menu.author} label="Menüyü hazırlayan" />
               </div>
             )}
         </div>

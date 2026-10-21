@@ -14,8 +14,9 @@ export default function EditButton({ authorId, recipeId }: { authorId: number, r
   return (
     <Link 
       href={`/recipe/edit/${recipeId}`}
-      className="absolute top-4 right-4 bg-white/20 backdrop-blur-md hover:bg-white text-white hover:text-slate-900 p-3 rounded-full transition shadow-lg z-30 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 duration-300"
-      title="Tarifi Düzenle"
+      className="absolute top-4 right-4 z-30 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-slate-700 ring-1 ring-black/5 backdrop-blur transition hover:bg-white hover:text-brand"
+      title="Tarifi düzenle"
+      aria-label="Tarifi düzenle"
     >
       <FaPen className="text-sm" />
     </Link>
