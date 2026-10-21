@@ -72,7 +72,7 @@ export default async function RejimdeCollectionPage() {
       <div className="max-w-6xl mx-auto px-4 py-12">
         {recipeList.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recipeList.map((recipe: any) => (
+            {recipeList.map((recipe) => (
               <Link 
                 href={`/recipe/${recipe.slug}`} 
                 key={recipe.id} 
@@ -106,12 +106,16 @@ export default async function RejimdeCollectionPage() {
                   </h2>
                   <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500 font-medium">
                     <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1">
-                        <FaClock className="text-emerald-600" /> {recipe.prep_time || 0}dk
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <FaFire className="text-orange-500" /> {recipe.calories}
-                      </span>
+                      {Number(recipe.prep_time || 0) + Number(recipe.cook_time || 0) > 0 && (
+                        <span className="flex items-center gap-1 tabular-nums">
+                          <FaClock className="text-emerald-600" /> {Number(recipe.prep_time || 0) + Number(recipe.cook_time || 0)} dk
+                        </span>
+                      )}
+                      {recipe.calories ? (
+                        <span className="flex items-center gap-1">
+                          <FaFire className="text-orange-500" /> {recipe.calories}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 </div>

@@ -34,7 +34,7 @@ export default function Footer() {
     <footer className="mt-16 border-t border-[#eee7e3] bg-[#fbfaf8] text-slate-800">
       <div className="container mx-auto px-4 py-10 md:px-6 md:py-14">
         <div className="overflow-hidden rounded-[32px] border border-[#eaded9] bg-white shadow-[0_24px_80px_rgba(100,60,45,0.07)]">
-          <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <div className="relative overflow-hidden border-b border-[#eee6e2] px-6 py-8 md:px-8 lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
               <div className="absolute -right-14 -top-20 h-52 w-52 rounded-full bg-[#db4c3f]/8 blur-3xl" />
               <div className="relative">
@@ -65,7 +65,7 @@ export default function Footer() {
               </div>
             </div>
 
-            <div className="px-6 py-8 md:px-8 lg:px-10 lg:py-10">
+            <div className="min-w-0 px-6 py-8 md:px-8 lg:px-10 lg:py-10">
               <NewsletterForm source="tariften_footer" />
             </div>
           </div>

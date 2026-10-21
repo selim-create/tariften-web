@@ -1,12 +1,16 @@
 import { Recipe } from '@/types';
 import { parseIngredients, parseSteps } from '@/lib/recipeUtils';
+import { isPlaceholderImage } from '@/lib/utils';
 
 interface RecipeJsonLdProps {
   recipe: Recipe;
 }
 
 export default function RecipeJsonLd({ recipe }: RecipeJsonLdProps) {
-  const totalTime = (Number(recipe.prep_time) || 0) + (Number(recipe.cook_time) || 0);
+  // Durations go out only when the recipe actually states them; no PT0M / PTundefinedM.
+  const prep = Number(recipe.prep_time) > 0 ? Math.round(Number(recipe.prep_time)) : 0;
+  const cook = Number(recipe.cook_time) > 0 ? Math.round(Number(recipe.cook_time)) : 0;
+  const totalTime = prep + cook;
   const siteUrl = 'https://tariften.com';
   
   // Keywords oluştur
@@ -32,21 +36,22 @@ export default function RecipeJsonLd({ recipe }: RecipeJsonLdProps) {
     '@type': 'Recipe',
     name: recipe.title,
     description: recipe.excerpt,
-    image: [recipe.image],
+    ...(recipe.image && !isPlaceholderImage(recipe.image) ? { image: [recipe.image] } : {}),
     author: {
       '@type': 'Organization',
       name: 'Tariften',
       url: siteUrl
     },
     datePublished: recipe.created_at,
-    prepTime: `PT${recipe.prep_time}M`,
-    cookTime: `PT${recipe.cook_time}M`,
-    totalTime: `PT${totalTime}M`,
+    ...(prep > 0 ? { prepTime: `PT${prep}M` } : {}),
+    ...(cook > 0 ? { cookTime: `PT${cook}M` } : {}),
+    ...(totalTime > 0 ? { totalTime: `PT${totalTime}M` } : {}),
     // No recipeYield without a user-confirmed source servings value.
     ...(Number.isInteger(Number(recipe.servings)) && Number(recipe.servings) > 0 && Number(recipe.servings) <= 36
       ? { recipeYield: `${Number(recipe.servings)} porsiyon` } : {}),
-    recipeCategory: recipe.meal_type?.[0] || 'Ana Yemek',
-    recipeCuisine: recipe.cuisine?.[0] || 'Türk Mutfağı',
+    // Category and cuisine only when the recipe is tagged; no guessed defaults.
+    ...(recipe.meal_type?.[0] ? { recipeCategory: recipe.meal_type[0] } : {}),
+    ...(recipe.cuisine?.[0] ? { recipeCuisine: recipe.cuisine[0] } : {}),
     keywords: generateKeywords(),
     // NutritionInformation must not claim AI guesses as measured facts.
     ...(recipe.nutrition_status === 'verified' && recipe.nutrition
@@ -58,9 +63,9 @@ export default function RecipeJsonLd({ recipe }: RecipeJsonLdProps) {
           fatContent: `${recipe.nutrition.fat}g`,
         } }
       : {}),
-    recipeIngredient: parseIngredients(recipe.ingredients).map(
-      (ing) => `${ing.amount} ${ing.unit} ${ing.name}`
-    ),
+    recipeIngredient: parseIngredients(recipe.ingredients)
+      .map((ing) => [ing.amount, ing.unit, ing.name].map((part) => String(part ?? '').trim()).filter(Boolean).join(' '))
+      .filter(Boolean),
     recipeInstructions: parseSteps(recipe.steps).map((step, index) => ({
       '@type': 'HowToStep',
       position: index + 1,
@@ -79,18 +84,8 @@ export default function RecipeJsonLd({ recipe }: RecipeJsonLdProps) {
       bestRating: 5,
       worstRating: 1
     };
-  } else if (recipe.rating && recipe.rating > 0) {
-    // Fallback: Eski rating alanı varsa kullan
-    const VOTES_PER_RATING = 10;
-    const BASE_VOTE_COUNT = 5;
-    jsonLd.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: recipe.rating,
-      ratingCount: Math.max(Math.floor(recipe.rating * VOTES_PER_RATING) + BASE_VOTE_COUNT, 1),
-      bestRating: 5,
-      worstRating: 1
-    };
   }
+  // No rating count is ever estimated: without real votes there is no aggregateRating.
 
   return (
     <script
