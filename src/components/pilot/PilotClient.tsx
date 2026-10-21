@@ -529,9 +529,12 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
     setCheckedIngredients(prev => prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]);
   const ingredientLabel = (index: number) => {
     const item = ingredients[index];
+    const raw = capitalizeIngredientTr(String(item.name || ""));
+    const match = raw.match(/^(.+?)\s*\(([^()]+)\)\s*$/);
     return {
       amount: formatIngredientAmount(item.amount, item.unit, 1, 1),
-      name: capitalizeIngredientTr(String(item.name || "").replace(/\s*\((?:veya|ya da)\b[^()]*\)\s*$/i, "")),
+      name: match ? match[1] : raw,
+      qualifier: match ? match[2] : "",
     };
   };
 
@@ -670,7 +673,7 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
                 </div>
                 <ul className="divide-y divide-slate-800">
                   {ingredients.map((item, index) => {
-                    const { amount, name } = ingredientLabel(index);
+                    const { amount, name, qualifier } = ingredientLabel(index);
                     const done = checkedIngredients.includes(index);
                     const now = stepIngredients.has(index);
                     return (
@@ -682,8 +685,9 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
                           </span>
                           <span className={`min-w-0 flex-1 text-sm leading-snug ${done ? "text-slate-500 line-through decoration-slate-600" : now ? "text-slate-50" : "text-slate-300"}`}>
                             {amount && <span className={`font-semibold tabular-nums ${done ? "" : "text-[#f08a7f]"}`}>{amount} </span>}{name}
+                            {qualifier && <span className="mt-0.5 block text-xs text-slate-500">{qualifier}</span>}
                           </span>
-                          {now && !done && <span className="rounded-full bg-brand/15 px-2 py-0.5 text-[10px] font-semibold text-[#f08a7f]">şimdi</span>}
+                          {now && !done && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" title="Bu adımda"><span className="sr-only">Bu adımda</span></span>}
                         </button>
                       </li>
                     );
