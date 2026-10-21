@@ -500,7 +500,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
             <h1 className="font-heading text-[34px] font-bold leading-[1.05] tracking-[-0.035em] text-slate-900 text-balance sm:text-[48px]">
               İzlediğin tarif, <span className="italic text-brand">senin defterinde.</span>
             </h1>
-            <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-slate-500">Bir video bağlantısı ya da kendi notların yeter. Tariften malzemeleri ve adımları ayıklar; son kararı sen verirsin.</p>
+            <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-slate-500">Bir video bağlantısı ya da kendi notların yeter. Tariften malzemeleri ve adımları ayıklar; gerekli durumlarda kontrol edebilirsin.</p>
           </div>
           <div className="flex flex-col gap-3 lg:items-end">
             <nav aria-label="Tarif aktarım adımları" className="flex items-center gap-2 text-[12px] font-semibold text-gray-400">
@@ -511,7 +511,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               <span>03 · Onay</span>
             </nav>
             <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700">
-              <ShieldCheck className="h-4 w-4" aria-hidden /> Onayın olmadan yayımlanmaz
+              <ShieldCheck className="h-4 w-4" aria-hidden /> Uygun tarifler otomatik yayımlanabilir
             </span>
           </div>
         </div>
@@ -670,7 +670,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               </p>
               {busy !== "preview" && (
                 <ol className="mt-6 grid w-full max-w-md gap-2 text-left sm:grid-cols-3">
-                  {["Kaynağı ver", "Tariften ayıklar", "Sen onaylarsın"].map((label, i) => (
+                  {["Kaynağı ver", "Tariften ayıklar", "Gerekirse kontrol et"].map((label, i) => (
                     <li key={label} className="rounded-2xl bg-[#fcfaf8] px-3 py-3 ring-1 ring-black/5">
                       <span className="block font-heading text-sm font-bold text-brand tabular-nums">{String(i + 1).padStart(2, "0")}</span>
                       <span className="mt-0.5 block text-[13px] font-semibold text-slate-700">{label}</span>
