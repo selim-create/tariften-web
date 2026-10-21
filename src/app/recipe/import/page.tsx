@@ -297,7 +297,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
       }
       if (found.status === "pending") throw new Error("Bu video için yayın işlemi sürüyor.");
       if (found.status === "unsupported_post")
-        throw new Error("Bu Instagram gönderisinin Reels videosu olduğu doğrulanamadı. Aynı kısa kodla yayımlanmış bir tarif de bulunmuyor. Bu bağlantı için ücretli analiz başlatılmadı.");
+        throw new Error("Bu paylaşımın videosuna erişilemiyor. Fotoğraflar video olarak işlenmez.");
       let job: ReturnType<typeof parseVideoJob>;
       const existing = found.status === "existing" ? parseVideoJob(found.job) : null;
       // A failed transfer that can be retried is restarted by the same start call.
@@ -360,11 +360,6 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
         setError("Videoyu analiz etmek için gerekli kullanım iznine sahip olduğunu onayla.");
         return;
       }
-      await requestVideoPreview(url);
-      return;
-    }
-    if (isInstagramPostLink(url)) {
-      // Read-only shortcode resolution; backend never charges for a /p/ URL.
       await requestVideoPreview(url);
       return;
     }
@@ -579,12 +574,10 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               Instagram Reels, TikTok ve YouTube videolarında görüntü, ekrandaki yazılar, ses ve açıklama birlikte incelenir. Diğer desteklenen paylaşımlarda erişilebilir açıklama kullanılır.
             </p>
             {isInstagramPostLink(socialUrl) && (
-              <Notice warning>
-                Instagram gönderi bağlantıları (/p/) fotoğraf, video veya galeri olabilir.
-                Bu kısa kodla önceden oluşturulmuş bir Reels tarifi varsa onu bulabiliriz.
-                İlk kez aktarılan /p/ gönderilerinin medya türü henüz doğrulanamıyor;
-                fotoğraf veya galeri videoymuş gibi işlenmeyecek ve AI hakkı kullanılmayacak.
-              </Notice>
+              <p className="mt-2 text-xs leading-5 text-[#86766b]">
+                Instagram gönderisini kontrol ederiz. Video içeriyorsa tarifini çıkarırız;
+                fotoğraf veya galeri ise video analizi başlatmayız.
+              </p>
             )}
             {needsRightsConfirmation(socialUrl) && (
               <label className="mt-2 flex cursor-pointer items-start gap-2 text-[11px] leading-4 text-[#6f625b]">
@@ -613,7 +606,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
                    || (needsRightsConfirmation(socialUrl) && !instagramRightsConfirmed) || !socialUrl.trim()}
                 className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#db4c3f] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-slate-300">
                 {busy === "preview" ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {isVideoRecipeLink(socialUrl) ? "Tarif aktarılıyor…" : "Kaynak inceleniyor…"}</>
-                  : <><Sparkles className="h-4 w-4" /> {isInstagramPostLink(socialUrl) ? "Mevcut tarifi bul" : "Tarifi aktar"} <ArrowRight className="h-4 w-4" /></>}
+                  : <><Sparkles className="h-4 w-4" /> {"Tarifi aktar"} <ArrowRight className="h-4 w-4" /></>}
               </button>
               <p className="mt-2 text-center text-[10px] text-slate-400">{isVideoRecipeLink(socialUrl) ? "Tarifini hazırlarken bu ekranda beklemen gerekmiyor. Hazır olduğunda haber vereceğiz." : "Yeterli açıklama yoksa AI hakkın kullanılmadan bilgilendirilirsin."}</p>
             </div>
