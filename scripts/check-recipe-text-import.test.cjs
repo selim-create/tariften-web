@@ -172,8 +172,8 @@ test('schema and recipe detail omit unfounded two-person defaults', () => {
   const jsonld = fs.readFileSync(path.join(root, 'src/components/RecipeJsonLd.tsx'), 'utf8');
   const page = fs.readFileSync(path.join(root, 'src/app/recipe/import/page.tsx'), 'utf8');
   assert.match(page, /id="recipe-import-servings"/);
-  assert.match(detail, /Porsiyon bilgisi belirtilmemiş/);
-  assert.match(detail, /disabled=\{!baseServings\}/);
+  assert.match(detail, /Porsiyon<br \/>belirtilmemiş/);
+  assert.match(detail, /\{baseServings \? \(/, 'servings stepper only renders for a verified serving count');
   assert.doesNotMatch(detail, /recipe.servings \|\| 2/);
   assert.match(jsonld, /No recipeYield without a user-confirmed/);
   assert.doesNotMatch(jsonld, /recipeYield: `\$\{recipe.servings\} porsiyon`/);

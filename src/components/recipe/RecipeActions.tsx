@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toggleInteraction, checkInteractionStatus } from "@/lib/api";
-import { FaRegBookmark, FaShareNodes, FaCheck } from "react-icons/fa6";
+import { Bookmark, Check, Share2 } from "lucide-react";
 
 export default function RecipeActions({ recipeId, title }: { recipeId: number, title: string }) {
   const { user } = useAuth();
@@ -45,9 +45,8 @@ export default function RecipeActions({ recipeId, title }: { recipeId: number, t
           text: `${title} tarifini Tariften.com'da incele!`,
           url: window.location.href,
         });
-      } catch (error) {
-        // User cancelled share, do nothing
-        console.log("Share cancelled");
+      } catch {
+        // User cancelled the share sheet.
       }
     } else {
       // Fallback for browsers without Web Share API
@@ -62,30 +61,28 @@ export default function RecipeActions({ recipeId, title }: { recipeId: number, t
     }
   };
 
+  const base = "grid h-12 w-12 place-items-center rounded-xl border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
   return (
     <div className="flex gap-2">
-      <button 
+      <button
+        type="button"
         onClick={handleSave}
-        className={`w-12 h-12 rounded-xl border flex items-center justify-center transition ${
-          isSaved 
-            ? 'bg-brand text-white border-brand' 
-            : 'border-gray-200 text-gray-400 hover:text-brand hover:border-brand hover:bg-brand/5'
-        }`} 
+        aria-pressed={isSaved}
+        aria-label={isSaved ? "Kaydedildi" : "Tarifi kaydet"}
         title={isSaved ? "Kaydedildi" : "Kaydet"}
+        className={`${base} ${isSaved ? "border-brand bg-brand text-white" : "border-gray-200 bg-white text-slate-500 hover:border-gray-300 hover:text-brand"}`}
       >
-        <FaRegBookmark className="text-lg" />
+        <Bookmark className={`h-[18px] w-[18px] ${isSaved ? "fill-current" : ""}`} strokeWidth={1.75} />
       </button>
-      
-      <button 
+
+      <button
+        type="button"
         onClick={handleShare}
-        className={`w-12 h-12 rounded-xl border flex items-center justify-center transition ${
-          shareSuccess
-            ? 'bg-green-500 text-white border-green-500'
-            : 'border-gray-200 text-gray-400 hover:text-blue-500 hover:border-blue-500 hover:bg-blue-50'
-        }`}
-        title={shareSuccess ? "Link kopyalandı!" : "Paylaş"}
+        aria-label={shareSuccess ? "Bağlantı kopyalandı" : "Tarifi paylaş"}
+        title={shareSuccess ? "Bağlantı kopyalandı" : "Paylaş"}
+        className={`${base} ${shareSuccess ? "border-emerald-500 bg-emerald-500 text-white" : "border-gray-200 bg-white text-slate-500 hover:border-gray-300 hover:text-brand"}`}
       >
-        {shareSuccess ? <FaCheck className="text-lg" /> : <FaShareNodes className="text-lg" />}
+        {shareSuccess ? <Check className="h-[18px] w-[18px]" strokeWidth={2} /> : <Share2 className="h-[18px] w-[18px]" strokeWidth={1.75} />}
       </button>
     </div>
   );

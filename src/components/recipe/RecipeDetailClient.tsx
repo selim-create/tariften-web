@@ -3,24 +3,30 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  FaCheck, FaLightbulb, FaThumbsUp, FaXmark, FaClock, FaFire, FaArrowRight, FaHeart, FaCircleUser, FaStar
-} from "react-icons/fa6";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Check, Clock3, Heart, Lightbulb, Minus, Plus, Star, UserRound, X } from "lucide-react";
 import { Recipe, Comment } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { toggleInteraction, getRecipes, checkInteractionStatus, getComments, addComment, deleteComment, toggleCommentLike, getRecipeRating, getUserRating, submitRating } from "@/lib/api";
-import { getRandomChefTip } from "@/lib/chefTips";
-import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { recipeChefTip } from "@/lib/chefTips";
 import { isPlaceholderImage } from "@/lib/utils";
 import { parseIngredients, parseSteps } from "@/lib/recipeUtils";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
+import RecipeCover from "@/components/recipe/RecipeCover";
+import AuthorCard from "@/components/AuthorCard";
 import { capitalizeIngredientTr, formatIngredientAmount } from "@/lib/ingredient-display";
-import { LOKMA_REACTIONS, LOKMA_RATINGS } from "@/lib/lokma-emoji";
+import { LOKMA_RATINGS } from "@/lib/lokma-emoji";
+
+/** "Kuru domates (yağda veya yumuşatılmış)" → name + muted qualifier line. */
+function splitIngredientName(raw: string): { name: string; qualifier: string | null } {
+  const match = raw.trim().match(/^(.+?)\s*\(([^()]+)\)\s*$/);
+  return match ? { name: match[1], qualifier: match[2] } : { name: raw.trim(), qualifier: null };
+}
 
 export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const { user } = useAuth();
-  
-  // --- STATE ---
+  const router = useRouter();
+
   // Missing source servings must never appear as an invented "2 kişilik".
   const originalServings = Number(recipe.servings);
   const verifiedServings = Number.isInteger(originalServings) && originalServings > 0 && originalServings <= 36
@@ -28,17 +34,14 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const [servings, setServings] = useState<number | null>(verifiedServings);
   const [checkedIngredients, setCheckedIngredients] = useState<number[]>([]);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-  
-  // Cooked Count Mantığı
-  const [cookedCount, setCookedCount] = useState(0); 
+
+  // Only real "cooked" interactions are counted. No estimated or seeded numbers.
+  const [cookedCount, setCookedCount] = useState(() => Math.max(0, Number(recipe.cooked_count) || 0));
   const [isCooked, setIsCooked] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Benzer Tarifler State
   const [similarRecipes, setSimilarRecipes] = useState<Recipe[]>([]);
-  const [loadingSimilar, setLoadingSimilar] = useState(true);
 
-  // Comment State
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,94 +49,35 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Rating State
   const [userRating, setUserRating] = useState<number | null>(null);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [averageRating, setAverageRating] = useState<number>(0);
   const [ratingCount, setRatingCount] = useState<number>(0);
-  const [hasRated, setHasRated] = useState(false);
 
-  // --- INITIALIZATION EFFECT ---
   useEffect(() => {
-    // 1. Fake Count Hesapla (Deterministik)
-    let baseCount = 0;
-    
-    if (recipe.created_at) {
-      const createdDate = new Date(recipe.created_at);
-      const now = new Date();
-      const diffHours = Math.abs(now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
-      const diffDays = diffHours / 24;
-      
-      // Seed bazlı deterministic hesaplama (Linear Congruential Generator)
-      const seed = recipe.id;
-      const hash = (seed * 9301 + 49297) % 233280;
-      
-      if (diffHours < 3) {
-        // İlk 3 saat: 0
-        baseCount = 0;
-      } else if (diffHours < 24) {
-        // 3-24 saat arası: 5-50 arası (her 3 saatte artış)
-        const hoursFactor = Math.floor((diffHours - 3) / 3);
-        baseCount = Math.min(50, (hash % 15) + (hoursFactor * 5));
-      } else if (diffDays < 7) {
-        // 1-7 gün arası: 50-300 arası
-        const daysFactor = Math.floor(diffDays);
-        baseCount = 50 + (hash % 50) + (daysFactor * 30);
-      } else if (diffDays < 30) {
-        // 7-30 gün arası: 300-1500 arası
-        const weeksFactor = Math.floor(diffDays / 7);
-        baseCount = 300 + (hash % 200) + (weeksFactor * 200);
-      } else {
-        // 30+ gün: 1500-5000 arası
-        const monthsFactor = Math.floor(diffDays / 30);
-        baseCount = 1500 + (hash % 500) + Math.min(monthsFactor * 300, 3500);
-      }
-      
-      // Backend'den gelen gerçek cooked_count varsa ekle
-      if (recipe.cooked_count && recipe.cooked_count > 0) {
-        baseCount += recipe.cooked_count;
-      }
-    }
-    
-    setCookedCount(baseCount);
-
-    // 2. Kullanıcı Etkileşimini Kontrol Et
     async function checkUserStatus() {
-        if (user?.token) {
-            try {
-                const status = await checkInteractionStatus(user.token, recipe.id);
-                setIsCooked(status.cooked);
-                if (status.cooked) {
-                    setCookedCount(prev => prev + 1);
-                }
-            } catch (e) {
-                console.error("Etkileşim kontrolü hatası", e);
-            }
-        }
+      if (!user?.token) return;
+      try {
+        const status = await checkInteractionStatus(user.token, recipe.id);
+        setIsCooked(status.cooked);
+      } catch (e) {
+        console.error("Etkileşim kontrolü hatası", e);
+      }
     }
     checkUserStatus();
 
-    // 3. Benzer Tarifler
     async function fetchSimilar() {
       try {
-        const filters = {
-            cuisine: recipe.cuisine, 
-        };
-        const response = await getRecipes(filters);
+        const response = await getRecipes({ cuisine: recipe.cuisine });
         if (response && response.data) {
-            const filtered = response.data
-                .filter(r => r.id !== recipe.id)
-                .slice(0, 2); 
-            setSimilarRecipes(filtered);
+          setSimilarRecipes(response.data.filter(r => r.id !== recipe.id).slice(0, 3));
         }
       } catch (error) {
         console.error("Benzer tarifler hatası:", error);
-      } finally {
-        setLoadingSimilar(false);
       }
     }
     fetchSimilar();
 
-    // 4. Load Comments - API'den çek
     async function fetchComments() {
       try {
         const response = await getComments(recipe.id, 1, 10);
@@ -145,13 +89,11 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
         }
       } catch (error) {
         console.error("Yorumlar yüklenemedi:", error);
-        setComments([]); // Hata durumunda boş array
+        setComments([]);
       }
     }
-    
     fetchComments();
 
-    // 5. Load Rating
     async function fetchRating() {
       try {
         const response = await getRecipeRating(recipe.id);
@@ -159,38 +101,27 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
           setAverageRating(response.average || 0);
           setRatingCount(response.count || 0);
         }
-        
-        // Kullanıcının kendi puanını kontrol et
         if (user?.token) {
           const userRatingResponse = await getUserRating(user.token, recipe.id);
           if (userRatingResponse.success && userRatingResponse.rating) {
             setUserRating(userRatingResponse.rating);
-            setHasRated(true);
           }
         }
       } catch (error) {
         console.error("Rating yüklenemedi:", error);
       }
     }
-    
     fetchRating();
+  }, [recipe.id, recipe.cuisine, user?.token]);
 
-  }, [recipe.id, user?.token]);
-
-  // --- HELPER VALUES ---
-  // Never fabricate macronutrients from calorie percentages: this was
-  // producing believable-looking but nutritionally unsupported figures.
+  // Never fabricate macronutrients from calorie percentages.
   const hasVerifiedNutrition = recipe.nutrition_status === 'verified'
     && recipe.nutrition != null
     && [recipe.nutrition.protein, recipe.nutrition.carbs, recipe.nutrition.fat]
       .every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0);
-  const macros = hasVerifiedNutrition
-    ? { protein: recipe.nutrition.protein + "g", carbs: recipe.nutrition.carbs + "g", fat: recipe.nutrition.fat + "g" }
-    : null;
 
-  // Steps Parsing (API string[] veya Step[] dönebiliyor, tipte string[] tanımladık ama kontrol edelim)
   const parsedSteps = parseSteps(recipe.steps);
-  const steps = parsedSteps.length > 0 
+  const steps = parsedSteps.length > 0
     ? parsedSteps
     : recipe.content
       ? recipe.content
@@ -200,71 +131,40 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
           .filter(line => line.length > 5)
       : [];
 
-  // Ingredients Fallback
-  const DEMO_INGREDIENTS = [
-    { name: "Tavuk Göğsü", amount: 500, unit: "gr" },
-    { name: "Mantar", amount: 400, unit: "gr" },
-  ];
-  
-  const parsedIngredients = parseIngredients(recipe.ingredients);
-  const ingredients = parsedIngredients.length > 0
-    ? parsedIngredients.map(ing => ({
-        ...ing,
-        amount: typeof ing.amount === 'string' ? parseFloat(ing.amount) : ing.amount
-      }))
-    : DEMO_INGREDIENTS.map(ing => ({ ...ing, amount: Number(ing.amount) }));
+  // No demo fallback: an empty list is shown as empty, never as invented food.
+  const ingredients = parseIngredients(recipe.ingredients);
+  const chefTip = recipeChefTip(recipe.chef_tip);
 
-  // Chef tip - dinamik veya default
-  const chefTip = recipe.chef_tip || getRandomChefTip(recipe.id);
-
-  // --- HANDLERS ---
   const handleServings = (delta: number) => {
     if (!verifiedServings || servings === null) return;
-    const newValue = servings + delta;
-    if (newValue > 0 && newValue <= 20) setServings(newValue);
+    const next = servings + delta;
+    if (next > 0 && next <= 20) setServings(next);
   };
 
   const toggleIngredient = (index: number) => {
-    if (checkedIngredients.includes(index)) {
-      setCheckedIngredients(prev => prev.filter(i => i !== index));
-    } else {
-      setCheckedIngredients(prev => [...prev, index]);
-    }
+    setCheckedIngredients(prev => prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]);
   };
 
   const toggleStep = (index: number) => {
-    if (completedSteps.includes(index)) {
-      setCompletedSteps(prev => prev.filter(i => i !== index));
-    } else {
-      setCompletedSteps(prev => [...prev, index]);
-    }
+    setCompletedSteps(prev => prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]);
   };
 
   const handleCooked = async () => {
-    if (!user) return alert("Lütfen giriş yapın.");
+    if (!user?.token) { router.push("/login"); return; }
     if (isCooked) return;
-
     setIsCooked(true);
-    setCookedCount(prev => prev + 1); 
+    setCookedCount(prev => prev + 1);
     setShowSuccessModal(true);
-
-    if (user.token) {
-        try {
-            await toggleInteraction(user.token, recipe.id, 'cooked');
-        } catch (error) {
-            console.error("Pişirme işlemi kaydedilemedi:", error);
-        }
+    try {
+      await toggleInteraction(user.token, recipe.id, 'cooked');
+    } catch (error) {
+      console.error("Pişirme işlemi kaydedilemedi:", error);
     }
   };
 
-  // Comment Handlers
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return "Bugün";
+    const diffDays = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) return "Bugün";
     if (diffDays === 1) return "Dün";
     if (diffDays < 7) return `${diffDays} gün önce`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} hafta önce`;
@@ -274,11 +174,9 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !user.token || !commentText.trim()) return;
-
     setIsSubmitting(true);
     try {
       const response = await addComment(user.token, recipe.id, commentText);
-      
       if (response.success && response.comment) {
         setComments(prev => [response.comment, ...prev]);
         setCommentText('');
@@ -293,9 +191,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
 
   const handleDeleteComment = async (commentId: number) => {
     if (!user || !user.token) return;
-    
     if (!confirm("Bu yorumu silmek istediğinizden emin misiniz?")) return;
-
     try {
       await deleteComment(user.token, commentId);
       setComments(prev => prev.filter(c => c.id !== commentId));
@@ -306,20 +202,11 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   };
 
   const handleLikeComment = async (commentId: number) => {
-    if (!user || !user.token) {
-      alert("Beğenmek için giriş yapmalısınız.");
-      return;
-    }
-
+    if (!user || !user.token) { router.push("/login"); return; }
     try {
       const response = await toggleCommentLike(user.token, commentId);
-      
       if (response.success) {
-        setComments(prev => prev.map(c => 
-          c.id === commentId 
-            ? { ...c, likes: response.likes }
-            : c
-        ));
+        setComments(prev => prev.map(c => c.id === commentId ? { ...c, likes: response.likes } : c));
       }
     } catch (error) {
       console.error("Beğeni hatası:", error);
@@ -328,11 +215,9 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
 
   const loadMoreComments = async () => {
     if (currentPage >= totalPages) return;
-    
     try {
       const nextPage = currentPage + 1;
       const response = await getComments(recipe.id, nextPage, 10);
-      
       if (response.success) {
         setComments(prev => [...prev, ...(response.comments || [])]);
         setCurrentPage(nextPage);
@@ -344,19 +229,13 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   };
 
   const handleRating = async (rating: number) => {
-    if (!user || !user.token) {
-      alert("Değerlendirmek için giriş yapmalısınız.");
-      return;
-    }
-
+    if (!user || !user.token) { router.push("/login"); return; }
     try {
       const response = await submitRating(user.token, recipe.id, rating);
-      
       if (response.success) {
         setUserRating(rating);
         setAverageRating(response.new_average || rating);
         setRatingCount(response.new_count || 1);
-        setHasRated(true);
       }
     } catch (error) {
       console.error("Değerlendirme hatası:", error);
@@ -365,383 +244,319 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   };
 
   const baseServings = verifiedServings;
-
-  // Placeholder görsel (eğer resim yoksa kullanılacak)
-  const fallbackImage = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop";
+  const shownRating = hoverRating ?? userRating;
+  const ratingLabel = shownRating ? LOKMA_RATINGS.find(r => r.rating === shownRating)?.label : null;
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        {/* SOL KOLON: Malzemeler */}
-        <div className="lg:col-span-4">
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm sticky top-24 z-10">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-slate-800 font-heading">Malzemeler</h3>
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                <button type="button" onClick={() => handleServings(-1)} disabled={!baseServings} aria-label="Porsiyonu azalt" className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-gray-600 hover:text-brand font-bold disabled:cursor-not-allowed disabled:opacity-40">-</button>
-                <span className="min-w-8 text-center font-bold text-sm" title={baseServings ? "Tarifte belirtilen porsiyon" : "Porsiyon bilgisi belirtilmemiş"}>{servings ?? "—"}</span>
-                <button type="button" onClick={() => handleServings(1)} disabled={!baseServings} aria-label="Porsiyonu artır" className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-gray-600 hover:text-brand font-bold disabled:cursor-not-allowed disabled:opacity-40">+</button>
+      <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-14">
+        {/* Malzemeler: sticky only within the viewport; long lists scroll inside the card. */}
+        <aside aria-labelledby="ingredients-title"
+          className="rounded-3xl border border-gray-200 bg-white lg:sticky lg:top-24 lg:col-span-4 lg:flex lg:max-h-[calc(100vh-7.5rem)] lg:flex-col">
+          <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-6 pb-4 pt-6">
+            <div>
+              <h2 id="ingredients-title" className="font-heading text-xl font-bold text-slate-900">Malzemeler</h2>
+              {ingredients.length > 0 && <p className="mt-0.5 text-xs text-gray-500">{ingredients.length} malzeme</p>}
+            </div>
+            {baseServings ? (
+              <div className="flex items-center rounded-xl border border-gray-200 p-1" role="group" aria-label="Porsiyon">
+                <button type="button" onClick={() => handleServings(-1)} disabled={(servings ?? 1) <= 1} aria-label="Porsiyonu azalt"
+                  className="grid h-8 w-8 place-items-center rounded-lg text-slate-600 transition hover:bg-gray-100 hover:text-brand disabled:opacity-30">
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+                <span className="min-w-[4.5rem] text-center text-sm font-semibold text-slate-900 tabular-nums" aria-live="polite">{servings} kişilik</span>
+                <button type="button" onClick={() => handleServings(1)} disabled={(servings ?? 1) >= 20} aria-label="Porsiyonu artır"
+                  className="grid h-8 w-8 place-items-center rounded-lg text-slate-600 transition hover:bg-gray-100 hover:text-brand disabled:opacity-30">
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
               </div>
-            </div>
-            {!baseServings && <p className="mb-4 text-xs leading-5 text-amber-800">Bu tarifte kişi sayısı belirtilmemiş. Miktarlar orijinal hâliyle gösteriliyor; porsiyona göre çarpma kapalı.</p>}
-            <ul className="space-y-3">
-              {ingredients.map((item, idx) => {
-                const displayAmount = formatIngredientAmount(item.amount, item.unit, baseServings ?? 1, servings ?? 1);
-                const isChecked = checkedIngredients.includes(idx);
-                return (
-                  <li key={idx} onClick={() => toggleIngredient(idx)} className={`flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer transition-all border ${isChecked ? 'bg-green-50 border-green-100 opacity-60' : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200 hover:shadow-sm'}`}>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isChecked ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 bg-white'}`}>
-                      {isChecked && <FaCheck className="text-[10px]" />}
-                    </div>
-                    <LokmaIngredientIcon name={item.name} size="sm" />
-                    <span className={`flex-1 text-sm font-medium ${isChecked ? 'line-through text-gray-400' : 'text-slate-700'}`}>
-                      {displayAmount && <strong className="text-brand">{displayAmount} </strong>}{capitalizeIngredientTr(item.name)}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="mt-6 bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex gap-3 text-yellow-800 text-sm">
-              <FaLightbulb className="text-yellow-500 text-lg flex-shrink-0 mt-0.5" />
-              <p><strong>Şefin İpucu:</strong> {chefTip}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* SAĞ KOLON: Hazırlanış */}
-        <div className="lg:col-span-8 space-y-10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-900 font-heading">Adım Adım Hazırlanış</h2>
-            <div className="text-sm text-gray-500 font-medium">{steps.length} Adım</div>
-          </div>
-          <div className="space-y-6">
-            {steps.map((step, idx) => {
-              const isCompleted = completedSteps.includes(idx);
-              return (
-                <div key={idx} onClick={() => toggleStep(idx)} className={`relative p-6 rounded-2xl border transition-all duration-300 cursor-pointer group ${isCompleted ? 'bg-gray-50 border-gray-100 opacity-60' : 'bg-white border-gray-100 shadow-sm hover:shadow-md hover:border-brand/30'}`}>
-                  <div className="flex gap-5">
-                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors ${isCompleted ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-brand group-hover:text-white'}`}>
-                      {isCompleted ? <FaCheck /> : idx + 1}
-                    </div>
-                    <p className={`text-lg leading-relaxed ${isCompleted ? 'text-gray-400 line-through' : 'text-slate-700'}`}>{step}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Besin değerleri: doğrulanmadıysa varsayımsal rakam gösterilmez. */}
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm mt-8">
-            <h3 className="text-lg font-bold text-slate-800 mb-3 font-heading">
-              Besin Değerleri
-            </h3>
-            {macros ? (
-              <>
-                <p className="text-xs text-gray-500 mb-4">Doğrulanmış analiz · 1 porsiyon</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {([
-                    ["Protein", macros.protein],
-                    ["Karbonhidrat", macros.carbs],
-                    ["Yağ", macros.fat],
-                  ] as const).map(([label, amount]) => (
-                    <div className="rounded-xl bg-gray-50 px-4 py-3" key={label}>
-                      <div className="text-sm text-gray-500 mb-1">{label}</div>
-                      <strong className="text-lg text-slate-800">{amount}</strong>
-                    </div>
-                  ))}
-                </div>
-              </>
             ) : (
-              <div className="flex gap-3 items-start rounded-xl border border-amber-100 bg-amber-50/70 p-4 text-amber-950">
-                <FaLightbulb className="mt-1 flex-shrink-0" />
-                <p className="text-sm leading-relaxed m-0">
-                  Bu tarif için doğrulanmış protein, karbonhidrat ve yağ analizi henüz bulunmuyor.
-                  Besin değerleri doğrulanana kadar tahmini makro rakamları göstermiyoruz.
-                  Yukarıdaki kalori bilgisi varsa o da yaklaşık bir AI tahminidir.
+              <span className="text-right text-xs leading-4 text-gray-500">Porsiyon<br />belirtilmemiş</span>
+            )}
+          </div>
+
+          <div className="overscroll-contain px-6 pb-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+            {ingredients.length > 0 ? (
+              <ul className="divide-y divide-gray-100">
+                {ingredients.map((item, idx) => {
+                  const displayAmount = formatIngredientAmount(item.amount, item.unit, baseServings ?? 1, servings ?? 1);
+                  const isChecked = checkedIngredients.includes(idx);
+                  const { name, qualifier } = splitIngredientName(capitalizeIngredientTr(item.name));
+                  const note = [qualifier, item.note].filter(Boolean).join(" · ");
+                  return (
+                    <li key={idx}>
+                      <button type="button" role="checkbox" aria-checked={isChecked} onClick={() => toggleIngredient(idx)}
+                        className="group flex w-full items-start gap-3 py-3 text-left">
+                        <span className={`mt-[3px] grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md border transition ${isChecked ? 'border-brand bg-brand text-white' : 'border-gray-300 bg-white group-hover:border-gray-400'}`}>
+                          {isChecked && <Check className="h-3 w-3" strokeWidth={3} />}
+                        </span>
+                        <LokmaIngredientIcon name={item.name} size="md" className={isChecked ? "opacity-40" : ""} />
+                        <span className={`min-w-0 flex-1 text-[15px] leading-snug ${isChecked ? 'text-gray-400' : 'text-slate-700'}`}>
+                          {displayAmount && <span className={`font-semibold tabular-nums ${isChecked ? '' : 'text-brand'}`}>{displayAmount} </span>}
+                          <span className={isChecked ? 'line-through decoration-gray-300' : ''}>{name}</span>
+                          {note && <span className="mt-0.5 block text-xs text-gray-500">{note}</span>}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="py-4 text-sm text-gray-500">Bu tarif için malzeme listesi henüz eklenmedi.</p>
+            )}
+
+            {chefTip && (
+              <div className="mt-4 rounded-2xl bg-gray-50 p-4">
+                <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">
+                  <Lightbulb className="h-3.5 w-3.5" aria-hidden /> Şefin notu
                 </p>
+                <p className="text-sm leading-relaxed text-slate-700">{chefTip}</p>
               </div>
             )}
           </div>
+        </aside>
 
-          {/* Sosyal Kanıt & Pişirdim */}
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-brand rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
-            <div className="relative z-10">
-              <h3 className="text-2xl font-bold font-heading mb-1">Bu tarifi denedin mi?</h3>
-              <p className="text-slate-400">Şu ana kadar <strong className="text-brand">{cookedCount.toLocaleString()}</strong> kişi bu tarifi pişirdi.</p>
+        <div className="space-y-10 lg:col-span-8">
+          <section aria-labelledby="steps-title">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <h2 id="steps-title" className="font-heading text-2xl font-bold text-slate-900">Hazırlanışı</h2>
+              {steps.length > 0 && (
+                <p className="text-sm text-gray-500 tabular-nums" aria-live="polite">
+                  {completedSteps.length > 0 ? `${completedSteps.length}/${steps.length} adım tamamlandı` : `${steps.length} adım`}
+                </p>
+              )}
             </div>
-            <button onClick={handleCooked} disabled={isCooked} className={`relative z-10 px-8 py-4 rounded-xl font-bold flex items-center gap-3 transition transform active:scale-95 shadow-lg ${isCooked ? 'bg-green-500 text-white cursor-default' : 'bg-white text-slate-900 hover:bg-brand hover:text-white'}`}>
-              {isCooked ? <><FaCheck /> Listene Eklendi</> : <><FaThumbsUp /> Ben de Pişirdim</>}
-            </button>
-          </div>
-
-          {/* Benzer Tarifler */}
-          <div className="pt-12 border-t border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-slate-900 font-heading">Bunu Sevenler Şunlara da Düştü 😍</h3>
-                <Link href="/recipes" className="text-sm font-bold text-[#db4c3f] hover:underline flex items-center gap-1">Tümünü Gör <FaArrowRight /></Link>
-            </div>
-            {loadingSimilar ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="h-32 bg-gray-100 rounded-2xl animate-pulse"></div>
-                    <div className="h-32 bg-gray-100 rounded-2xl animate-pulse"></div>
-                </div>
-            ) : similarRecipes.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {similarRecipes.map((r) => {
-                      // Toplam süreyi hesapla (API total_time_min dönmüyor)
-                      const totalTime = (parseInt(String(r.prep_time || 0)) + parseInt(String(r.cook_time || 0))) || 0;
-                      return (
-                        <Link key={r.id} href={`/recipe/${r.slug}`} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4 hover:shadow-lg transition cursor-pointer group">
-                            <div className="w-24 h-24 bg-gray-200 rounded-xl overflow-hidden relative flex-shrink-0">
-                                {isPlaceholderImage(r.image) ? (
-                                    <ImagePlaceholder title={r.title} variant="card" />
-                                ) : (
-                                    <Image 
-                                      src={r.image} 
-                                      alt={r.title} 
-                                      fill 
-                                      unoptimized={true}
-                                      className="object-cover group-hover:scale-105 transition" 
-                                    />
-                                )}
-                            </div>
-                            <div className="flex flex-col justify-center">
-                                <h4 className="font-bold text-slate-800 group-hover:text-brand transition line-clamp-1">{r.title}</h4>
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{r.excerpt || "Harika bir lezzet."}</p>
-                                <div className="flex items-center gap-2 mt-2 text-xs font-bold text-slate-600">
-                                    <FaClock className="text-brand" /> {totalTime}dk
-                                </div>
-                            </div>
-                        </Link>
-                      );
-                    })}
-                </div>
+            {steps.length > 0 ? (
+              <ol className="divide-y divide-gray-100 overflow-hidden rounded-3xl border border-gray-200 bg-white">
+                {steps.map((step, idx) => {
+                  const isCompleted = completedSteps.includes(idx);
+                  return (
+                    <li key={idx}>
+                      <button type="button" aria-pressed={isCompleted} onClick={() => toggleStep(idx)}
+                        className="group flex w-full gap-5 px-5 py-5 text-left transition hover:bg-gray-50 sm:px-7 sm:py-6">
+                        <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[13px] font-semibold tabular-nums transition ${isCompleted ? 'bg-brand text-white' : 'bg-gray-100 text-slate-600 group-hover:bg-brand/10 group-hover:text-brand'}`}>
+                          {isCompleted ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-label="Tamamlandı" /> : idx + 1}
+                        </span>
+                        <span className={`text-[17px] leading-[1.7] transition ${isCompleted ? 'text-gray-400' : 'text-slate-700'}`}>{step}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
             ) : (
-                <div className="text-center text-gray-400 py-4 bg-gray-50 rounded-2xl">Benzer tarif bulunamadı.</div>
+              <p className="rounded-3xl border border-gray-200 bg-white p-6 text-sm text-gray-500">Hazırlanış adımları henüz eklenmedi.</p>
             )}
-          </div>
+          </section>
+
+          {hasVerifiedNutrition && (
+            <section aria-labelledby="nutrition-title" className="rounded-3xl border border-gray-200 bg-white p-6">
+              <div className="mb-4 flex items-baseline justify-between">
+                <h2 id="nutrition-title" className="font-heading text-lg font-bold text-slate-900">Besin değerleri</h2>
+                <span className="text-xs text-gray-500">1 porsiyon · doğrulanmış</span>
+              </div>
+              <dl className="grid grid-cols-3 divide-x divide-gray-100">
+                {([["Protein", recipe.nutrition.protein], ["Karbonhidrat", recipe.nutrition.carbs], ["Yağ", recipe.nutrition.fat]] as const).map(([label, grams]) => (
+                  <div key={label} className="px-4 first:pl-0">
+                    <dt className="text-xs text-gray-500">{label}</dt>
+                    <dd className="mt-1 text-lg font-semibold text-slate-900 tabular-nums">{grams} g</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+
+          <section className="flex flex-col gap-5 rounded-3xl bg-slate-900 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+            <div>
+              <h2 className="font-heading text-xl font-semibold text-white">Bu tarifi pişirdin mi?</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                {cookedCount > 0
+                  ? `${cookedCount.toLocaleString("tr-TR")} kişi pişirdi olarak işaretledi.`
+                  : "İşaretle, pişirdiğin tarifler arasında dursun."}
+              </p>
+            </div>
+            <button type="button" onClick={handleCooked} disabled={isCooked}
+              className={`inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl px-6 text-[15px] font-semibold transition ${isCooked ? 'cursor-default bg-white/10 text-white' : 'bg-white text-slate-900 hover:bg-brand hover:text-white'}`}>
+              {isCooked ? <><Check className="h-4 w-4" /> Pişirdiklerinde</> : "Ben de pişirdim"}
+            </button>
+          </section>
         </div>
       </div>
 
-      {/* COMMENT SECTION */}
-      <div className="container mx-auto max-w-4xl px-4 py-12">
-        <section className="bg-white rounded-2xl border border-gray-100 p-8">
-          {/* DEĞERLENDİRME BÖLÜMÜ */}
-          <div className="mb-8 p-6 bg-orange-50 rounded-xl border border-orange-100">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h4 className="font-bold text-gray-900 mb-1">Bu tarifi değerlendirin</h4>
-                <p className="text-sm text-gray-600">
-                  {ratingCount > 0 
-                    ? `${ratingCount} kişi değerlendirdi • Ortalama: ${averageRating.toFixed(1)}/5`
-                    : "Henüz değerlendirme yok. İlk siz değerlendirin!"
-                  }
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => handleRating(star)}
-                    disabled={!user}
-                    className={`p-1 transition-transform hover:scale-110 ${!user ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-                    title={!user ? "Değerlendirmek için giriş yapın" : `${star} yıldız`}
-                  >
-                    <FaStar 
-                      size={28} 
-                      className={`transition-colors ${
-                        (userRating && star <= userRating) || (!userRating && star <= Math.round(averageRating))
-                          ? 'text-yellow-400' 
-                          : 'text-gray-300 hover:text-yellow-200'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            {/* Lokma rating emotions reinforce the existing 1–5 numeric rating. */}
-            <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Lezzet değerlendirmesi">
-              {LOKMA_RATINGS.map(({ rating, emoji, label }) => (
-                <button type="button" key={rating} onClick={() => handleRating(rating)}
-                  disabled={!user} aria-label={`${rating} yıldız · ${label}`}
-                  title={label}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-bold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 ${userRating === rating ? "border-[#db4c3f] bg-[#fff0eb] text-[#a84337]" : "border-[#eadfd7] bg-white/70 text-slate-600 hover:border-[#db4c3f]/50"}`}>
-                  <span aria-hidden="true" className="text-base leading-none">{emoji}</span> {label}
-                </button>
-              ))}
-            </div>
-
-            {hasRated && (
-              <p className="text-xs text-green-600 mt-2">
-                ✓ Bu tarife {userRating} yıldız verdiniz
-              </p>
-            )}
-            
-            {!user && (
-              <p className="text-xs text-gray-500 mt-2">
-                Değerlendirmek için <Link href="/login" className="text-[#db4c3f] font-medium hover:underline">giriş yapın</Link>
-              </p>
-            )}
+      {similarRecipes.length > 0 && (
+        <section aria-labelledby="similar-title" className="mt-16 border-t border-gray-200 pt-10">
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <h2 id="similar-title" className="font-heading text-2xl font-bold text-slate-900">Bunlar da hoşuna gidebilir</h2>
+            <Link href="/recipes" className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:text-brand-dark">
+              Tüm tarifler <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
           </div>
-
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-bold text-gray-900">
-              Yorumlar <span className="text-gray-400 font-normal">({comments.length})</span>
-            </h3>
-          </div>
-
-          {/* Yorum Yazma Alanı - Sadece Giriş Yapmış Kullanıcılar */}
-          {user ? (
-            <form onSubmit={handleSubmitComment} className="mb-8">
-              <div className="flex gap-4">
-                <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden flex-shrink-0">
-                  {user.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img 
-                      src={user.avatar_url} 
-                      alt={user.user_display_name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <FaCircleUser className="text-gray-400 text-3xl" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <textarea
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="Bu tarif hakkında ne düşünüyorsunuz?"
-                    className="w-full p-4 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-orange-100 focus:border-orange-300 transition-all min-h-[100px]"
-                    rows={3}
-                  />
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-label="Yorumuna emoji ekle">
-                    <span className="mr-1 text-[11px] font-semibold text-slate-400">Bir tepki ekle</span>
-                    {LOKMA_REACTIONS.map(({ id, emoji, label }) => (
-                      <button type="button" key={id} title={label}
-                        aria-label={`Yoruma ${label} emojisi ekle`}
-                        onClick={() => setCommentText(current => current.length < 490 ? current + (current && !current.endsWith(" ") ? " " : "") + emoji : current)}
-                        className="grid h-9 w-9 place-items-center rounded-xl bg-[#fbf5ef] text-lg transition hover:-translate-y-0.5 hover:bg-[#ffebe1]">
-                        {emoji}
-                      </button>
-                    ))}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            {similarRecipes.map((r) => {
+              const total = (Number(r.prep_time) || 0) + (Number(r.cook_time) || 0);
+              return (
+                <Link key={r.id} href={`/recipe/${r.slug}`} className="group">
+                  <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 ring-1 ring-black/5">
+                    {isPlaceholderImage(r.image) ? (
+                      <RecipeCover title={r.title} compact />
+                    ) : (
+                      <Image src={r.image} alt="" fill unoptimized sizes="(min-width: 640px) 33vw, 100vw"
+                        className="object-cover transition duration-500 group-hover:scale-[1.03]" />
+                    )}
                   </div>
-                  <div className="flex items-center justify-between mt-3">
-                    <p className="text-xs text-gray-400">
-                      Yorum yaparken topluluk kurallarına uyun.
+                  <h3 className="font-heading text-base font-semibold leading-snug text-slate-900 transition group-hover:text-brand line-clamp-2">{r.title}</h3>
+                  {total > 0 && (
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                      <Clock3 className="h-3.5 w-3.5" aria-hidden /> {total} dk
                     </p>
-                    <button
-                      type="submit"
-                      disabled={!commentText.trim() || isSubmitting}
-                      className="px-6 py-2.5 bg-[#db4c3f] text-white font-medium rounded-xl hover:bg-[#b03d32] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                          Gönderiliyor...
-                        </>
-                      ) : (
-                        'Yorum Yap'
-                      )}
-                    </button>
-                  </div>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <div className="mt-16 grid grid-cols-1 items-start gap-10 border-t border-gray-200 pt-10 lg:grid-cols-12 lg:gap-14">
+        <div className="space-y-6 lg:col-span-4">
+          {recipe.author && <AuthorCard author={recipe.author} />}
+
+          <div className="rounded-3xl border border-gray-200 bg-white p-6">
+            <h2 className="font-heading text-lg font-bold text-slate-900">Tarifi değerlendir</h2>
+            <p className="mt-1 text-sm text-gray-500 tabular-nums">
+              {ratingCount > 0
+                ? `${averageRating.toFixed(1).replace(".", ",")} ortalama · ${ratingCount} değerlendirme`
+                : "Henüz değerlendirilmedi."}
+            </p>
+            <div className="mt-4 flex items-center gap-1" onMouseLeave={() => setHoverRating(null)}>
+              {[1, 2, 3, 4, 5].map((star) => {
+                const filled = shownRating ? star <= shownRating : star <= Math.round(averageRating);
+                const label = LOKMA_RATINGS.find(r => r.rating === star)?.label;
+                return (
+                  <button key={star} type="button" onClick={() => handleRating(star)}
+                    onMouseEnter={() => setHoverRating(star)} onFocus={() => setHoverRating(star)} onBlur={() => setHoverRating(null)}
+                    aria-label={`${star} yıldız${label ? ` · ${label}` : ""}`} aria-pressed={userRating === star}
+                    className="rounded-md p-0.5 transition hover:scale-110 focus-visible:outline-2 focus-visible:outline-brand">
+                    <Star className={`h-7 w-7 transition-colors ${filled ? 'fill-amber-400 text-amber-400' : 'fill-gray-100 text-gray-300'}`} strokeWidth={1.5} />
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 min-h-5 text-sm font-medium text-slate-700" aria-live="polite">
+              {ratingLabel ?? (user ? "" : <span className="font-normal text-gray-500">Puan vermek için <Link href="/login" className="font-semibold text-brand hover:underline">giriş yap</Link>.</span>)}
+            </p>
+            {userRating && !hoverRating && <p className="mt-1 text-xs text-gray-500">Senin puanın: {userRating}/5</p>}
+          </div>
+        </div>
+
+        <section aria-labelledby="comments-title" className="lg:col-span-8">
+          <h2 id="comments-title" className="mb-6 font-heading text-2xl font-bold text-slate-900">
+            Yorumlar{comments.length > 0 && <span className="ml-2 font-normal text-gray-400 tabular-nums">{comments.length}</span>}
+          </h2>
+
+          {user ? (
+            <form onSubmit={handleSubmitComment} className="mb-8 flex gap-4">
+              <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-black/5">
+                {user.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="grid h-full w-full place-items-center text-gray-400"><UserRound className="h-5 w-5" /></span>
+                )}
+              </div>
+              <div className="flex-1">
+                <label htmlFor="comment-text" className="sr-only">Yorumun</label>
+                <textarea
+                  id="comment-text"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Tarifi denedin mi? Nasıl oldu, neyi değiştirdin?"
+                  maxLength={500}
+                  className="min-h-[104px] w-full resize-none rounded-2xl border border-gray-200 bg-white p-4 text-[15px] transition focus:border-brand/40 focus:outline-none focus:ring-4 focus:ring-brand/10"
+                  rows={3}
+                />
+                <div className="mt-3 flex items-center justify-between gap-4">
+                  <p className="text-xs text-gray-500">Yorumlar topluluk kurallarına göre yayınlanır.</p>
+                  <button
+                    type="submit"
+                    disabled={!commentText.trim() || isSubmitting}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {isSubmitting ? (
+                      <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Gönderiliyor</>
+                    ) : 'Yorum yap'}
+                  </button>
                 </div>
               </div>
             </form>
           ) : (
-            <div className="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-100 text-center">
-              <p className="text-gray-600 mb-3">Yorum yapmak için giriş yapmalısınız.</p>
-              <Link 
-                href="/login" 
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#db4c3f] text-white font-medium rounded-xl hover:bg-[#b03d32] transition-colors"
-              >
-                Giriş Yap
+            <div className="mb-8 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-slate-600">Yorum yazmak için giriş yapman gerekiyor.</p>
+              <Link href="/login" className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 px-5 text-sm font-semibold text-slate-800 transition hover:border-brand hover:text-brand">
+                Giriş yap
               </Link>
             </div>
           )}
 
-          {/* Yorum Listesi */}
-          <div className="space-y-6">
-            {comments.length > 0 ? (
-              comments.map((comment) => (
-                <div key={comment.id} className="flex gap-4 pb-6 border-b border-gray-50 last:border-0 last:pb-0">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex-shrink-0">
+          {comments.length > 0 ? (
+            <ul className="divide-y divide-gray-100">
+              {comments.map((comment) => (
+                <li key={comment.id} className="flex gap-4 py-5 first:pt-0">
+                  <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-black/5">
                     {comment.author.avatar ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img 
-                        src={comment.author.avatar}
-                        alt={comment.author.name}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={comment.author.avatar} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <FaCircleUser className="text-gray-400 text-2xl" />
-                      </div>
+                      <span className="grid h-full w-full place-items-center text-gray-400"><UserRound className="h-5 w-5" /></span>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-gray-900">{comment.author.name}</span>
-                      <span className="text-xs text-gray-400">• {formatDate(comment.created_at)}</span>
-                    </div>
-                    <p className="text-gray-600 text-sm leading-relaxed">{comment.content}</p>
-                    
-                    {/* Beğeni butonu ve silme */}
-                    <div className="flex items-center gap-4 mt-3">
-                      <button 
-                        onClick={() => handleLikeComment(comment.id)}
-                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#db4c3f] transition-colors"
-                      >
-                        <FaHeart size={14} /> {comment.likes || 0}
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                      <span className="font-semibold text-slate-900">{comment.author.name}</span>
+                      <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
+                    </p>
+                    <p className="mt-1 whitespace-pre-line text-[15px] leading-relaxed text-slate-700">{comment.content}</p>
+                    <div className="mt-2 flex items-center gap-4">
+                      <button type="button" onClick={() => handleLikeComment(comment.id)}
+                        className="inline-flex items-center gap-1.5 text-xs text-gray-500 transition hover:text-brand">
+                        <Heart className="h-3.5 w-3.5" aria-hidden /> <span className="tabular-nums">{comment.likes || 0}</span>
+                        <span className="sr-only">beğeni</span>
                       </button>
                       {user && user.id === comment.author.id && (
-                        <button 
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-                        >
+                        <button type="button" onClick={() => handleDeleteComment(comment.id)}
+                          className="text-xs text-gray-500 transition hover:text-red-600">
                           Sil
                         </button>
                       )}
                     </div>
                   </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FaCircleUser className="w-8 h-8 text-gray-300" />
-                </div>
-                <p className="text-gray-500">Henüz yorum yapılmamış.</p>
-                <p className="text-sm text-gray-400 mt-1">Bu tarif hakkında ilk yorumu siz yapın!</p>
-              </div>
-            )}
-          </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-500">Henüz yorum yok. Tarifi denediysen ilk yorumu sen yaz.</p>
+          )}
 
-          {/* Daha Fazla Yükle (Pagination) */}
           {hasMoreComments && (
-            <button 
-              onClick={loadMoreComments}
-              className="w-full mt-6 py-3 bg-gray-50 text-gray-600 font-medium rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              Daha Fazla Yorum Göster
+            <button type="button" onClick={loadMoreComments}
+              className="mt-6 h-11 w-full rounded-xl border border-gray-200 text-sm font-semibold text-slate-700 transition hover:border-gray-300 hover:bg-gray-50">
+              Daha fazla yorum
             </button>
           )}
         </section>
       </div>
 
-      {/* SUCCESS MODAL */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl transform transition-all scale-100 text-center relative">
-            <button onClick={() => setShowSuccessModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"><FaXmark className="text-xl" /></button>
-            <div className="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl animate-bounce-in"><FaCheck /></div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-2 font-heading">Ellerine Sağlık Şefim! 👨‍🍳</h3>
-            <p className="text-gray-500 mb-8">Harika bir iş çıkardın. Bu tarif pişirdiklerim listesine eklendi.</p>
-            <button onClick={() => setShowSuccessModal(false)} className="w-full bg-brand text-white font-bold py-3.5 rounded-xl hover:bg-brand-dark transition shadow-lg shadow-brand/20">Tamamdır</button>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setShowSuccessModal(false); }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="cooked-title" className="relative w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-xl">
+            <button type="button" onClick={() => setShowSuccessModal(false)} aria-label="Kapat"
+              className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-brand/10 text-brand"><Check className="h-7 w-7" strokeWidth={2.5} /></div>
+            <h3 id="cooked-title" className="mb-2 font-heading text-xl font-bold text-slate-900">Ellerine sağlık!</h3>
+            <p className="mb-7 text-sm leading-relaxed text-gray-500">Bu tarif pişirdiklerin arasına eklendi.</p>
+            <button type="button" onClick={() => setShowSuccessModal(false)} className="h-12 w-full rounded-xl bg-brand font-semibold text-white transition hover:bg-brand-dark">Tamam</button>
           </div>
         </div>
       )}

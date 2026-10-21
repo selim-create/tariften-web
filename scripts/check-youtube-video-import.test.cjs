@@ -156,9 +156,11 @@ test('social source card is premium, safe and genuinely attributable', () => {
   const card = read('src/components/recipe/SocialRecipeSourceCard.tsx');
   const detail = read('src/app/recipe/[slug]/page.tsx');
   const types = read('src/types/index.ts');
-  assert.match(card, /Orijinal videoyu aç/);
+  assert.match(card, /Orijinal kaynak/);
+  assert.match(card, /open: "Instagram'da aç"/);
   assert.match(card, /rel="noopener noreferrer nofollow"/);
-  assert.match(card, /setWatching\(true\)/);
+  assert.match(card, /setWatching\(v => !v\)/);
+  assert.match(card, /watching && embed &&/, 'video iframe loads only after the visitor asks for it');
   assert.match(card, /source\.creator_handle/);
   assert.doesNotMatch(card, /viewCount|likeCount|2\.8M|35K/, 'social counts are never fabricated');
   assert.match(detail, /<SocialRecipeSourceCard source=\{recipe\.social_source\}/);

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Play } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function PilotEntryButton({ slug }: { slug: string }) {
@@ -18,9 +19,9 @@ export default function PilotEntryButton({ slug }: { slug: string }) {
             if (!loading) setShowAuth(true);
           }
         }}
-        className="flex-1 bg-[#db4c3f] hover:bg-[#c44135] text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-[#db4c3f]/15 min-w-[200px]"
+        className="flex h-12 min-w-[200px] flex-1 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl bg-brand px-4 text-[15px] sm:px-6 font-semibold text-white transition hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
-        <span aria-hidden>▶</span> Pişirme Rehberini Başlat
+        <Play className="h-4 w-4 fill-current" aria-hidden /> Pişirme rehberini başlat
       </Link>
       {showAuth && (
         <div role="presentation" className="fixed inset-0 z-[180] flex items-center justify-center bg-[#08101a]/85 p-4"
