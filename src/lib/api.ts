@@ -224,6 +224,19 @@ export async function getMenus(collection?: string): Promise<Menu[]> {
   return res && res.data ? res.data : [];
 }
 
+/** One archive page plus the real totals, for pagination. */
+export async function getMenusPage(page = 1): Promise<{ data: Menu[]; count: number; pages: number; page: number }> {
+  const safe = Number.isInteger(page) && page > 0 ? page : 1;
+  const res = await fetchDynamic(`${API_URL}/tariften/v1/menus/search?page=${safe}`);
+  const data: Menu[] = res && Array.isArray(res.data) ? res.data : [];
+  return {
+    data,
+    count: Number(res?.count) || data.length,
+    pages: Math.max(1, Number(res?.pages) || 1),
+    page: safe,
+  };
+}
+
 // YENİ: Menü Güncelleme
 export async function updateMenu(token: string, menuData: { 
   id: number; 

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Dolap Modu | Tariften',
     description: 'Evdeki malzemelerinizi girin, yapay zeka size uygun tarifler önersin.',
-    images: ['/og-image.png'],
+    images: ['/og-image.jpg'],
   },
 };
 
