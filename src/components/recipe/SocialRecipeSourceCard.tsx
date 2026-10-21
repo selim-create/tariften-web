@@ -107,6 +107,10 @@ export default function SocialRecipeSourceCard({ source }: { source: RecipeSocia
                 : <><Play className="h-3.5 w-3.5 fill-current" aria-hidden /> Videoyu izle</>}
             </button>
           )}
+          <a href={`mailto:iletisim@tariften.com?subject=${encodeURIComponent("Tarif içerik itirazı / kaldırma talebi")}&body=${encodeURIComponent("Merhaba, aşağıdaki sosyal medya kaynaklı tarifle ilgili itiraz/kaldırma talebinde bulunuyorum.\\n\\nKaynak: " + source.url + "\\nTarif sayfası: " + (typeof window !== "undefined" ? window.location.href : "") + "\\nGerekçe: ") }`}
+            className="inline-flex h-10 items-center rounded-xl border border-gray-200 px-3 text-xs font-medium text-slate-600 transition hover:border-gray-300 hover:text-brand">
+            İçeriğe itiraz et
+          </a>
           <a href={source.url} target="_blank" rel="noopener noreferrer nofollow"
             className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-gray-200 px-3.5 text-sm font-semibold text-slate-700 transition hover:border-gray-300 hover:text-brand">
             {platform.open} <ArrowUpRight className="h-4 w-4" aria-hidden />
@@ -116,7 +120,7 @@ export default function SocialRecipeSourceCard({ source }: { source: RecipeSocia
 
       {watching && embed && (
         <div className="border-t border-gray-100 p-4 sm:p-5">
-          <div className={`mx-auto overflow-hidden rounded-xl bg-slate-900 ${youtube ? "aspect-video max-w-2xl" : "aspect-[9/16] max-w-[340px]"}`}>
+          <div className={`mx-auto overflow-hidden rounded-xl bg-white ${youtube ? "aspect-video max-w-2xl" : "w-full max-w-[390px]"}`}>
             <iframe
               src={embed}
               title={`${platform.name} orijinal video`}
@@ -124,7 +128,7 @@ export default function SocialRecipeSourceCard({ source }: { source: RecipeSocia
               referrerPolicy="strict-origin-when-cross-origin"
               allow="encrypted-media; picture-in-picture; fullscreen"
               allowFullScreen
-              className="h-full w-full border-0"
+              className={youtube ? "h-full w-full border-0" : "block h-[740px] w-full border-0 sm:h-[800px]"}
             />
           </div>
           <p className="mt-3 text-center text-xs text-gray-500">
