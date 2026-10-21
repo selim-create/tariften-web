@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     description: 'Yapay zeka destekli mutfak asistanınız ile mutfakta harikalar yaratmaya hazır mısınız!',
     images: [
       {
-        url: '/og-image.png',
+        url: '/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'Tariften - Yapay Zeka Destekli Mutfak Asistanı',
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Tariften - Yapay Zeka Destekli Mutfak Asistanı',
     description: 'Yapay zeka destekli mutfak asistanınız ile mutfakta harikalar yaratmaya hazır mısınız!',
-    images: ['/og-image.png'],
+    images: ['/og-image.jpg'],
     creator: '@tariften',
   },
   alternates: {

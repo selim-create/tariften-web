@@ -21,6 +21,8 @@ jobs:
         run: node --test scripts/check-pilot-commands.test.cjs
       - name: Pilot step ingredients and timers come only from the step text
         run: node --test scripts/check-pilot-step-helpers.test.cjs
+      - name: Menu shopping list sums only unambiguous amounts
+        run: node --test scripts/check-menu-shopping-list.test.cjs
       - name: Grounded recipe text import web contract tests (no AI calls)
         run: node --test scripts/check-recipe-text-import.test.cjs
       - name: YouTube video-to-recipe import review and polling contract tests (offline)

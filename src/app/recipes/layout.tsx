@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Tarif Kütüphanesi | Tariften',
     description: 'Binlerce tarif arasından aradığınızı bulun.',
-    images: ['/og-image.png'],
+    images: ['/og-image.jpg'],
   },
 };
 
