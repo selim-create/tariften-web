@@ -589,12 +589,13 @@ export default function PilotClient({ recipe, steps, hasStoredSteps }: PilotClie
 
       <main className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:py-6">
         <div className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
-          <section aria-label="Geçerli tarif adımı" className={`${panel} flex min-h-[340px] flex-col p-5 sm:p-8`}>
+          <section aria-label="Geçerli tarif adımı" className={`${panel} flex flex-col self-start p-5 sm:p-8`}>
             <p className="text-sm text-slate-400 tabular-nums">
               <span className="font-semibold text-slate-100">Adım {currentStep + 1}</span> / {steps.length}
             </p>
 
-            <div className="my-6 flex flex-1 flex-col justify-center">
+            {/* Top-aligned so the voice and timer controls stay above the dock on laptop screens. */}
+            <div className="mb-7 mt-5 flex flex-col">
               {timerActive ? (
                 <div role="timer" aria-live="off" className="flex flex-col items-start gap-3">
                   <p className={`${eyebrow} text-slate-400`}>{isTimerPaused ? "Sayaç duraklatıldı" : "Sayaç çalışıyor"}</p>
