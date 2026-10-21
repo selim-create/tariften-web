@@ -7,287 +7,274 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import GlobalCreateMenu from "@/components/navigation/GlobalCreateMenu";
-// İkonlar - Standart Paket
-import { 
-  FaSearch, FaRegBookmark, FaRegMoon, FaArrowRight, FaUser, 
-  FaPen, FaPlus, FaBookOpen 
-} from "react-icons/fa";
-// İkonlar - Yeni Nesil (FA6)
-import { FaGear, FaArrowRightFromBracket, FaBars, FaXmark, FaSun } from "react-icons/fa6";
+import { Bookmark, ChevronDown, LogOut, Menu, Moon, Search, Settings, Sun, UserRound, X } from "lucide-react";
+
+const NAV = [
+  { href: "/recipes", label: "Tarifler", match: ["/recipes", "/recipe/"] },
+  { href: "/menus", label: "Menüler", match: ["/menus", "/menu/"] },
+  { href: "/pantry", label: "Dolap Modu", match: ["/pantry"] },
+  { href: "/blog", label: "Blog", match: ["/blog"] },
+] as const;
+
+function isActive(pathname: string, match: readonly string[]) {
+  return match.some(prefix => pathname === prefix || pathname.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`));
+}
+
+function Avatar({ url, name, size }: { url?: string; name: string; size: number }) {
+  // No third-party generated avatars: a quiet initial on the brand cream.
+  if (url) {
+    return (
+      <span className="relative block shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-black/5" style={{ width: size, height: size }}>
+        <Image src={url} alt="" fill sizes={`${size}px`} unoptimized className="object-cover" />
+      </span>
+    );
+  }
+  return (
+    <span aria-hidden className="grid shrink-0 place-items-center rounded-full bg-[#f6efe8] font-heading text-sm font-semibold text-brand ring-1 ring-black/5"
+      style={{ width: size, height: size }}>
+      {name.trim().slice(0, 1).toLocaleUpperCase("tr-TR") || "T"}
+    </span>
+  );
+}
+
+const iconButton = "grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-gray-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
 export default function Header() {
   const { user, logout, loading } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
-  const pathname = usePathname();
-  const router = useRouter(); 
-  
+  const pathname = usePathname() || "/";
+  const router = useRouter();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false); 
-  const [searchQuery, setSearchQuery] = useState(""); 
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
-  
+
   const menuRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null); 
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 8);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleDarkMode = () => {
-    toggleDarkMode();
-  };
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setIsMenuOpen(false);
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setIsMenuOpen(false);
+      setIsMobileOpen(false);
+      setIsSearchOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+
+  // Close every overlay on navigation.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setIsMenuOpen(false);
+      setIsMobileOpen(false);
+      setIsSearchOpen(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  }, [isMobileOpen]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/recipes?q=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchOpen(false); 
-    }
+    const query = searchQuery.trim();
+    if (!query) return;
+    router.push(`/recipes?q=${encodeURIComponent(query)}`);
+    setIsSearchOpen(false);
   };
 
   const toggleSearch = () => {
-    setIsSearchOpen(!isSearchOpen);
-    if (!isSearchOpen) {
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
-    }
+    const next = !isSearchOpen;
+    setIsSearchOpen(next);
+    if (next) setTimeout(() => searchInputRef.current?.focus(), 60);
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    setIsMenuOpen(false);
-    setIsSearchOpen(false); 
-  }, [pathname]);
-
-  const avatarUrl = user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.user_display_name || "User")}&background=random&color=fff`;
+  const displayName = user?.user_display_name || user?.user_nicename || "Hesabım";
 
   return (
-    <header className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm" : "bg-white border-b border-gray-100"
-      }`}>
-      <div className="container mx-auto px-4 h-16 flex justify-between items-center relative">
-        
-        {/* LOGO */}
-        <Link href="/" className={`flex items-center group transition-opacity duration-300 ${isSearchOpen ? 'opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto' : 'opacity-100'}`}>
-          <Image 
-            src="/logo.svg" 
-            alt="Tariften Logo" 
-            width={160} 
-            height={40} 
-            priority
-            className="h-9 w-auto object-contain opacity-90 group-hover:opacity-100 transition" 
-          />
+    <header className={`sticky top-0 z-50 border-b transition-colors duration-200 ${scrolled ? "border-gray-200 bg-white/90 backdrop-blur-md" : "border-gray-100 bg-white"}`}>
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
+
+        <Link href="/" aria-label="Tariften anasayfa"
+          className={`flex shrink-0 items-center transition-opacity ${isSearchOpen ? "pointer-events-none opacity-0 md:pointer-events-auto md:opacity-100" : ""}`}>
+          <Image src="/logo.svg" alt="Tariften" width={160} height={40} priority className="h-8 w-auto" />
         </Link>
-        
-        {/* NAVIGASYON (Desktop) */}
-        <nav className={`hidden md:flex items-center space-x-8 text-sm font-medium text-slate-500 transition-opacity duration-300 ${isSearchOpen ? 'lg:opacity-0 pointer-events-none xl:opacity-100 xl:pointer-events-auto' : 'opacity-100'}`}>
-          <Link href="/recipes" className={`hover:text-[#db4c3f] transition ${pathname === '/recipes' ? 'text-[#db4c3f] font-bold' : ''}`}>Tarifler</Link>
-          <Link href="/menus" className={`hover:text-[#db4c3f] transition ${pathname === '/menus' ? 'text-[#db4c3f] font-bold' : ''}`}>Menüler</Link>
-          <Link href="/pantry" className={`hover:text-[#db4c3f] transition ${pathname === '/pantry' ? 'text-[#db4c3f] font-bold' : ''}`}>Dolap Modu</Link>
-         <Link href="/blog" className={`hover:text-[#db4c3f] transition ${pathname === '/blog' ? 'text-[#db4c3f] font-bold' : ''}`}>Blog</Link>
+
+        <nav aria-label="Ana menü"
+          className={`hidden items-center gap-1 md:flex ${isSearchOpen ? "lg:pointer-events-none lg:opacity-0 xl:pointer-events-auto xl:opacity-100" : ""}`}>
+          {NAV.map(item => {
+            const active = isActive(pathname, item.match);
+            return (
+              <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
+                className={`relative rounded-lg px-3 py-2 text-sm font-medium transition ${active ? "text-slate-900" : "text-slate-500 hover:text-slate-900"}`}>
+                {item.label}
+                {active && <span aria-hidden className="absolute inset-x-3 -bottom-[13px] h-[2px] rounded-full bg-brand" />}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* SAĞ AKSİYONLAR */}
-        <div className="flex items-center gap-1 md:gap-3 justify-end">
-          
-          <div className="flex items-center gap-1">
-            <form onSubmit={handleSearchSubmit} className={`relative flex items-center justify-end transition-all duration-500 ease-in-out ${isSearchOpen ? 'w-[calc(100vw-80px)] md:w-64' : 'w-9'}`}>
-               <input
-                 ref={searchInputRef}
-                 type="text"
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-                 placeholder="Tarif ara..."
-                 className={`absolute right-0 top-0 h-9 bg-gray-100 text-slate-800 text-sm rounded-full pl-4 pr-10 border border-transparent focus:border-[#db4c3f] focus:ring-1 focus:ring-[#db4c3f] outline-none transition-all duration-300 ${isSearchOpen ? 'w-full opacity-100 scale-100' : 'w-0 opacity-0 scale-50'}`}
-               />
-               <button 
-                 type="button" 
-                 onClick={toggleSearch}
-                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors relative z-10 ${isSearchOpen ? 'bg-[#db4c3f] text-white hover:bg-[#c2410c]' : 'hover:bg-gray-100 text-slate-500 hover:text-[#db4c3f]'}`}
-                 title="Ara"
-               >
-                 <FaSearch className="text-sm" />
-               </button>
-            </form>
+        <div className="flex items-center justify-end gap-1">
+          <form role="search" onSubmit={handleSearchSubmit}
+            className={`relative flex items-center justify-end transition-[width] duration-300 ease-out ${isSearchOpen ? "w-[calc(100vw-88px)] md:w-64" : "w-9"}`}>
+            <label htmlFor="header-search" className="sr-only">Tarif ara</label>
+            <input
+              id="header-search"
+              ref={searchInputRef}
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tarif ara"
+              tabIndex={isSearchOpen ? 0 : -1}
+              className={`absolute right-0 top-0 h-9 rounded-full border border-gray-200 bg-gray-50 pl-4 pr-10 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-brand/40 focus:ring-4 focus:ring-brand/10 ${isSearchOpen ? "w-full opacity-100" : "pointer-events-none w-0 opacity-0"}`}
+            />
+            <button type="button" onClick={toggleSearch} aria-label={isSearchOpen ? "Aramayı kapat" : "Tarif ara"} aria-expanded={isSearchOpen}
+              className={`relative z-10 ${iconButton} ${isSearchOpen ? "text-slate-900" : ""}`}>
+              {isSearchOpen ? <X className="h-[18px] w-[18px]" strokeWidth={1.75} /> : <Search className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+            </button>
+          </form>
 
-            <div className={isSearchOpen ? "hidden" : "flex"}>
-              <GlobalCreateMenu />
-            </div>
-
-            <Link href="/cookbook" className={`w-9 h-9 rounded-full hover:bg-gray-100 text-slate-500 hover:text-[#db4c3f] flex items-center justify-center transition ${isSearchOpen ? 'hidden md:flex' : 'flex'}`} title="Tarif Defterim">
-              <FaRegBookmark className="text-sm" />
+          <div className={isSearchOpen ? "hidden" : "flex items-center gap-1"}>
+            <GlobalCreateMenu />
+            <Link href="/cookbook" aria-label="Tarif defterim" title="Tarif defterim"
+              className={`${iconButton} hidden sm:grid ${isActive(pathname, ["/cookbook"]) ? "text-brand" : ""}`}>
+              <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.75} />
             </Link>
-            <button 
-              onClick={handleDarkMode} 
-              className={`w-9 h-9 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition ${isSearchOpen ? 'hidden md:flex' : 'flex'}`}
-              title={isDarkMode ? "Açık Mod" : "Karanlık Mod"}
-            >
-              {isDarkMode ? <FaSun className="text-sm text-yellow-400" /> : <FaRegMoon className="text-sm" />}
+            <button type="button" onClick={toggleDarkMode} aria-label={isDarkMode ? "Açık temaya geç" : "Koyu temaya geç"}
+              title={isDarkMode ? "Açık tema" : "Koyu tema"} className={`${iconButton} hidden sm:grid`}>
+              {isDarkMode ? <Sun className="h-[18px] w-[18px]" strokeWidth={1.75} /> : <Moon className="h-[18px] w-[18px]" strokeWidth={1.75} />}
             </button>
           </div>
 
-          <div className={`hidden md:block w-px h-6 bg-gray-200 mx-1 transition-opacity ${isSearchOpen ? 'opacity-0' : 'opacity-100'}`}></div>
-          
-          {/* DESKTOP KULLANICI ALANI */}
+          <span aria-hidden className={`mx-2 hidden h-6 w-px bg-gray-200 md:block ${isSearchOpen ? "opacity-0" : ""}`} />
+
           <div className="hidden md:block">
-            {!loading && (
-                user ? (
-                /* GİRİŞ YAPMIŞSA: Profil Dropdown */
-                <div className={`relative transition-opacity duration-300 ${isSearchOpen ? 'hidden md:block' : 'block'}`} ref={menuRef}>
-                  <button 
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="flex items-center gap-3 pl-2 group outline-none text-left"
-                  >
-                    {/* Avatar SOLDA */}
-                    <div className={`w-9 h-9 rounded-full bg-[#db4c3f]/10 border border-transparent group-hover:border-[#db4c3f]/30 flex items-center justify-center text-[#db4c3f] transition ring-2 ring-transparent ${isMenuOpen ? 'ring-[#db4c3f]/20' : ''} overflow-hidden relative`}>
-                      <Image 
-                          src={avatarUrl} 
-                          alt="Profil" 
-                          fill 
-                          className="object-cover"
-                          unoptimized={avatarUrl.includes('ui-avatars.com')}
-                      />
+            {!loading && (user ? (
+              <div className="relative" ref={menuRef}>
+                <button type="button" onClick={() => setIsMenuOpen(open => !open)}
+                  aria-haspopup="menu" aria-expanded={isMenuOpen} aria-label="Hesap menüsü"
+                  className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-brand">
+                  <Avatar url={user.avatar_url} name={displayName} size={32} />
+                  <span className="max-w-[140px] truncate text-sm font-medium text-slate-700">{displayName}</span>
+                  <ChevronDown className={`h-4 w-4 text-gray-400 transition ${isMenuOpen ? "rotate-180" : ""}`} aria-hidden />
+                </button>
+
+                {isMenuOpen && (
+                  <div role="menu" className="absolute right-0 top-full mt-2 w-60 overflow-hidden rounded-2xl border border-gray-200 bg-white py-1.5 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
+                    <div className="border-b border-gray-100 px-4 pb-3 pt-2">
+                      <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
+                      {user.user_email && <p className="truncate text-xs text-gray-500">{user.user_email}</p>}
                     </div>
-
-                    {/* İsim SAĞDA */}
-                    <div className="hidden md:flex flex-col items-start justify-center">
-                        <span className="text-xs font-bold text-slate-700 group-hover:text-[#db4c3f] transition max-w-[150px] truncate leading-tight">
-                          {user.user_display_name || user.user_nicename || "Hesabım"}
-                        </span>
-                        <span className="text-[10px] text-gray-400 font-medium leading-tight">Şef</span>
+                    <div className="py-1">
+                      <Link role="menuitem" href="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 transition hover:bg-gray-50 hover:text-slate-900">
+                        <UserRound className="h-4 w-4 text-gray-400" aria-hidden /> Profilim
+                      </Link>
+                      <Link role="menuitem" href="/cookbook" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 transition hover:bg-gray-50 hover:text-slate-900">
+                        <Bookmark className="h-4 w-4 text-gray-400" aria-hidden /> Tarif defterim
+                      </Link>
+                      <Link role="menuitem" href="/profile/edit" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 transition hover:bg-gray-50 hover:text-slate-900">
+                        <Settings className="h-4 w-4 text-gray-400" aria-hidden /> Hesap ayarları
+                      </Link>
                     </div>
-                  </button>
-
-                  {/* DROPDOWN MENU */}
-                  {isMenuOpen && (
-                    <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 animate-fade-in-up origin-top-right">
-                        {/* Header Kısmı (Mobil) */}
-                        <div className="px-4 py-3 border-b border-gray-50 md:hidden">
-                          <p className="text-xs font-bold text-slate-800">{user.user_display_name}</p>
-                          <p className="text-[10px] text-gray-500 truncate">{user.user_email}</p>
-                        </div>
-
-                        {/* Profil Bölümü */}
-                        <div className="py-1">
-                          <Link href="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#db4c3f] transition">
-                            <FaUser className="text-xs" /> Profilim
-                          </Link>
-                          <Link href="/cookbook" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#db4c3f] transition">
-                            <FaBookOpen className="text-xs" /> Tarif Defterim
-                          </Link>
-                        </div>
-
-                         {/* Tarif ve menü ekleme, üst alandaki tek global + menüsünden yapılır. */}
-
-                        {/* Ayarlar ve Çıkış */}
-                        <div className="border-t border-gray-50 py-1">
-                          <Link href="/profile/edit" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-slate-900 transition">
-                            <FaGear className="text-xs" /> Hesap Ayarları
-                          </Link>
-                          <button 
-                            onClick={logout}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-500 hover:bg-red-50 hover:text-red-500 transition text-left"
-                          >
-                            <FaArrowRightFromBracket className="text-xs" /> Çıkış Yap
-                          </button>
-                        </div>
+                    <div className="border-t border-gray-100 py-1">
+                      <button role="menuitem" type="button" onClick={logout}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-600 transition hover:bg-gray-50 hover:text-red-600">
+                        <LogOut className="h-4 w-4 text-gray-400" aria-hidden /> Çıkış yap
+                      </button>
                     </div>
-                  )}
-                </div>
-                ) : (
-                <div className={`transition-opacity duration-300 flex items-center gap-4 ${isSearchOpen ? 'hidden' : 'flex'}`}>
-                    <Link href="/login" className="text-xs font-bold text-slate-600 hover:text-[#db4c3f] transition">
-                    Giriş Yap
-                    </Link>
-                    <Link href="/register" className="bg-[#db4c3f] hover:bg-[#b03d32] text-white text-xs font-bold px-5 py-2.5 rounded-full transition shadow-sm hover:shadow-md flex items-center gap-2 transform hover:-translate-y-0.5">
-                    Kayıt Ol <FaArrowRight className="text-[10px]" />
-                    </Link>
-                </div>
-                )
-            )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className={`items-center gap-2 ${isSearchOpen ? "hidden" : "flex"}`}>
+                <Link href="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900">Giriş yap</Link>
+                <Link href="/register" className="inline-flex h-9 items-center rounded-xl bg-brand px-4 text-sm font-semibold text-white transition hover:bg-brand-dark">Kayıt ol</Link>
+              </div>
+            ))}
           </div>
 
-          {/* MOBILE HAMBURGER BUTTON */}
-          <button 
-            className="md:hidden text-2xl text-slate-700 p-2 ml-2 z-50 relative"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <FaXmark /> : <FaBars />}
+          <button type="button" onClick={() => setIsMobileOpen(open => !open)}
+            aria-label={isMobileOpen ? "Menüyü kapat" : "Menüyü aç"} aria-expanded={isMobileOpen} aria-controls="mobile-menu"
+            className={`${iconButton} md:hidden ${isSearchOpen ? "hidden" : ""}`}>
+            {isMobileOpen ? <X className="h-5 w-5" strokeWidth={1.75} /> : <Menu className="h-5 w-5" strokeWidth={1.75} />}
           </button>
-
         </div>
       </div>
-      
-      {/* MOBILE MENU OVERLAY */}
-      <div className={`md:hidden fixed inset-0 bg-white z-40 transition-transform duration-300 ease-in-out ${isMenuOpen ? "translate-x-0" : "translate-x-full"} pt-20 px-6 overflow-y-auto`}>
-         <nav className="flex flex-col gap-6">
-            {/* Kullanıcı Kartı (Mobilde) */}
-            {user ? (
-               <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 relative">
-                    <Image 
-                        src={avatarUrl} 
-                        alt="Profile" 
-                        fill 
-                        className="object-cover"
-                        unoptimized={avatarUrl.includes('ui-avatars.com')}
-                    />
-                  </div>
-                  <div>
-                      <div className="font-bold text-slate-800 text-lg">{user.user_display_name}</div>
-                      <div className="text-xs text-[#db4c3f] font-bold uppercase">Şef</div>
-                  </div>
-               </div>
-            ) : (
-               <div className="bg-orange-50 rounded-2xl p-6 text-center mb-4">
-                  <h3 className="font-bold text-slate-800 mb-2">Hoş Geldiniz!</h3>
-                  <p className="text-xs text-slate-500 mb-4">Tariften dünyasına katılın.</p>
-                  <div className="flex gap-3">
-                    <Link href="/login" className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white font-bold text-slate-700 text-sm" onClick={() => setIsMenuOpen(false)}>Giriş</Link>
-                    <Link href="/register" className="flex-1 py-2.5 rounded-xl bg-[#db4c3f] text-white font-bold text-sm" onClick={() => setIsMenuOpen(false)}>Kayıt Ol</Link>
-                  </div>
-               </div>
-            )}
 
-            <div className="flex flex-col gap-4 text-lg font-bold text-slate-700">
-              <Link href="/" onClick={() => setIsMenuOpen(false)} className="hover:text-[#db4c3f]">Anasayfa</Link>
-              <Link href="/menus" onClick={() => setIsMenuOpen(false)} className="hover:text-[#db4c3f]">Menüler</Link>
-              <Link href="/pantry" onClick={() => setIsMenuOpen(false)} className="hover:text-[#db4c3f]">Dolap Asistanı</Link>
-              <Link href="/recipes" onClick={() => setIsMenuOpen(false)} className="hover:text-[#db4c3f]">Tarifler</Link>
-              
-              {user && (
-                <>
-                  <hr className="border-gray-100 my-2" />
-                  <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 text-base font-medium text-slate-600">
-                    <FaUser /> Profilim
-                  </Link>
-                  <Link href="/cookbook" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 text-base font-medium text-slate-600">
-                    <FaBookOpen /> Tarif Defterim
-                  </Link>
-                  <Link href="/profile/edit" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 text-base font-medium text-slate-600">
-                    <FaGear /> Hesap Ayarları
-                  </Link>
-                  <button onClick={() => { logout(); setIsMenuOpen(false); }} className="flex items-center gap-3 text-base font-medium text-red-500 mt-2">
-                    <FaArrowRightFromBracket /> Çıkış Yap
-                  </button>
-                </>
-              )}
+      {/* Mobile menu: sits under the header bar so the close button stays where it was tapped. */}
+      <div id="mobile-menu" hidden={!isMobileOpen}
+        onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setIsMobileOpen(false); }}
+        className="fixed inset-x-0 bottom-0 top-16 z-40 overflow-y-auto border-t border-gray-100 bg-white px-4 pb-10 pt-4 md:hidden">
+        {user ? (
+          <div className="mb-4 flex items-center gap-3 rounded-2xl border border-gray-200 p-4">
+            <Avatar url={user.avatar_url} name={displayName} size={44} />
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-slate-900">{displayName}</p>
+              {user.user_email && <p className="truncate text-xs text-gray-500">{user.user_email}</p>}
             </div>
-         </nav>
+          </div>
+        ) : (
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            <Link href="/login" className="grid h-11 place-items-center rounded-xl border border-gray-200 text-sm font-semibold text-slate-800">Giriş yap</Link>
+            <Link href="/register" className="grid h-11 place-items-center rounded-xl bg-brand text-sm font-semibold text-white">Kayıt ol</Link>
+          </div>
+        )}
+
+        <nav aria-label="Mobil menü" className="divide-y divide-gray-100">
+          {NAV.map(item => {
+            const active = isActive(pathname, item.match);
+            return (
+              <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
+                className={`flex items-center justify-between py-4 font-heading text-lg font-semibold ${active ? "text-brand" : "text-slate-900"}`}>
+                {item.label}
+              </Link>
+            );
+          })}
+          <Link href="/cookbook" className="flex items-center gap-3 py-4 text-[15px] text-slate-700">
+            <Bookmark className="h-[18px] w-[18px] text-gray-400" aria-hidden /> Tarif defterim
+          </Link>
+          {user && (
+            <>
+              <Link href="/profile" className="flex items-center gap-3 py-4 text-[15px] text-slate-700">
+                <UserRound className="h-[18px] w-[18px] text-gray-400" aria-hidden /> Profilim
+              </Link>
+              <Link href="/profile/edit" className="flex items-center gap-3 py-4 text-[15px] text-slate-700">
+                <Settings className="h-[18px] w-[18px] text-gray-400" aria-hidden /> Hesap ayarları
+              </Link>
+            </>
+          )}
+          <button type="button" onClick={toggleDarkMode} className="flex w-full items-center gap-3 py-4 text-left text-[15px] text-slate-700">
+            {isDarkMode ? <Sun className="h-[18px] w-[18px] text-gray-400" aria-hidden /> : <Moon className="h-[18px] w-[18px] text-gray-400" aria-hidden />}
+            {isDarkMode ? "Açık tema" : "Koyu tema"}
+          </button>
+          {user && (
+            <button type="button" onClick={() => { logout(); setIsMobileOpen(false); }}
+              className="flex w-full items-center gap-3 py-4 text-left text-[15px] text-red-600">
+              <LogOut className="h-[18px] w-[18px]" aria-hidden /> Çıkış yap
+            </button>
+          )}
+        </nav>
       </div>
     </header>
   );

@@ -126,7 +126,7 @@ export default function GlobalCreateMenu() {
         aria-haspopup="dialog" aria-expanded={opened}
         title="Tarif veya menü ekle"
         onClick={() => setOpened(true)}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-[13px] bg-[#e14f43] text-white shadow-[0_5px_14px_rgba(219,76,63,0.17)] transition hover:-translate-y-0.5 hover:bg-[#c84538]">
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand text-white transition hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
         <FaPlus size={14} />
       </button>
       {typeof document !== "undefined" && sheet && createPortal(sheet, document.body)}
