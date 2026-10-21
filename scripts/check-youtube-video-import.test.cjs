@@ -184,7 +184,7 @@ test('async recipe transfer gives a notification without blocking the editor', (
 test('Instagram standard post may be photo or carousel; cannot be silently sold as video', () => {
   const standard = 'https://www.instagram.com/p/DFiPb_aoAXi/';
   assert.equal(isInstagramPostLink(standard), true);
-  assert.equal(isVideoRecipeLink(standard), false);
+  assert.equal(isVideoRecipeLink(standard), true);
   assert.equal(isInstagramPostLink('https://www.instagram.com/p/DFiPb_aoAXi/?igsh=test'), true);
   assert.equal(isInstagramReelLink(standard), false);
   for (const suspicious of [
@@ -195,10 +195,10 @@ test('Instagram standard post may be photo or carousel; cannot be silently sold 
     'https://www.instagram.com/p/DFiPb_aoAXi/extra',
   ]) assert.equal(isInstagramPostLink(suspicious), false, suspicious);
   const page = read('src/app/recipe/import/page.tsx');
-  assert.match(page, /isInstagramPostLink\(url\)/);
+  assert.match(page, /isVideoRecipeLink\(url\)/);
   assert.match(page, /await requestVideoPreview\(url\)/);
-  assert.match(page, /Mevcut tarifi bul/);
-  assert.match(page, /Instagram gönderi bağlantıları/);
+  assert.match(page, /Tarifi aktar/);
+  assert.match(page, /fotoğraf veya galeri ise video analizi başlatmayız/);
 });
 
 test('separate transfers page handles stalled jobs and automatic publication without charging again', () => {
@@ -220,9 +220,9 @@ test('Instagram post aliases resolve existing public Reels but never start unkno
   const page = read('src/app/recipe/import/page.tsx');
   const resolve = read('src/app/api/recipe-social/video/resolve/route.ts');
   assert.match(resolve, /isInstagramPostLink\(body\.source_url\)/);
-  assert.match(page, /found\.status === "unsupported_post"/);
+  assert.match(page, /isInstagramPostLink\(socialUrl\)/);
   assert.match(page, /found\.can_start === true && isVideoRecipeLink\(url\)/);
-  assert.match(page, /Mevcut tarifi bul/);
+  assert.match(page, /Tarifi aktar/);
 });
 
 test('social card shows only measured and timestamped counts, never synthetic values', () => {
@@ -242,7 +242,7 @@ test('video pipeline v2: TikTok links, consent for social video, short-link guid
   const start = read('src/app/api/recipe-social/video/start/route.ts');
   const page = read('src/app/recipe/import/page.tsx');
   assert.match(lib, /export function isTikTokVideoLink/);
-  assert.match(lib, /isYouTubeVideoLink\(value\) \|\| isInstagramReelLink\(value\) \|\| isTikTokVideoLink\(value\)/);
+  assert.match(lib, /isYouTubeVideoLink\(value\) \|\| isInstagramReelLink\(value\) \|\| isInstagramPostLink\(value\) \|\| isTikTokVideoLink\(value\)/);
   assert.match(start, /needsRightsConfirmation\(p\.source_url\)/);
   assert.match(page, /isTikTokShortLink\(url\)/);
   assert.match(page, /needsRightsConfirmation\(socialUrl\) && \(/);
