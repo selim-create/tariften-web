@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,6 +48,26 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const [hasMoreComments, setHasMoreComments] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // The ingredients card is sticky only while it fits in the viewport.
+  // A taller card would hide its last rows (and an inner scroll area is
+  // awkward with flour on your hands), so long lists simply scroll with the page.
+  const ingredientsRef = useRef<HTMLElement>(null);
+  const [ingredientsFit, setIngredientsFit] = useState(false);
+  useEffect(() => {
+    const card = ingredientsRef.current;
+    if (!card) return;
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setIngredientsFit(card.offsetHeight <= window.innerHeight - 120));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(card);
+    window.addEventListener("resize", measure);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener("resize", measure); };
+  }, []);
 
   const [userRating, setUserRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
@@ -250,9 +270,8 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   return (
     <div className="w-full">
       <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-14">
-        {/* Malzemeler: sticky only within the viewport; long lists scroll inside the card. */}
-        <aside aria-labelledby="ingredients-title"
-          className="rounded-3xl border border-gray-200 bg-white lg:sticky lg:top-24 lg:col-span-4 lg:flex lg:max-h-[calc(100vh-7.5rem)] lg:flex-col">
+        <aside ref={ingredientsRef} aria-labelledby="ingredients-title"
+          className={`rounded-3xl border border-gray-200 bg-white lg:col-span-4 ${ingredientsFit ? "lg:sticky lg:top-24" : ""}`}>
           <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-6 pb-4 pt-6">
             <div>
               <h2 id="ingredients-title" className="font-heading text-xl font-bold text-slate-900">Malzemeler</h2>
@@ -275,7 +294,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             )}
           </div>
 
-          <div className="overscroll-contain px-6 pb-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+          <div className="px-6 pb-6">
             {ingredients.length > 0 ? (
               <ul className="divide-y divide-gray-100">
                 {ingredients.map((item, idx) => {

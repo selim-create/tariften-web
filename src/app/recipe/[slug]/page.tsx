@@ -107,12 +107,13 @@ export default async function RecipeDetailPage({
     servings && { icon: Users, label: "Porsiyon", value: `${servings} kişilik` },
     calories && {
       icon: Flame,
-      label: caloriesVerified ? "Kalori" : "Kalori · tahmini",
+      label: "Kalori",
       value: `${caloriesVerified ? "" : "≈"}${calories} kcal`,
+      note: caloriesVerified ? undefined : "tahmini",
       hint: caloriesVerified ? "Doğrulanmış besin analizi" : "AI tahmini; besin veritabanıyla doğrulanmadı",
     },
     difficulty && { icon: Gauge, label: "Zorluk", value: difficulty },
-  ].filter(Boolean) as { icon: typeof Clock3; label: string; value: string; hint?: string }[];
+  ].filter(Boolean) as { icon: typeof Clock3; label: string; value: string; hint?: string; note?: string }[];
 
   const taxonomy = [
     ...(recipe.meal_type || []).map(m => ({ label: m, href: `/recipes?meal_type=${encodeURIComponent(m)}` })),
@@ -193,14 +194,17 @@ export default async function RecipeDetailPage({
 
             {facts.length > 0 && (
               <dl className="mb-8 grid grid-cols-2 overflow-hidden rounded-2xl border border-gray-200 bg-white sm:flex sm:divide-x sm:divide-gray-100">
-                {facts.map(({ icon: Icon, label, value, hint }, i) => (
+                {facts.map(({ icon: Icon, label, value, hint, note }, i) => (
                   <div key={label} title={hint}
                     className={`flex flex-1 flex-col gap-1 px-4 py-3.5 ${i % 2 === 1 ? "border-l border-gray-100 sm:border-l-0" : ""} ${i > 1 ? "border-t border-gray-100 sm:border-t-0" : ""}`}>
-                    <dt className="flex items-center gap-1.5 text-[11px] font-medium text-gray-500">
+                    <dt className="flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-gray-500">
                       <Icon className="h-3.5 w-3.5 text-gray-400" aria-hidden strokeWidth={1.75} />
                       {label}
                     </dt>
-                    <dd className="text-[15px] font-semibold text-slate-900 tabular-nums">{value}</dd>
+                    <dd className="whitespace-nowrap text-[15px] font-semibold text-slate-900 tabular-nums">
+                      {value}
+                      {note && <span className="ml-1 text-[11px] font-normal text-gray-500">{note}</span>}
+                    </dd>
                   </div>
                 ))}
               </dl>
