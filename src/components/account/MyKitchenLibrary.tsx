@@ -3,16 +3,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  FaArrowRight, FaBookOpen, FaCheck, FaChevronDown, FaClock,
-  FaPen, FaPlus, FaRotate, FaMagnifyingGlass, FaXmark,
-} from "react-icons/fa6";
-import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { Check, ChevronDown, Loader2, PenLine, Plus, RotateCw, Search, X } from "lucide-react";
+import RecipeCover from "@/components/recipe/RecipeCover";
 import { isPlaceholderImage } from "@/lib/utils";
 import { getOwnedLibraryPage, type KitchenKind } from "@/lib/owned-library";
 import type { Menu, Recipe } from "@/types";
 
 type Item = Recipe | Menu;
+
+/** Positive whole number from API data, or null. Never a default. */
+function positive(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
+}
 
 export default function MyKitchenLibrary({
   kind, token, userId,
@@ -84,48 +87,41 @@ export default function MyKitchenLibrary({
     });
   }, [isRecipe, items, query]);
 
-  return (
-    <section className="space-y-5" aria-label={isRecipe ? "Tariflerim" : "Sofralarım"}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <span className="text-[10px] font-extrabold tracking-[0.18em] text-[#cb6654]">
-            SENİN MUTFAĞIN
-          </span>
-          <h2 className="mt-1 font-heading text-2xl font-extrabold text-slate-900">
-            {isRecipe ? "Tariflerim" : "Sofralarım"}
-          </h2>
-          <p className="mt-1 text-sm text-[#92847b]">
-            {isRecipe ? "Kendi hazırladığın tariflere istediğin zaman dön."
-              : "Hazırladığın sofralar ve menüler burada."}
-          </p>
-        </div>
-        <button onClick={() => { setQuery(""); void load(1); }}
-          disabled={loading || loadingMore} type="button"
-          aria-label="İçeriklerimi yenile"
-          className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-[#ebddd2] bg-white px-4 text-xs font-bold text-[#ad6652] transition hover:border-[#db4c3f] disabled:opacity-50">
-          <FaRotate size={12} /> Yenile
-        </button>
-      </div>
+  const noun = isRecipe ? "tarif" : "sofra";
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-[#efe2d7] bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <label className="flex flex-1 items-center gap-3 rounded-xl bg-[#fbf8f5] px-4">
-          <FaMagnifyingGlass aria-hidden className="text-[#a99081]" size={13} />
-          <input className="min-h-11 w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-[#b4a59c]"
+  return (
+    <section className="space-y-6" aria-label={isRecipe ? "Tariflerim" : "Sofralarım"}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <label className="flex h-12 flex-1 items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 transition focus-within:border-brand/40 focus-within:ring-4 focus-within:ring-brand/10">
+          <Search aria-hidden className="h-4 w-4 shrink-0 text-gray-400" />
+          <input className="h-full w-full min-w-0 bg-transparent text-[15px] text-slate-800 outline-none placeholder:text-gray-400"
             type="search" autoComplete="off" value={query}
             onChange={event => setQuery(event.target.value)}
-            placeholder="Yüklediğin tarif veya menülerde ara..."
+            placeholder={isRecipe ? "Tariflerinde ara…" : "Sofralarında ara…"}
             aria-label="Yüklenen içeriklerde ara" />
           {query && <button type="button" onClick={() => setQuery("")}
-            aria-label="Aramayı temizle" className="text-[#ae9587] hover:text-[#db4c3f]"><FaXmark size={12} /></button>}
+            aria-label="Aramayı temizle" className="text-gray-400 hover:text-brand"><X className="h-4 w-4" /></button>}
         </label>
-        <span className="px-2 text-xs font-semibold text-[#a18678]" aria-live="polite">
-          {loading ? "Yükleniyor…" : `${total} ${isRecipe ? "tarif" : "sofra"}`}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="px-1 text-sm text-gray-500 tabular-nums" aria-live="polite">
+            {loading ? "Yükleniyor…" : `${total} ${noun}`}
+          </span>
+          <button onClick={() => { setQuery(""); void load(1); }}
+            disabled={loading || loadingMore} type="button"
+            aria-label="İçeriklerimi yenile" title="Yenile"
+            className="grid h-12 w-12 place-items-center rounded-xl border border-gray-200 bg-white text-slate-600 transition hover:border-gray-300 hover:text-slate-900 disabled:opacity-50">
+            <RotateCw className="h-4 w-4" />
+          </button>
+          <Link href={isRecipe ? "/recipe/create" : "/menu/create"}
+            className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand px-4 text-sm font-semibold text-white transition hover:bg-brand-dark">
+            <Plus className="h-4 w-4" aria-hidden /> {isRecipe ? "Tarif yaz" : "Menü oluştur"}
+          </Link>
+        </div>
       </div>
 
       {loading && items.length === 0 && (
-        <div role="status" className="rounded-2xl border border-[#efe2d7] bg-white p-9 text-center text-sm text-[#967d70]">
-          İçeriklerin getiriliyor…
+        <div role="status" className="flex items-center justify-center gap-2 py-16 text-sm text-gray-500">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> İçeriklerin getiriliyor…
         </div>
       )}
 
@@ -133,92 +129,83 @@ export default function MyKitchenLibrary({
         <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
           <p>{error}</p>
           <button onClick={() => void load(retryPage)}
-            type="button" className="mt-2 font-extrabold text-[#b45337] underline underline-offset-4">
+            type="button" className="mt-2 font-semibold text-brand underline underline-offset-4">
             Tekrar dene
           </button>
         </div>
       )}
 
       {!loading && !error && total === 0 && (
-        <div className="flex flex-col items-center rounded-[28px] border border-[#efe2d7] bg-white px-6 py-12 text-center">
-          <div className="grid h-16 w-16 place-items-center rounded-[20px] bg-[#fff1e9] text-[#dc5a46]">
-            {isRecipe ? <FaBookOpen size={24} /> : <FaPlus size={24} />}
-          </div>
-          <h3 className="mt-5 font-heading text-xl font-bold text-slate-900">
+        <div className="flex flex-col items-center rounded-3xl border border-dashed border-gray-300 bg-white px-6 py-14 text-center">
+          <h3 className="font-heading text-xl font-semibold text-slate-900">
             {isRecipe ? "İlk tarifin için yer hazır." : "İlk sofranı birlikte hazırlayalım."}
           </h3>
-          <p className="mt-2 max-w-sm text-sm leading-6 text-[#91817a]">
-            {isRecipe ? "Mutfağındaki güzel fikirleri paylaşmaya başlayabilirsin."
-              : "Yeni bir menü oluşturduğunda burada kolayca bulabileceksin."}
+          <p className="mt-1 max-w-sm text-sm text-gray-500">
+            {isRecipe ? "Annenden kalma o tarif, defterin ilk sayfasına çok yakışır."
+              : "Hazırladığın menüler burada durur; davet günü aramakla uğraşmazsın."}
           </p>
           <Link href={isRecipe ? "/recipe/create" : "/menu/create"}
-            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#df5043] px-5 text-sm font-extrabold text-white transition hover:bg-[#bd4037]">
-            <FaPlus size={13} /> {isRecipe ? "Tarif yaz" : "Menü oluştur"}
+            className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 font-semibold text-white transition hover:bg-brand-dark">
+            <Plus className="h-4 w-4" aria-hidden /> {isRecipe ? "Tarif yaz" : "Menü oluştur"}
           </Link>
         </div>
       )}
 
-      <div className="grid gap-3 md:grid-cols-2">
-        {visible.map(item => {
-          const recipe = isRecipe ? item as Recipe : null;
-          const menu = !isRecipe ? item as Menu : null;
-          const href = isRecipe ? `/recipe/${item.slug}` : `/menu/${item.slug}`;
-          const editHref = isRecipe ? `/recipe/edit/${item.id}` : `/menu/edit/${item.slug}`;
-          const extra = recipe?.excerpt || menu?.description || "Tariften mutfağından";
-          const info = recipe
-            ? [recipe.servings && `${recipe.servings} kişilik`, recipe.prep_time && `${recipe.prep_time} dk`].filter(Boolean).join(" · ")
-            : menu?.guest_count ? `${menu.guest_count} kişilik` : "Menüyü incele";
+      {visible.length > 0 && (
+        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {visible.map(item => {
+            const recipe = isRecipe ? item as Recipe : null;
+            const menu = !isRecipe ? item as Menu : null;
+            const href = isRecipe ? `/recipe/${item.slug}` : `/menu/${item.slug}`;
+            const editHref = isRecipe ? `/recipe/edit/${item.id}` : `/menu/edit/${item.slug}`;
+            const minutes = recipe ? (positive(recipe.prep_time) ?? 0) + (positive(recipe.cook_time) ?? 0) : 0;
+            const people = positive(recipe ? recipe.servings : menu?.guest_count);
+            const info = [people && `${people} kişilik`, minutes > 0 && `${minutes} dk`].filter(Boolean).join(" · ");
 
-          return (
-            <article key={item.id} className="overflow-hidden rounded-[20px] border border-[#f0e4da] bg-white shadow-[0_8px_28px_rgba(70,45,35,0.035)] transition hover:border-[#e5c7b8] hover:shadow-md">
-              <div className="flex gap-3 p-3">
-                <Link href={href} aria-label={item.title}
-                  className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#fff3e9]">
+            return (
+              <article key={item.id} className="group">
+                <Link href={href} tabIndex={-1} aria-hidden
+                  className="relative mb-3 block aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 ring-1 ring-black/5">
                   {!item.image || isPlaceholderImage(item.image)
-                    ? <ImagePlaceholder title={item.title} variant="card" />
-                    : <Image src={item.image} alt={item.title} fill sizes="96px"
-                        className="object-cover" unoptimized={item.image.includes("unsplash.com") || item.image.includes("pexels.com")} />}
+                    ? <RecipeCover title={item.title} compact />
+                    : <Image src={item.image} alt="" fill unoptimized sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-cover transition duration-500 group-hover:scale-[1.03]" />}
                 </Link>
-                <div className="min-w-0 flex-1 py-1">
-                  <Link href={href} className="line-clamp-2 font-heading text-[15px] font-extrabold leading-5 text-slate-900 transition hover:text-[#d75042]">{item.title}</Link>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#8d8077]">{extra}</p>
-                  <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#ac7e67]">
-                    <FaClock size={11} /> {info || "Tarifini incele"}
-                  </p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={href} className="line-clamp-2 font-heading text-[17px] font-semibold leading-snug text-slate-900 transition hover:text-brand">{item.title}</Link>
+                    {info && <p className="mt-1.5 text-xs text-gray-500 tabular-nums">{info}</p>}
+                  </div>
+                  <Link href={editHref} aria-label={`${item.title} düzenle`} title="Düzenle"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-gray-200 bg-white text-slate-500 transition hover:border-brand/40 hover:text-brand">
+                    <PenLine className="h-4 w-4" />
+                  </Link>
                 </div>
-              </div>
-              <div className="flex items-center justify-between border-t border-[#f5eee9] px-4 py-2.5">
-                <Link href={href} className="inline-flex items-center gap-2 text-xs font-bold text-[#988479] hover:text-[#d75042]">
-                  Görüntüle <FaArrowRight size={10} />
-                </Link>
-                <Link href={editHref} className="inline-flex min-h-9 items-center gap-2 rounded-xl bg-[#fff2ec] px-3 text-xs font-extrabold text-[#ca5a48] hover:bg-[#ffe3d7]">
-                  <FaPen size={11} /> Düzenle
-                </Link>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
 
       {!loading && query && visible.length === 0 && total > 0 && (
-        <p className="rounded-2xl bg-[#fff9f4] px-5 py-6 text-center text-sm text-[#9a8679]">
-          Yüklenen içerikler arasında bu aramayla eşleşen bir sonuç yok.
+        <p className="rounded-2xl border border-gray-200 bg-white px-5 py-6 text-center text-sm text-gray-500">
+          Bu aramayla eşleşen bir {noun} yok. Başka bir kelime dener misin?
         </p>
       )}
 
       {page < pages && !loading && (
         <button type="button" disabled={loadingMore} onClick={() => void load(page + 1)}
-          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#e9d5c7] bg-white text-sm font-extrabold text-[#b3624e] transition hover:bg-[#fff7f1] disabled:opacity-60">
-          {loadingMore ? "Yükleniyor…" : <><FaChevronDown size={14} /> Daha fazla yükle</>}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-slate-700 transition hover:border-gray-300 disabled:opacity-60">
+          {loadingMore ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Yükleniyor…</> : <><ChevronDown className="h-4 w-4" aria-hidden /> Daha fazla yükle</>}
         </button>
       )}
 
       {query && page < pages && (
-        <p className="text-center text-xs text-[#9a8579]">Arama şimdilik yüklediğin sayfalarda çalışır. Daha fazla sonuç için sayfaları yükleyebilirsin.</p>
+        <p className="text-center text-xs text-gray-500">Arama şimdilik yüklediğin sayfalarda çalışır. Daha fazla sonuç için sayfaları yükleyebilirsin.</p>
       )}
       {!loading && !error && page > 0 && pages <= page && total > 0 && (
-        <p className="flex items-center justify-center gap-2 text-xs text-[#9d938c]">
-          <FaCheck size={11} className="text-[#439172]" /> Tüm içeriklerin yüklendi.
+        <p className="flex items-center justify-center gap-2 text-xs text-gray-500">
+          <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden /> Tüm içeriklerin yüklendi.
         </p>
       )}
     </section>

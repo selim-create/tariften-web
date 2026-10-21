@@ -1,111 +1,92 @@
 "use client";
 
-import { useState, useEffect, useRef, ChangeEvent } from "react";
+import { useState, useEffect, useRef, useMemo, ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { getPantry, updatePantry, analyzePantry, generateAIRecipe, createRecipe } from "@/lib/api";
 import { PantryItem } from "@/types";
-import { 
-  FaPlus, FaTrash, FaChevronRight, FaWandMagicSparkles, FaBasketShopping, 
-  FaCamera, FaCalendarDays, FaFire, FaUtensils, FaPen, FaXmark, FaCheck, 
-  FaSpinner, FaFloppyDisk, FaCloudArrowUp, FaClockRotateLeft, FaRobot
-} from "react-icons/fa6";
+import {
+  CalendarDays, Camera, Check, CircleAlert, CookingPot, LifeBuoy, Loader2, Plus, Sparkles, Trash2, X,
+} from "lucide-react";
+import PageIntro from "@/components/account/PageIntro";
+import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 
 // --- TYPES ---
 type SaveStatus = "saved" | "saving" | "error";
-type ModalType = "success" | "error";
-type AiActionType = "rescue" | "plan" | "suggest";
+type AiActionType = "rescue" | "suggest";
+type Urgency = "expired" | "today" | "soon" | "week" | "fresh" | "none";
+type Notice = { tone: "success" | "error" | "info"; message: string; login?: boolean } | null;
 
-interface ModalState {
-  show: boolean;
-  type: ModalType;
-  message: string;
+// --- TARİH HESAPLAMA ---
+const formatDateLocal = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateLocal = (dateStr: string) => {
+  if (!dateStr || dateStr === "0000-00-00") return null;
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return null;
+  return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+};
+
+const addDays = (days: number) => {
+  const result = new Date();
+  result.setHours(0, 0, 0, 0);
+  result.setDate(result.getDate() + days);
+  return formatDateLocal(result);
+};
+
+/** Days left until the item's own date. No date means no guess. */
+function analyse(expiry: string | null | undefined): { urgency: Urgency; days: number | null; text: string } {
+  const date = parseDateLocal(expiry || "");
+  if (!date) return { urgency: "none", days: null, text: "Tarih yok" };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (days < 0) return { urgency: "expired", days, text: `${Math.abs(days)} gün geçti` };
+  if (days === 0) return { urgency: "today", days, text: "Bugün son gün" };
+  if (days <= 3) return { urgency: "soon", days, text: `${days} gün kaldı` };
+  if (days <= 7) return { urgency: "week", days, text: `${days} gün kaldı` };
+  return { urgency: "fresh", days, text: `${days} gün kaldı` };
 }
 
-interface AiStatus {
-  loading: boolean;
-  message: string;
-}
+/** Legacy status field the API stores (fresh | warning | expired). */
+const storedStatus = (expiry: string | null | undefined): "fresh" | "warning" | "expired" => {
+  const { urgency } = analyse(expiry);
+  return urgency === "expired" || urgency === "today" || urgency === "soon" ? "expired" : urgency === "week" ? "warning" : "fresh";
+};
+
+const CHIP: Record<Urgency, string> = {
+  expired: "bg-red-50 text-red-700 ring-red-100",
+  today: "bg-red-50 text-red-700 ring-red-100",
+  soon: "bg-orange-50 text-orange-700 ring-orange-100",
+  week: "bg-amber-50 text-amber-800 ring-amber-100",
+  fresh: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  none: "bg-gray-50 text-gray-500 ring-gray-200",
+};
+const ORDER: Record<Urgency, number> = { expired: 0, today: 1, soon: 2, week: 3, fresh: 4, none: 5 };
 
 export default function PantryPage() {
   const router = useRouter();
-  // DÜZELTME: AuthContext'te 'isLoading' yok, 'loading' var. İsmi 'authLoading' olarak alias yapıyoruz.
   const { user, loading: authLoading } = useAuth();
-  
+
   const [items, setItems] = useState<PantryItem[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  
-  // Kayıt Durumu
+
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const isDirty = useRef<boolean>(false);
 
-  // Modal State
-  const [modal, setModal] = useState<ModalState>({ show: false, type: "success", message: "" });
-  const [showDateModal, setShowDateModal] = useState(false); 
-  const [showAIModal, setShowAIModal] = useState(false); 
-  
+  const [notice, setNotice] = useState<Notice>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [tempDateInput, setTempDateInput] = useState("");
-  const [aiStatus, setAiStatus] = useState<AiStatus>({ loading: false, message: "" });
-
-  // --- TARİH HESAPLAMA ---
-  const formatDateLocal = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  const parseDateLocal = (dateStr: string) => {
-    if (!dateStr || dateStr === "0000-00-00") return null;
-    const parts = dateStr.split("-");
-    if (parts.length !== 3) return null;
-    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-  };
-
-  const addDays = (days: number) => {
-    const result = new Date(); 
-    result.setHours(0, 0, 0, 0); 
-    result.setDate(result.getDate() + days);
-    return formatDateLocal(result);
-  };
-
-  const calculateStatus = (expiryDateString: string | null | undefined) => {
-    if (!expiryDateString || expiryDateString === "0000-00-00" || expiryDateString === "") 
-        return { status: "fresh", text: "Tarih Yok" };
-    
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    
-    const expiry = parseDateLocal(expiryDateString);
-    if (!expiry) return { status: "fresh", text: "Geçersiz" };
-
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return { status: "expired", text: `${Math.abs(diffDays)} gün geçti` };
-    if (diffDays === 0) return { status: "expired", text: "Bugün son!" };
-    if (diffDays <= 3) return { status: "expired", text: `${diffDays} gün kaldı` };
-    if (diffDays <= 7) return { status: "warning", text: `${diffDays} gün kaldı` };
-    return { status: "fresh", text: `${diffDays} gün kaldı` };
-  };
-
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case "fresh": return "text-green-500 bg-green-500/20";
-      case "warning": return "text-yellow-500 bg-yellow-500/20";
-      case "expired": return "text-red-500 bg-red-500/20";
-      default: return "text-gray-400 bg-gray-100";
-    }
-  };
-
-  const showModalMessage = (type: ModalType, message: string) => {
-    setModal({ show: true, type, message });
-  };
+  const [aiLoading, setAiLoading] = useState<null | AiActionType>(null);
 
   // --- YARDIMCI: GÖRSEL SIKIŞTIRMA ---
   const resizeImage = (file: File): Promise<string> => {
@@ -113,18 +94,18 @@ export default function PantryPage() {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = (event) => {
-        const img = new window.Image(); 
+        const img = new window.Image();
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 800; 
+          const MAX_WIDTH = 800;
           const scaleSize = MAX_WIDTH / img.width;
           canvas.width = MAX_WIDTH;
           canvas.height = img.height * scaleSize;
           const ctx = canvas.getContext("2d");
-          if(ctx) {
+          if (ctx) {
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL(file.type)); 
+            resolve(canvas.toDataURL(file.type));
           } else reject(new Error("Canvas hatası"));
         };
         img.onerror = (error) => reject(error);
@@ -139,19 +120,16 @@ export default function PantryPage() {
     async function loadData() {
       try {
         if (user) {
-            const data = await getPantry(user.token || ""); // Token undefined olabilir, boş string fallback
-            if (data && Array.isArray(data)) {
-                const cleanData = data.map((i: any) => ({
-                    ...i,
-                    // API'den null gelebilir, string olarak garantiye alalım
-                    expiresIn: (i.expiresIn === "0000-00-00" || !i.expiresIn) ? "" : i.expiresIn,
-                    status: calculateStatus(i.expiresIn).status as any
-                }));
-                setItems(cleanData);
-            }
+          const data = await getPantry(user.token || "");
+          if (data && Array.isArray(data)) {
+            setItems(data.map((i: PantryItem) => {
+              const expiresIn = (i.expiresIn === "0000-00-00" || !i.expiresIn) ? "" : i.expiresIn;
+              return { ...i, expiresIn, status: storedStatus(expiresIn) };
+            }));
+          }
         } else {
-            const saved = localStorage.getItem("tariften_pantry");
-            if (saved) setItems(JSON.parse(saved));
+          const saved = localStorage.getItem("tariften_pantry");
+          if (saved) setItems(JSON.parse(saved));
         }
       } catch (e) {
         console.error("Veri yükleme hatası:", e);
@@ -167,327 +145,379 @@ export default function PantryPage() {
   useEffect(() => {
     if (authLoading || !isLoaded || !isDirty.current) return;
 
-    setSaveStatus("saving");
     const timeoutId = setTimeout(async () => {
-        if (user) {
-            const payload = items.map(i => ({
-                name: i.name,
-                quantity: i.quantity || "", 
-                unit: i.unit || "",
-                status: i.status,
-                expiresIn: i.expiresIn || ""
-            }));
-            
-            // DÜZELTME: Token kontrolü
-            if (user.token) {
-                const success = await updatePantry(user.token, payload as any);
-                if (success) setSaveStatus("saved");
-                else setSaveStatus("error");
-            }
-            
-        } else {
-            localStorage.setItem("tariften_pantry", JSON.stringify(items));
-            setSaveStatus("saved");
+      if (user) {
+        const payload = items.map(i => ({
+          name: i.name,
+          quantity: i.quantity || "",
+          unit: i.unit || "",
+          status: storedStatus(i.expiresIn),
+          expiresIn: i.expiresIn || "",
+        }));
+        if (user.token) {
+          const success = await updatePantry(user.token, payload as unknown as PantryItem[]);
+          setSaveStatus(success ? "saved" : "error");
         }
-        isDirty.current = false;
+      } else {
+        try { localStorage.setItem("tariften_pantry", JSON.stringify(items)); } catch { /* storage blocked */ }
+        setSaveStatus("saved");
+      }
+      isDirty.current = false;
     }, 1000);
 
     return () => clearTimeout(timeoutId);
   }, [items, user, isLoaded, authLoading]);
 
   const updateItems = (newItems: PantryItem[]) => {
-      setItems(newItems);
-      isDirty.current = true;
-      setSaveStatus("saving");
+    setItems(newItems);
+    isDirty.current = true;
+    setSaveStatus("saving");
   };
 
   // --- MANUEL EKLEME ---
+  // "Süt 3 gün" sets a date; "Yumurta" alone stays undated (no invented expiry).
   const handleManualAdd = () => {
     if (!inputValue.trim()) return;
 
     const rawInputs = inputValue.split(",").map(s => s.trim()).filter(s => s);
-    const newItems: PantryItem[] = [];
-
-    rawInputs.forEach(input => {
-        const match = input.match(/^(.*?)\s+(\d+)\s*(gün|gun|day|hafta|week|ay|month)s?$/i);
-        let name = input;
-        let expiryDate = addDays(7); 
-
-        if (match) {
-            name = match[1].trim(); 
-            const amount = parseInt(match[2]);
-            const unit = match[3].toLowerCase();
-            let daysToAdd = 0;
-            if (unit.includes("gün") || unit.includes("gun")) daysToAdd = amount;
-            if (unit.includes("hafta")) daysToAdd = amount * 7;
-            if (unit.includes("ay")) daysToAdd = amount * 30;
-            if (daysToAdd > 0) expiryDate = addDays(daysToAdd);
-        }
-
-        const newItemStatus = calculateStatus(expiryDate);
-        newItems.push({
-            id: Date.now() + Math.random(), // id number | string olabilir, number yapıyoruz
-            name: name.charAt(0).toUpperCase() + name.slice(1),
-            quantity: "", 
-            unit: "",
-            status: newItemStatus.status as any,
-            expiresIn: expiryDate
-        });
+    const newItems: PantryItem[] = rawInputs.map(input => {
+      const match = input.match(/^(.*?)\s+(\d+)\s*(gün|gun|day|hafta|week|ay|month)s?$/i);
+      let name = input;
+      let expiryDate = "";
+      if (match) {
+        name = match[1].trim();
+        const amount = parseInt(match[2]);
+        const unit = match[3].toLowerCase();
+        let daysToAdd = 0;
+        if (unit.includes("gün") || unit.includes("gun") || unit.includes("day")) daysToAdd = amount;
+        if (unit.includes("hafta") || unit.includes("week")) daysToAdd = amount * 7;
+        if (unit.startsWith("ay") || unit.includes("month")) daysToAdd = amount * 30;
+        if (daysToAdd > 0) expiryDate = addDays(daysToAdd);
+      }
+      return {
+        id: Date.now() + Math.random(),
+        name: name.charAt(0).toLocaleUpperCase("tr-TR") + name.slice(1),
+        quantity: "",
+        unit: "",
+        status: storedStatus(expiryDate),
+        expiresIn: expiryDate,
+      };
     });
 
-    updateItems([...newItems, ...items]); 
+    updateItems([...newItems, ...items]);
     setInputValue("");
   };
 
   // --- FİŞ OKUTMA ---
   const handleReceiptUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    if (!user || !user.token) { showModalMessage("error", "Fiş okuma özelliği için giriş yapmalısınız."); return; }
-    
-    if (file.size > 10 * 1024 * 1024) { showModalMessage("error", "Dosya boyutu çok büyük (Max 10MB)."); return; }
+    if (!user || !user.token) { setNotice({ tone: "info", message: "Fiş okutmak için giriş yapman gerekiyor.", login: true }); return; }
+    if (file.size > 10 * 1024 * 1024) { setNotice({ tone: "error", message: "Dosya çok büyük; en fazla 10 MB olabilir." }); return; }
 
     setAnalyzing(true);
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-        try {
-            const resizedBase64 = await resizeImage(file);
-            // user.token null kontrolü yukarıda yapıldı ama TS için tekrar gerekebilir veya ?
-            if (user.token) {
-                const analyzedItems = await analyzePantry(user.token, "", resizedBase64);
-                
-                const newItems: PantryItem[] = analyzedItems.map((item: any) => {
-                    const date = item.expiry_date || addDays(7);
-                    return {
-                        id: Date.now() + Math.random(),
-                        name: item.name,
-                        quantity: item.quantity || "",
-                        unit: "",
-                        status: calculateStatus(date).status as any,
-                        expiresIn: date
-                    };
-                });
-
-                updateItems([...newItems, ...items]);
-                showModalMessage("success", `${newItems.length} ürün fişten eklendi!`);
-            }
-        } catch (e) {
-            showModalMessage("error", "Fiş analiz edilemedi.");
-        } finally {
-            setAnalyzing(false);
-        }
-    };
-    reader.readAsDataURL(file);
+    setNotice(null);
+    try {
+      const resizedBase64 = await resizeImage(file);
+      const analyzedItems = await analyzePantry(user.token, "", resizedBase64);
+      const newItems: PantryItem[] = (analyzedItems || []).map((item: { name: string; quantity?: string; expiry_date?: string }) => {
+        const date = item.expiry_date || "";
+        return {
+          id: Date.now() + Math.random(),
+          name: item.name,
+          quantity: item.quantity || "",
+          unit: "",
+          status: storedStatus(date),
+          expiresIn: date,
+        };
+      });
+      updateItems([...newItems, ...items]);
+      setNotice({ tone: "success", message: newItems.length > 0 ? `Fişten ${newItems.length} ürün eklendi. Tarihi olmayanlara bir göz at.` : "Fişte okunabilir bir ürün bulamadık." });
+    } catch {
+      setNotice({ tone: "error", message: "Fiş okunamadı. Daha net bir fotoğrafla tekrar dener misin?" });
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const removeItem = (id: number) => {
     updateItems(items.filter((item) => item.id !== id));
   };
-  
-  const saveDate = () => {
-    if (editingItemId && tempDateInput) {
-      const updatedList = items.map((item) => {
-          // editingItemId string olarak tutuluyordu, tip güvenliği için number'a çevrilebilir veya string karşılaştırılır.
-          // PantryItem id'si number. O yüzden editingItemId'yi number yapalım veya karşılaştırmayı düzeltelim.
-          // State'te setEditingItemId(item.id.toString()) yapmıştık.
-          if (String(item.id) === editingItemId) {
-              const analysis = calculateStatus(tempDateInput);
-              return { 
-                  ...item, 
-                  expiresIn: tempDateInput, 
-                  status: analysis.status as any 
-              };
-          }
-          return item;
-      });
-      updateItems(updatedList);
-      setShowDateModal(false);
-    }
+
+  const saveDate = (value: string) => {
+    if (!editingItemId) return;
+    updateItems(items.map(item => String(item.id) === editingItemId
+      ? { ...item, expiresIn: value, status: storedStatus(value) }
+      : item));
+    setEditingItemId(null);
   };
-  
+
+  useEffect(() => {
+    if (!editingItemId) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setEditingItemId(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editingItemId]);
+
+  const rows = useMemo(() => items
+    .map(item => ({ item, info: analyse(item.expiresIn) }))
+    .sort((a, b) => ORDER[a.info.urgency] - ORDER[b.info.urgency]
+      || (a.info.days ?? 9999) - (b.info.days ?? 9999)), [items]);
+
+  const counts = useMemo(() => {
+    const c = { critical: 0, week: 0, fresh: 0, none: 0 };
+    rows.forEach(({ info }) => {
+      if (info.urgency === "expired" || info.urgency === "today" || info.urgency === "soon") c.critical++;
+      else if (info.urgency === "week") c.week++;
+      else if (info.urgency === "fresh") c.fresh++;
+      else c.none++;
+    });
+    return c;
+  }, [rows]);
+
   const handleAiAction = async (type: AiActionType) => {
-      if (!user || !user.token) { showModalMessage("error", "Bu özellik için giriş yapmalısınız."); return; }
-      
-      let prompt = "";
-      if (type === "rescue") {
-          const critical = items.filter(i => calculateStatus(i.expiresIn).status === "expired" || calculateStatus(i.expiresIn).status === "warning");
-          if (critical.length === 0) { showModalMessage("success", "Harika! Şu an kurtarılması gereken acil bir ürün yok."); return; }
-          prompt = critical.map(i => i.name).join(", ");
+    if (!user || !user.token) { setNotice({ tone: "info", message: "Şefe sormak için giriş yapman gerekiyor.", login: true }); return; }
+
+    let prompt = "";
+    if (type === "rescue") {
+      const critical = rows.filter(({ info }) => ["expired", "today", "soon", "week"].includes(info.urgency));
+      if (critical.length === 0) { setNotice({ tone: "success", message: "Şu an kurtarılması gereken bir şey yok. Dolabın gayet iyi durumda." }); return; }
+      prompt = critical.map(({ item }) => item.name).join(", ");
+    } else {
+      if (items.length === 0) { setNotice({ tone: "info", message: "Dolabın boş. Önce birkaç malzeme ekle." }); return; }
+      prompt = items.map(i => i.name).join(", ");
+    }
+
+    setAiLoading(type);
+    setNotice(null);
+    try {
+      const aiResponse = await generateAIRecipe(user.token, prompt);
+      if (aiResponse.success && aiResponse.recipe) {
+        const saveResponse = await createRecipe(user.token, aiResponse.recipe);
+        if (saveResponse.success) {
+          router.push(`/recipe/${saveResponse.slug || saveResponse.id}`);
+          return;
+        }
+        setNotice({ tone: "error", message: "Tarif hazırlandı ama kaydedilemedi. Birazdan tekrar dener misin?" });
       } else {
-          if (items.length === 0) { showModalMessage("error", "Dolabın boş! Önce malzeme ekle."); return; }
-          prompt = items.map(i => i.name).join(", ");
+        setNotice({ tone: "error", message: "Şef şu an yanıt veremedi. Birazdan tekrar dene." });
       }
-
-      setAiStatus({ loading: true, message: type === "rescue" ? "Kurtarıcı tarif hazırlanıyor..." : "AI Şef düşünüyor..." });
-      setShowAIModal(true);
-
-      try {
-          const aiResponse = await generateAIRecipe(user.token, prompt); 
-          if (aiResponse.success && aiResponse.recipe) {
-              const saveResponse = await createRecipe(user.token, aiResponse.recipe);
-              if (saveResponse.success) {
-                  setShowAIModal(false);
-                  router.push(`/recipe/${saveResponse.slug || saveResponse.id}`);
-              } else {
-                  showModalMessage("error", "Tarif kaydedilemedi.");
-                  setShowAIModal(false);
-              }
-          } else {
-              showModalMessage("error", "Yapay zeka yanıt veremedi.");
-              setShowAIModal(false);
-          }
-      } catch (e) {
-          showModalMessage("error", "Bir hata oluştu.");
-          setShowAIModal(false);
-      }
+    } catch {
+      setNotice({ tone: "error", message: "Bir şeyler ters gitti. Birazdan tekrar dene." });
+    }
+    setAiLoading(null);
   };
 
-  const closeModal = () => { 
-      setShowDateModal(false); setShowAIModal(false); setEditingItemId(null); setAiStatus(prev => ({...prev, loading: false}));
-  };
+  if (loading || authLoading) {
+    return <main role="status" className="flex min-h-[60vh] items-center justify-center gap-2 text-sm text-gray-500">
+      <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Dolap açılıyor…
+    </main>;
+  }
 
-  // Grafik verileri
-  const expiredCount = items.filter(i => calculateStatus(i.expiresIn).status === "expired").length;
-  const warningCount = items.filter(i => calculateStatus(i.expiresIn).status === "warning").length;
-  const totalItems = items.length || 1;
-  const expiredWidth = `${(expiredCount / totalItems) * 100}%`;
-  const warningWidth = `${(warningCount / totalItems) * 100}%`;
-
-  if (loading || authLoading) return <div className="min-h-screen flex items-center justify-center text-gray-500"><FaSpinner className="animate-spin text-2xl mr-2"/> Dolap Yükleniyor...</div>;
+  const editing = editingItemId ? items.find(i => String(i.id) === editingItemId) : null;
 
   return (
-    <main className="min-h-screen bg-[#fcfcfc] pb-20 font-sans text-slate-800 relative">
-      <div className="container mx-auto max-w-5xl px-4 py-8">
-        
-        {/* HEADER */}
-        {/* DÜZELTME: Mobilde alignment sorunu için items-start kullanıldı */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-gray-100 pb-6">
-          <div>
-            <nav className="flex items-center text-xs text-gray-400 mb-2 font-medium gap-2">
-              <Link href="/" className="hover:text-brand">Anasayfa</Link>
-              <FaChevronRight className="text-[10px]" />
-              <span className="text-gray-800">Dolap Asistanı</span>
-            </nav>
-            <h1 className="text-3xl font-bold text-slate-900 font-heading">Mutfağını Yönet</h1>
-            <p className="text-gray-500 text-sm mt-1">Evdeki malzemeleri gir, <strong className="text-brand">israfı önle</strong> ve tasarruf et.</p>
-          </div>
-          <div className="bg-orange-50 text-orange-800 text-xs font-bold px-4 py-2 rounded-full border border-orange-100 flex items-center gap-2 shadow-sm">
-            <FaBasketShopping /> {items.length} Malzeme Stokta
-          </div>
-        </div>
+    <main className="min-h-screen bg-[#fcfcfc] pb-24 text-slate-800">
+      <PageIntro crumb="Dolap Modu" kicker={`Dolap modu${items.length > 0 ? ` · ${items.length} malzeme` : ""}`}
+        title="Dolapta ne varsa, *ona göre* pişir.">
+        Evdekileri yaz, son kullanma tarihine göre sıralayalım. Bozulmak üzere olanları şef kurtarsın; çöpe giden domates üzülmesin.
+      </PageIntro>
 
-       {/* KAYIT DURUMU GÖSTERGESİ */}
-        <div className="fixed bottom-4 right-4 z-50 transition-opacity duration-500">
-            {saveStatus === "saving" && <div className="bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg flex items-center gap-2 animate-pulse"><FaSpinner className="animate-spin"/> Kaydediliyor...</div>}
-            {saveStatus === "error" && (
-                <div className="bg-red-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg flex items-center gap-2"><FaXmark/> Kayıt Hatası</div>
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 pt-10 lg:grid-cols-12 lg:gap-12">
+        <div className="space-y-5 lg:col-span-7">
+          {/* Ekleme kartı */}
+          <section aria-labelledby="pantry-add" className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 sm:p-6">
+            {analyzing && (
+              <div role="status" className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-white/90 text-sm font-semibold text-brand">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Fiş okunuyor…
+              </div>
             )}
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* SOL KOLON */}
-            <div className="lg:col-span-7 space-y-6">
-                {/* Giriş Kartı */}
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-200 focus-within:border-brand/50 transition-all relative overflow-hidden">
-                    {analyzing && <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center text-brand font-bold animate-pulse"><FaWandMagicSparkles className="mr-2"/> Fiş Okunuyor...</div>}
-                    <div className="flex justify-between items-center mb-3">
-                        <label className="block text-sm font-bold text-slate-700">Hızlı Stok Ekle</label>
-                        <label className="text-xs font-bold text-brand flex items-center gap-1 hover:bg-brand/10 px-3 py-1.5 rounded-lg transition cursor-pointer border border-brand/20"><FaCamera /> Fiş Okut<input type="file" accept="image/*" className="hidden" onChange={handleReceiptUpload} /></label>
-                    </div>
-                    <div className="flex gap-2">
-                        <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleManualAdd()} placeholder='Örn: "Süt 3 gün", "Yumurta", "Peynir"' className="flex-grow bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white transition"/>
-                        <button onClick={handleManualAdd} className="bg-slate-900 hover:bg-slate-700 text-white w-12 h-12 rounded-xl flex items-center justify-center transition shadow-lg"><FaPlus /></button>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-2 ml-1 flex items-center gap-1"><FaUtensils className="text-[8px]"/> İpucu: "Muz 3 gün" yazarsan tarihi otomatik ayarlarım.</p>
-                </div>
-
-                {/* Liste */}
-                <div className="space-y-3">
-                    {items.length > 0 ? items.map((item) => {
-                        const info = calculateStatus(item.expiresIn);
-                        const colorClass = getStatusColor(info.status);
-                        const dotColor = colorClass.split(" ")[0];
-
-                        return (
-                            <div key={item.id} className="group flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:shadow-md transition">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-3 h-3 rounded-full shadow-[0_0_8px_currentColor] ${dotColor}`} />
-                                    <div>
-                                        <div className="font-bold text-slate-800">{item.name}</div>
-                                        <button onClick={() => { setEditingItemId(String(item.id)); setTempDateInput(item.expiresIn || ""); setShowDateModal(true); }} className="text-xs text-gray-400 font-medium hover:text-brand flex items-center gap-1 transition mt-0.5">
-                                            <FaCalendarDays className="text-[10px]" /> {item.expiresIn ? (info.text) : "Tarih Yok (7 gün)"} <FaPen className="text-[8px] opacity-0 group-hover:opacity-100" />
-                                        </button>
-                                    </div>
-                                </div>
-                                <button onClick={() => removeItem(item.id)} className="w-9 h-9 rounded-full text-gray-300 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition"><FaTrash className="text-sm" /></button>
-                            </div>
-                        );
-                    }) : (
-                        <div className="text-center py-12 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200"><FaBasketShopping className="mx-auto text-4xl text-gray-300 mb-3" /><p className="text-gray-500 font-medium">Dolabın boş görünüyor.</p></div>
-                    )}
-                </div>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 id="pantry-add" className="font-heading text-lg font-bold text-slate-900">Dolaba ekle</h2>
+              <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand/40 hover:text-brand focus-within:outline-2 focus-within:outline-brand">
+                <Camera className="h-4 w-4" aria-hidden /> Fiş okut
+                <input type="file" accept="image/*" className="sr-only" onChange={handleReceiptUpload} />
+              </label>
             </div>
+            <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); handleManualAdd(); }}>
+              <label htmlFor="pantry-input" className="sr-only">Malzeme ekle</label>
+              <input id="pantry-input" type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Örn. Süt 3 gün, yumurta, kaşar peyniri"
+                className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] transition focus:border-brand/40 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand/10" />
+              <button type="submit" aria-label="Ekle"
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-slate-900 text-white transition hover:bg-slate-700">
+                <Plus className="h-5 w-5" />
+              </button>
+            </form>
+            <p className="mt-3 text-xs leading-5 text-gray-500">
+              Virgülle birden fazla ekleyebilirsin. “Süt 3 gün” yazarsan son kullanma tarihini ben ayarlarım; yazmazsan tarihsiz kalır.
+            </p>
+            {!user && (
+              <p className="mt-2 text-xs leading-5 text-gray-500">
+                Giriş yapmadan eklediklerin yalnızca bu tarayıcıda durur. <Link href="/login" className="font-semibold text-brand hover:underline">Giriş yap</Link>, her cihazda seninle olsun.
+              </p>
+            )}
+          </section>
 
-            {/* SAĞ: AKSİYONLAR */}
-            <div className="lg:col-span-5 space-y-4 sticky top-24 h-fit">
-                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2"><FaWandMagicSparkles className="text-brand" /> Yapay Zeka Şef</h3>
-                <button onClick={() => handleAiAction("rescue")} className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white p-1 rounded-2xl shadow-lg shadow-red-500/20 group hover:scale-[1.02] transition-transform text-left">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex items-center gap-4 h-full"><div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-2xl group-hover:animate-bounce"><FaFire /></div><div><div className="font-bold text-lg">Bozulacakları Kurtar</div><div className="text-xs text-white/80">Kritik ürünler için tarif.</div></div></div>
-                </button>
-                <button onClick={() => handleAiAction("suggest")} className="w-full bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex items-center gap-4 group hover:border-gray-300 transition-all text-left">
-                    <div className="w-12 h-12 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center text-xl"><FaUtensils /></div>
-                    <div><div className="font-bold text-slate-800">Rastgele Tarif Öner</div><div className="text-xs text-gray-500">Dolaptakilerle ne yapabilirim?</div></div>
-                </button>
-
-                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 mt-4">
-                  <div className="flex justify-between items-center text-xs text-gray-500 mb-2">
-                    <span>Kritik (Hemen Tüket)</span>
-                    <span className="font-bold text-red-500">{expiredCount}</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden flex">
-                    <div style={{ width: expiredWidth }} className="bg-red-500 h-full" />
-                    <div style={{ width: warningWidth }} className="bg-yellow-400 h-full" />
-                  </div>
-                </div>
+          {notice && (
+            <div role="status" className={`flex items-start gap-3 rounded-2xl border p-4 text-sm ${notice.tone === "error" ? "border-red-200 bg-red-50 text-red-800" : notice.tone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-gray-200 bg-white text-slate-700"}`}>
+              {notice.tone === "error" ? <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> : <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />}
+              <p className="flex-1">
+                {notice.message}
+                {notice.login && <> <Link href="/login" className="font-semibold text-brand hover:underline">Giriş yap</Link></>}
+              </p>
+              <button type="button" onClick={() => setNotice(null)} aria-label="Bildirimi kapat" className="text-current opacity-60 hover:opacity-100"><X className="h-4 w-4" /></button>
             </div>
+          )}
+
+          {/* Liste */}
+          <section aria-labelledby="pantry-list">
+            <div className="mb-3 flex items-baseline justify-between gap-3">
+              <h2 id="pantry-list" className="font-heading text-lg font-bold text-slate-900">Dolabın</h2>
+              <p className="text-xs text-gray-500" aria-live="polite">
+                {saveStatus === "saving" ? "Kaydediliyor…" : saveStatus === "error" ? <span className="text-red-600">Kaydedilemedi, bir sonraki değişiklikte tekrar denenecek.</span> : items.length > 0 ? "Son kullanma tarihine göre sıralı" : ""}
+              </p>
+            </div>
+            {rows.length > 0 ? (
+              <ul className="divide-y divide-gray-100 overflow-hidden rounded-3xl border border-gray-200 bg-white">
+                {rows.map(({ item, info }) => (
+                  <li key={item.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#f6efe8]">
+                      <LokmaIngredientIcon name={item.name} size="lg" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-slate-900">{item.name}</p>
+                      {item.quantity && <p className="truncate text-xs text-gray-500">{item.quantity}{item.unit ? ` ${item.unit}` : ""}</p>}
+                    </div>
+                    <button type="button" onClick={() => { setEditingItemId(String(item.id)); setTempDateInput(item.expiresIn || ""); }}
+                      aria-label={`${item.name} için son kullanma tarihini ${item.expiresIn ? "değiştir" : "ekle"}`}
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition hover:brightness-95 ${CHIP[info.urgency]}`}>
+                      <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+                      {info.urgency === "none" ? "Tarih ekle" : info.text}
+                    </button>
+                    <button type="button" onClick={() => removeItem(item.id)} aria-label={`${item.name} dolaptan çıkar`}
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-gray-300 transition hover:bg-red-50 hover:text-red-600">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="flex flex-col items-center rounded-3xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
+                <div className="mb-4 flex -space-x-2">
+                  {["yumurta", "domates", "peynir"].map(name => (
+                    <span key={name} className="grid h-12 w-12 place-items-center rounded-2xl bg-[#f6efe8] ring-4 ring-white"><LokmaIngredientIcon name={name} size="lg" /></span>
+                  ))}
+                </div>
+                <p className="font-heading text-lg font-semibold text-slate-900">Dolabın tertemiz. Biraz fazla temiz.</p>
+                <p className="mt-1 max-w-sm text-sm text-gray-500">Evde ne varsa yukarıya yaz; ne pişireceğini birlikte bulalım.</p>
+              </div>
+            )}
+          </section>
         </div>
 
-        {/* --- MODALS --- */}
-        {showDateModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl relative">
-            <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><FaXmark /></button>
-            <h3 className="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2"><FaClockRotateLeft className="text-brand"/> Tarihi Güncelle</h3>
-            <input type="date" value={tempDateInput} onChange={(e) => setTempDateInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4 mt-4 focus:border-brand outline-none" />
-            <div className="flex gap-2"><button onClick={saveDate} className="flex-1 bg-brand text-white font-bold py-3 rounded-xl hover:bg-brand-dark transition">Kaydet</button></div>
+        {/* Sağ: Şef */}
+        <aside className="space-y-4 lg:sticky lg:top-24 lg:col-span-5 lg:self-start">
+          <section aria-labelledby="pantry-chef" className="rounded-3xl bg-slate-900 p-6 text-white">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f08a7f]">Şefe sor</p>
+            <h2 id="pantry-chef" className="mt-2 font-heading text-2xl font-bold leading-tight">Bugün dolaptan <span className="italic text-[#f08a7f]">ne çıkar?</span></h2>
+            <div className="mt-5 space-y-2">
+              <button type="button" onClick={() => handleAiAction("rescue")} disabled={aiLoading !== null}
+                className="flex w-full items-center gap-4 rounded-2xl bg-brand p-4 text-left transition hover:bg-brand-dark disabled:opacity-70">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/15"><LifeBuoy className="h-5 w-5" aria-hidden /></span>
+                <span className="min-w-0">
+                  <span className="block font-semibold">Bozulacakları kurtar</span>
+                  <span className="block text-xs text-white/80">
+                    {counts.critical + counts.week > 0 ? `${counts.critical + counts.week} malzeme bu hafta değerlendirilmeli` : "Şu an acil bir şey yok"}
+                  </span>
+                </span>
+              </button>
+              <button type="button" onClick={() => handleAiAction("suggest")} disabled={aiLoading !== null}
+                className="flex w-full items-center gap-4 rounded-2xl border border-slate-700 p-4 text-left transition hover:border-slate-500 hover:bg-slate-800 disabled:opacity-70">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-800"><Sparkles className="h-5 w-5 text-[#f08a7f]" aria-hidden /></span>
+                <span className="min-w-0">
+                  <span className="block font-semibold">Dolaptakilerle tarif öner</span>
+                  <span className="block text-xs text-slate-400">Elindekilerden bir tarif hazırlansın</span>
+                </span>
+              </button>
+            </div>
+            <p className="mt-4 text-xs leading-5 text-slate-400">Şefin hazırladığı tarif hesabına kaydedilir ve tarif sayfası açılır.</p>
+          </section>
+
+          {items.length > 0 && (
+            <section aria-label="Dolap durumu" className="rounded-3xl border border-gray-200 bg-white p-5">
+              <dl className="grid grid-cols-4 gap-2 text-center">
+                {([
+                  ["Acil", counts.critical, "text-red-600"],
+                  ["Bu hafta", counts.week, "text-amber-700"],
+                  ["Taze", counts.fresh, "text-emerald-700"],
+                  ["Tarihsiz", counts.none, "text-gray-500"],
+                ] as const).map(([label, value, color]) => (
+                  <div key={label}>
+                    <dd className={`font-heading text-2xl font-bold tabular-nums ${color}`}>{value}</dd>
+                    <dt className="mt-0.5 text-[11px] text-gray-500">{label}</dt>
+                  </div>
+                ))}
+              </dl>
+              <div aria-hidden className="mt-4 flex h-1.5 overflow-hidden rounded-full bg-gray-100">
+                <div className="bg-red-500" style={{ width: `${(counts.critical / items.length) * 100}%` }} />
+                <div className="bg-amber-400" style={{ width: `${(counts.week / items.length) * 100}%` }} />
+                <div className="bg-emerald-500" style={{ width: `${(counts.fresh / items.length) * 100}%` }} />
+              </div>
+            </section>
+          )}
+        </aside>
+      </div>
+
+      {editing && (
+        <div role="presentation" className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setEditingItemId(null); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="pantry-date-title" className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f6efe8]"><LokmaIngredientIcon name={editing.name} size="lg" /></span>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">Son kullanma</p>
+                  <h2 id="pantry-date-title" className="font-heading text-lg font-bold text-slate-900">{editing.name}</h2>
+                </div>
+              </div>
+              <button type="button" onClick={() => setEditingItemId(null)} aria-label="Kapat" className="grid h-9 w-9 place-items-center rounded-full text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
+            </div>
+            <label htmlFor="pantry-date" className="sr-only">Son kullanma tarihi</label>
+            <input id="pantry-date" type="date" value={tempDateInput} onChange={(e) => setTempDateInput(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 focus:border-brand/40 focus:outline-none focus:ring-4 focus:ring-brand/10" />
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[1, 3, 7, 14].map(days => (
+                <button key={days} type="button" onClick={() => setTempDateInput(addDays(days))}
+                  className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-brand/40 hover:text-brand">
+                  {days === 1 ? "Yarın" : `${days} gün`}
+                </button>
+              ))}
+            </div>
+            <div className="mt-5 flex gap-2">
+              {editing.expiresIn && (
+                <button type="button" onClick={() => saveDate("")} className="h-12 rounded-xl border border-gray-200 px-4 text-sm font-semibold text-slate-600 hover:border-gray-300">Tarihi kaldır</button>
+              )}
+              <button type="button" onClick={() => saveDate(tempDateInput)} disabled={!tempDateInput}
+                className="h-12 flex-1 rounded-xl bg-brand font-semibold text-white transition hover:bg-brand-dark disabled:opacity-40">Kaydet</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {aiLoading && (
+        <div role="status" className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-xl">
+            <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-brand/10 text-brand"><CookingPot className="h-8 w-8" aria-hidden /></div>
+            <h2 className="font-heading text-xl font-bold text-slate-900">Şef dolabına bakıyor…</h2>
+            <p className="mt-2 flex items-center justify-center gap-2 text-sm text-gray-500">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              {aiLoading === "rescue" ? "Bozulmak üzere olanlara bir tarif bulunuyor" : "Elindekilerden bir tarif hazırlanıyor"}
+            </p>
           </div>
         </div>
       )}
-
-      {showAIModal && aiStatus.loading && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
-            <div className="text-center text-white p-8">
-                <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl text-[#db4c3f] border border-white/10 animate-bounce-slow"><FaRobot /></div>
-                <h3 className="text-2xl font-bold font-heading mb-2">Şef Dolabına Bakıyor...</h3>
-                <p className="text-white/60 text-lg animate-pulse">{aiStatus.message}</p>
-            </div>
-        </div>
-      )}
-
-      {modal.show && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-           <div className="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl text-center relative">
-               <button onClick={() => setModal({ ...modal, show: false })} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><FaXmark className="text-xl"/></button>
-               <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl ${modal.type === "success" ? "bg-green-100 text-green-500" : "bg-red-100 text-red-500"}`}>
-                  {modal.type === "success" ? <FaCheck /> : <FaXmark />}
-               </div>
-               <h3 className="text-xl font-bold text-slate-900 mb-2">{modal.type === "success" ? "Başarılı!" : "Hata"}</h3>
-               <p className="text-gray-500 mb-6">{modal.message}</p>
-               <button onClick={() => setModal({ ...modal, show: false })} className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition">Tamam</button>
-           </div>
-        </div>
-      )}
-    </div>
     </main>
   );
 }
