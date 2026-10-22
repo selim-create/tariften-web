@@ -6,8 +6,10 @@ import { ChevronRight } from "lucide-react";
  * breadcrumb, kicker, a large title with one *italic* brand accent and a
  * short witty line. Same voice as the homepage SectionHeading.
  */
-export default function PageIntro({ crumb, kicker, title, children, actions, aside }: {
+export default function PageIntro({ crumb, parent, kicker, title, children, actions, aside }: {
   crumb: string; kicker: string; title: string; children?: React.ReactNode; actions?: React.ReactNode; aside?: React.ReactNode;
+  /** Optional middle breadcrumb (e.g. Mutfak Rehberi above Mutfak araçları). */
+  parent?: { label: string; href: string };
 }) {
   const parts = title.split(/\*([^*]+)\*/);
   return (
@@ -16,6 +18,12 @@ export default function PageIntro({ crumb, kicker, title, children, actions, asi
         <nav aria-label="Sayfa konumu" className="mb-8 flex items-center gap-1.5 text-xs text-gray-500 sm:mb-12">
           <Link href="/" className="transition hover:text-brand">Anasayfa</Link>
           <ChevronRight className="h-3 w-3 text-gray-300" aria-hidden />
+          {parent && (
+            <>
+              <Link href={parent.href} className="transition hover:text-brand">{parent.label}</Link>
+              <ChevronRight className="h-3 w-3 text-gray-300" aria-hidden />
+            </>
+          )}
           <span className="font-medium text-slate-700">{crumb}</span>
         </nav>
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

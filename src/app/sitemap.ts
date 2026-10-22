@@ -67,6 +67,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${SITE_URL}/rehber/araclar`, // Mutfak araçları (yumurta, makarna, kurutma, ölçü)
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
       url: `${SITE_URL}/pantry`,
       lastModified: new Date(),
       changeFrequency: 'weekly',

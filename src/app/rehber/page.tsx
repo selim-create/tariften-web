@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, ArrowRight, BookOpen, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, RotateCcw, Timer } from "lucide-react";
 import PageIntro from "@/components/account/PageIntro";
 import GuideCard from "@/components/guide/GuideCard";
 import { FOCUS } from "@/components/guide/GuideBits";
 import { getGuides, getGuideTopics } from "@/lib/guides-api";
+import { GUIDE_TOOLS_PATH } from "@/lib/guide-tools";
 import {
   findGuideTopic, GUIDE_SITE_URL, guideListHref, guideListJsonLd, guidePageWindow, jsonLdString, parseGuideListParams,
   type GuideLevel, type GuideListParams, type GuideTopic,
@@ -143,7 +144,13 @@ export default async function GuideListPage({ searchParams }: { searchParams: Se
     <main className="gd-page min-h-screen bg-[#fcfcfc] pb-24">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(listJsonLd) }} />
       <PageIntro crumb="Mutfak Rehberi" kicker={`Mutfak Rehberi${list && !filtered && list.count > 0 ? ` · ${list.count} rehber` : ""}`}
-        title="Mutfağın *püf noktaları.*">
+        title="Mutfağın *püf noktaları.*"
+        actions={
+          <Link href={GUIDE_TOOLS_PATH}
+            className={`inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-gray-300 ${FOCUS}`}>
+            <Timer className="h-4 w-4 text-brand" aria-hidden /> Mutfak araçları
+          </Link>
+        }>
         {found?.topic.description || "Bıçak bilemekten turşu kurmaya, saklama sürelerinden ölçü dönüşümlerine: adım adım, sade ve güvenilir rehberler."}
       </PageIntro>
 

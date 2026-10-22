@@ -57,6 +57,8 @@ jobs:
         run: node --test scripts/check-kitchen-guide-web.test.cjs
       - name: App links (AASA / assetlinks)
         run: node --test scripts/check-app-links-web.test.cjs
+      - name: Mutfak araçları (egg, pasta, drying, measure) stay inside safe ranges and refuse nonsense
+        run: node --test scripts/check-guide-tools.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build
