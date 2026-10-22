@@ -219,7 +219,7 @@ export default async function RecipeDetailPage({
           </div>
         </header>
 
-        {recipe.social_source && <SocialRecipeSourceCard source={recipe.social_source} />}
+        {recipe.social_source && <SocialRecipeSourceCard source={recipe.social_source} recipeId={recipe.id} />}
 
         <RecipeDetailClient recipe={recipe} />
       </div>
