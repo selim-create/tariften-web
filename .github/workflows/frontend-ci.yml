@@ -53,6 +53,8 @@ jobs:
         run: node --test scripts/check-kitchen-sync-web.test.cjs
       - name: Recipe allergen band, public allergen info and AI allergen refusal/warning handling
         run: node --test scripts/check-allergen-ui-web.test.cjs
+      - name: Mutfak Rehberi API mapping, sanitiser, TOC/FAQ extraction and JSON-LD
+        run: node --test scripts/check-kitchen-guide-web.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build

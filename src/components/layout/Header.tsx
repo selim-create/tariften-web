@@ -9,12 +9,15 @@ import { useTheme } from "@/context/ThemeContext";
 import GlobalCreateMenu from "@/components/navigation/GlobalCreateMenu";
 import { Bookmark, CalendarDays, ChevronDown, LogOut, Menu, Moon, Search, Settings, ShoppingBasket, Sun, UserRound, X } from "lucide-react";
 
-const NAV = [
+// `wide`: shown in the desktop bar from lg up only; md–lg has no room beside the
+// account buttons (the mobile menu and footer always list it).
+const NAV: readonly { href: string; label: string; wide?: boolean; match: readonly string[] }[] = [
   { href: "/recipes", label: "Tarifler", match: ["/recipes", "/recipe/"] },
   { href: "/menus", label: "Menüler", match: ["/menus", "/menu/"] },
   { href: "/pantry", label: "Dolap Modu", match: ["/pantry"] },
+  { href: "/rehber", label: "Mutfak Rehberi", wide: true, match: ["/rehber"] },
   { href: "/blog", label: "Blog", match: ["/blog"] },
-] as const;
+];
 
 /** Same two tabs as the app (Bu Hafta · Alışveriş); kept in the account menus. */
 const KITCHEN = [
@@ -128,14 +131,14 @@ export default function Header() {
         </Link>
 
         <nav aria-label="Ana menü"
-          className={`hidden items-center gap-1 md:flex ${isSearchOpen ? "lg:pointer-events-none lg:opacity-0 xl:pointer-events-auto xl:opacity-100" : ""}`}>
+          className={`hidden items-center gap-0 md:flex lg:gap-1 ${isSearchOpen ? "lg:pointer-events-none lg:opacity-0 xl:pointer-events-auto xl:opacity-100" : ""}`}>
           {NAV.map(item => {
             const active = isActive(pathname, item.match);
             return (
               <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
-                className={`relative rounded-lg px-3 py-2 text-sm font-medium transition ${active ? "text-slate-900" : "text-slate-500 hover:text-slate-900"}`}>
+                className={`relative whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition lg:px-3 ${item.wide ? "hidden lg:block" : ""} ${active ? "text-slate-900" : "text-slate-500 hover:text-slate-900"}`}>
                 {item.label}
-                {active && <span aria-hidden className="absolute inset-x-3 -bottom-[13px] h-[2px] rounded-full bg-brand" />}
+                {active && <span aria-hidden className="absolute inset-x-2.5 -bottom-[13px] h-[2px] rounded-full bg-brand lg:inset-x-3" />}
               </Link>
             );
           })}
