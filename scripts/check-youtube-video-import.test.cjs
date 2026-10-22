@@ -259,7 +259,7 @@ test('social card shows only measured and timestamped counts, never synthetic va
   assert.match(lib, /source\.follower_count/);
   assert.match(lib, /Number\.isSafeInteger/);
   assert.match(card, /socialTrustedMetrics\(source\)/);
-  assert.match(card, /Canlı istatistik değildir/);
+  assert.match(card, /güncel veya resmî hesap istatistiği değildir/);
   assert.match(types, /metrics_captured_at\?: string/);
 
   const { socialTrustedMetrics } = loadSocialSource();
