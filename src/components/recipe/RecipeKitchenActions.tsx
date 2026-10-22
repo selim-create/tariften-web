@@ -7,8 +7,11 @@ import { CalendarCheck, CalendarPlus, Check, Loader2, ShoppingBasket, X } from "
 import { useKitchen } from "@/context/KitchenContext";
 import { DAY_LONG, isInShopping, localDay, weekAt } from "@/lib/kitchen-sync";
 import { isPlaceholderImage } from "@/lib/utils";
+import { QuickActionBody, quickActionClass } from "@/components/recipe/QuickAction";
 
 type Props = {
+  /** "quick": round labelled items for the recipe header row (as in the app). */
+  variant?: "button" | "quick";
   recipe: {
     id: number; slug: string; title: string; image?: string; servings?: number | null;
     ingredients: { name?: unknown; amount?: unknown; unit?: unknown }[];
@@ -25,7 +28,7 @@ const ACTIVE = "kz-chip-on border-brand/50 bg-[#fdf1ea] text-[#a8362b]";
  * document the app's Bu Hafta / Alışveriş tabs use. Signed-out visitors are
  * sent to sign in and come back here.
  */
-export default function RecipeKitchenActions({ recipe }: Props) {
+export default function RecipeKitchenActions({ recipe, variant = "button" }: Props) {
   const kitchen = useKitchen();
   const router = useRouter();
   const pathname = usePathname() || `/recipe/${recipe.slug}`;
@@ -74,6 +77,42 @@ export default function RecipeKitchenActions({ recipe }: Props) {
   };
 
   const loading = signedIn && !snapshot.loaded;
+  const weekLabel = planned.length ? "Haftanda" : "Haftaya ekle";
+  const shopLabel = inList ? "Alışverişte" : "Alışverişe ekle";
+
+  const status = (
+    <p role="status" aria-live="polite" className={`text-sm ${toast ? (variant === "quick" ? "order-last mt-1 basis-full text-center sm:text-left" : "mt-2") : "sr-only"}`}>
+      {toast && (
+        <span className="inline-flex flex-wrap items-center gap-x-2 text-slate-600">
+          <Check className="h-4 w-4 text-emerald-600" aria-hidden /> {toast.text}
+          {toast.href && (
+            <Link href={toast.href} className={`rounded font-semibold text-brand underline-offset-4 hover:underline ${FOCUS}`}>{toast.cta}</Link>
+          )}
+        </span>
+      )}
+    </p>
+  );
+  const picking = picker && <DayPicker title={recipe.title} planned={planned.map(p => p.day)} onClose={() => setPicker(false)} onPick={pick} />;
+
+  if (variant === "quick") {
+    return (
+      <>
+        <button type="button" onClick={() => { if (!requireSignIn() && ready) setPicker(true); }} disabled={loading}
+          aria-haspopup="dialog" className={quickActionClass}>
+          <QuickActionBody tone={planned.length ? "active" : "default"} label={weekLabel}
+            icon={loading ? <Loader2 className="h-5 w-5 animate-spin" /> : planned.length ? <CalendarCheck className="h-5 w-5" /> : <CalendarPlus className="h-5 w-5" strokeWidth={1.75} />} />
+        </button>
+        {hasIngredients && (
+          <button type="button" onClick={toggleShopping} disabled={loading} aria-pressed={inList} className={quickActionClass}>
+            <QuickActionBody tone={inList ? "active" : "default"} label={shopLabel}
+              icon={inList ? <Check className="h-5 w-5" strokeWidth={2.25} /> : <ShoppingBasket className="h-5 w-5" strokeWidth={1.75} />} />
+          </button>
+        )}
+        {status}
+        {picking}
+      </>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -82,29 +121,20 @@ export default function RecipeKitchenActions({ recipe }: Props) {
           aria-haspopup="dialog" className={`${BUTTON} flex-1 sm:flex-none ${planned.length ? ACTIVE : IDLE}`}>
           {loading ? <Loader2 className="h-[18px] w-[18px] animate-spin" aria-hidden />
             : planned.length ? <CalendarCheck className="h-[18px] w-[18px]" aria-hidden /> : <CalendarPlus className="h-[18px] w-[18px]" aria-hidden />}
-          {planned.length ? "Haftanda" : "Haftaya ekle"}
+          {weekLabel}
         </button>
         {hasIngredients && (
           <button type="button" onClick={toggleShopping} disabled={loading} aria-pressed={inList}
             className={`${BUTTON} flex-1 sm:flex-none ${inList ? ACTIVE : IDLE}`}>
             {inList ? <Check className="h-[18px] w-[18px]" aria-hidden /> : <ShoppingBasket className="h-[18px] w-[18px]" aria-hidden />}
-            {inList ? "Alışverişte" : "Alışverişe ekle"}
+            {shopLabel}
           </button>
         )}
       </div>
 
-      <p role="status" aria-live="polite" className={`text-sm ${toast ? "mt-2" : "sr-only"}`}>
-        {toast && (
-          <span className="inline-flex flex-wrap items-center gap-x-2 text-slate-600">
-            <Check className="h-4 w-4 text-emerald-600" aria-hidden /> {toast.text}
-            {toast.href && (
-              <Link href={toast.href} className={`rounded font-semibold text-brand underline-offset-4 hover:underline ${FOCUS}`}>{toast.cta}</Link>
-            )}
-          </span>
-        )}
-      </p>
+      {status}
 
-      {picker && <DayPicker title={recipe.title} planned={planned.map(p => p.day)} onClose={() => setPicker(false)} onPick={pick} />}
+      {picking}
     </div>
   );
 }

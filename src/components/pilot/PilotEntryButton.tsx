@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { CookingPot, Play } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { QuickActionBody, quickActionClass } from "@/components/recipe/QuickAction";
 
-export default function PilotEntryButton({ slug }: { slug: string }) {
+export default function PilotEntryButton({ slug, variant = "button" }: { slug: string; variant?: "button" | "quick" }) {
   const { user, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
   return (
@@ -19,9 +20,13 @@ export default function PilotEntryButton({ slug }: { slug: string }) {
             if (!loading) setShowAuth(true);
           }
         }}
-        className="flex h-12 min-w-[200px] flex-1 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl bg-brand px-4 text-[15px] sm:px-6 font-semibold text-white transition hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        aria-label={variant === "quick" ? "Pişirme rehberini başlat" : undefined}
+        className={variant === "quick" ? quickActionClass
+          : "flex h-12 min-w-[200px] flex-1 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl bg-brand px-4 text-[15px] sm:px-6 font-semibold text-white transition hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"}
       >
-        <Play className="h-4 w-4 fill-current" aria-hidden /> Pişirme rehberini başlat
+        {variant === "quick"
+          ? <QuickActionBody tone="primary" label="Pişir" icon={<Play className="ml-0.5 h-5 w-5 fill-current" />} />
+          : <><Play className="h-4 w-4 fill-current" aria-hidden /> Pişirme rehberini başlat</>}
       </Link>
       {showAuth && (
         <div role="presentation" className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"

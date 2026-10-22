@@ -82,23 +82,30 @@ export default function SocialRecipeSourceCard({ source, recipeId }: { source: R
           </div>
         )}
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {canPlay && (
-            <button type="button" onClick={() => setWatching(true)} aria-haspopup="dialog"
-              className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">
-              <Play className="h-3.5 w-3.5 fill-current" aria-hidden /> Videoyu izle
-            </button>
-          )}
+        <div className="flex shrink-0 flex-col gap-2 md:flex-row md:items-center">
+          <div className="flex gap-2">
+            {canPlay && (
+              <button type="button" onClick={() => setWatching(true)} aria-haspopup="dialog"
+                className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 md:flex-none">
+                <Play className="h-3.5 w-3.5 fill-current" aria-hidden /> Videoyu izle
+              </button>
+            )}
+            {original && (
+              <a href={original} target="_blank" rel="noopener noreferrer nofollow"
+                className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-gray-200 px-3.5 text-sm font-semibold text-slate-700 transition hover:border-gray-300 hover:text-brand md:order-last md:flex-none">
+                {copy.at} aç <ArrowUpRight className="h-4 w-4" aria-hidden />
+              </a>
+            )}
+            <a href={`/content-report?recipe=${recipeId}`}
+              className="hidden h-10 items-center whitespace-nowrap rounded-xl border border-gray-200 px-3 text-xs font-medium text-slate-600 transition hover:border-gray-300 hover:text-brand md:inline-flex">
+              İçeriğe itiraz et
+            </a>
+          </div>
+          {/* Phones: the report link is a quiet text link, not a third button. */}
           <a href={`/content-report?recipe=${recipeId}`}
-            className="inline-flex h-10 items-center whitespace-nowrap rounded-xl border border-gray-200 px-3 text-xs font-medium text-slate-600 transition hover:border-gray-300 hover:text-brand">
+            className="self-start text-xs font-medium text-gray-500 underline-offset-2 hover:text-brand hover:underline md:hidden">
             İçeriğe itiraz et
           </a>
-          {original && (
-            <a href={original} target="_blank" rel="noopener noreferrer nofollow"
-              className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-xl border border-gray-200 px-3.5 text-sm font-semibold text-slate-700 transition hover:border-gray-300 hover:text-brand">
-              {copy.at} aç <ArrowUpRight className="h-4 w-4" aria-hidden />
-            </a>
-          )}
         </div>
       </div>
 
