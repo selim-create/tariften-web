@@ -6,6 +6,7 @@ import RejimdeIcon from '@/components/icons/RejimdeIcon';
 import { FaClock, FaFire } from 'react-icons/fa6';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import { isPlaceholderImage } from '@/lib/utils';
+import SocialPlatformBadge from '@/components/recipe/SocialPlatformBadge';
 
 export const metadata: Metadata = {
   title: 'Rejimde Tarifleri | Tariften',
@@ -92,6 +93,7 @@ export default async function RejimdeCollectionPage() {
                       />
                     </div>
                   )}
+                  <SocialPlatformBadge source={recipe.social_source} />
                   {/* Source Badge */}
                   <div className="absolute top-3 left-3 z-10">
                     <div className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
