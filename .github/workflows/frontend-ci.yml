@@ -55,6 +55,8 @@ jobs:
         run: node --test scripts/check-allergen-ui-web.test.cjs
       - name: Mutfak Rehberi API mapping, sanitiser, TOC/FAQ extraction and JSON-LD
         run: node --test scripts/check-kitchen-guide-web.test.cjs
+      - name: App links (AASA / assetlinks)
+        run: node --test scripts/check-app-links-web.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build
