@@ -3,7 +3,7 @@ import type { ImportEditor } from "./recipe-text-import";
 type Json = Record<string, unknown>;
 const object = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
 const str = (v: unknown): v is string => typeof v === "string";
-const statuses = ["queued", "dispatching", "processing", "needs_review", "failed", "uncertain"] as const;
+const statuses = ["queued", "dispatching", "processing", "needs_review", "failed", "uncertain", "published"] as const;
 export type VideoJobStatus = typeof statuses[number];
 export type VideoJob = {
   success: true;
@@ -11,7 +11,8 @@ export type VideoJob = {
   status: VideoJobStatus;
   source_url: string;
   message: string;
-  requires_approval: true;
+  requires_approval: boolean;
+  recipe_slug?: string;
   preview?: unknown;
   error_code?: string;
   retryable?: boolean;
@@ -80,7 +81,10 @@ export function isVideoRecipeLink(value: string): boolean {
 export function parseVideoJob(value: unknown): VideoJob {
   if (!object(value) || value.success !== true || !Number.isSafeInteger(value.id) || Number(value.id) < 1
       || !statuses.includes(value.status as VideoJobStatus) || !str(value.source_url)
-      || !isVideoRecipeLink(value.source_url) || !str(value.message) || value.requires_approval !== true) {
+      || !isVideoRecipeLink(value.source_url) || !str(value.message) ||
+      (value.status === "published"
+        ? (value.requires_approval !== false || !str(value.recipe_slug) || !value.recipe_slug)
+        : value.requires_approval !== true)) {
     throw new Error("Video analiz işi sunucudan beklenen biçimde dönmedi.");
   }
   return value as VideoJob;
