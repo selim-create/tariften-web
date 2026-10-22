@@ -68,3 +68,27 @@ test('card shows followers, views, likes, comments only from the platform\'s own
   assert.doesNotMatch(card, /dangerouslySetInnerHTML/);
   assert.doesNotMatch(card, /viewCount|likeCount|2\.8M|35K/, 'social counts are never fabricated');
 });
+
+test('all main recipe image slots expose the social source badge', () => {
+  for (const file of [
+    'src/components/recipes/RecipeCard.tsx',
+    'src/components/account/MyKitchenLibrary.tsx',
+    'src/components/recipe/RecipeDetailClient.tsx',
+    'src/app/recipe/[slug]/page.tsx',
+    'src/app/page.tsx',
+  ]) {
+    assert.match(read(file), /<SocialPlatformBadge source=/, file);
+  }
+  const badge = read('src/components/recipe/SocialPlatformBadge.tsx');
+  assert.match(badge, /pointer-events-none/);
+  assert.match(badge, /bottom-3 right-3/);
+});
+
+test('social-source objection opens a real in-site form, not a mailto action', () => {
+  const card = read('src/components/recipe/SocialRecipeSourceCard.tsx');
+  assert.match(card, /content-report\?recipe=/);
+  assert.doesNotMatch(card, /mailto:/);
+  const form = read('src/components/recipe/ContentReportForm.tsx');
+  assert.match(form, /content-reports/);
+  assert.match(form, /Başvuru numaran:/);
+});
