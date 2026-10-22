@@ -39,7 +39,7 @@ test('edit submit routes to published recipe for both pending approval and direc
   assert.match(banner,/Yönetici notu:/);
   assert.match(banner,/review\?\.status === "pending"/);
   assert.match(banner,/getRecipeReviewStatusClient\(token, recipeId\)/);
-  assert.match(read('src/app/recipe/[slug]/page.tsx'),/<RecipeReviewNotice/);
+  assert.match(read('src/components/recipe/RecipeDetailView.tsx'),/<RecipeReviewNotice/);
 });
 
 test('only owners see edit CTA and Core review note proxy requires valid JWT', () => {

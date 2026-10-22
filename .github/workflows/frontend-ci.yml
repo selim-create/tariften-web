@@ -61,6 +61,8 @@ jobs:
         run: node --test scripts/check-guide-tools.test.cjs
       - name: Private recipe notes (Notum / Notlarım) client and opt-in household adaptation on AI generate
         run: node --test scripts/check-recipe-notes-household-web.test.cjs
+      - name: Photo, notebook and own-video recipes (multipart contracts, private default, request_id, size/duration, badges)
+        run: node --test scripts/check-media-recipe-import.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build

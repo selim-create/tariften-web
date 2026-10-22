@@ -87,6 +87,12 @@ export interface Recipe {
   rating_count?: number;
   /** Core 1.0.51: EU-14 keys detected from ingredient names. Absent on old cache. */
   allergens?: RecipeAllergenSummary;
+  /** Core 1.0.58: estimated from a dish photo; always shows the "AI Tahmini Tarif" badge. */
+  ai_estimated?: boolean;
+  /** Core 1.0.58: private recipes are only ever returned to their owner. */
+  visibility?: "private" | "public";
+  /** Core 1.0.58: "photo" | "notebook" for media recipes, "" for every other recipe. */
+  source_kind?: "photo" | "notebook" | "";
 }
 
 export interface RecipeAllergenSummary {

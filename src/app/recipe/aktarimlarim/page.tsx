@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ArrowUpRight, CheckCircle2, Clock3, LoaderCircle, Plus, RefreshCw, ShieldAlert } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CheckCircle2, Clock3, LoaderCircle, Plus, RefreshCw, ShieldAlert, Upload } from "lucide-react";
 import PageIntro from "@/components/account/PageIntro";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import { lokmaDishName } from "@/lib/lokma-emoji";
-import { parseTransferDate as parseDate, transferPlatform as platformOf, transferWhen as whenLabel } from "@/lib/video-transfer-display";
+import { parseTransferDate as parseDate, transferPlatform as platformOf, transferTitle, transferWhen as whenLabel } from "@/lib/video-transfer-display";
 import { useAuth } from "@/context/AuthContext";
 import { needsRightsConfirmation } from "@/lib/video-recipe-import";
 
@@ -24,6 +24,9 @@ type Transfer = {
 };
 
 const ACTIVE = new Set(["queued", "pull_ready", "dispatching", "processing"]);
+
+/** The member's own upload: an opaque "upload:…" id, never a link, never retried (the file is gone). */
+const isUpload = (item: Transfer) => typeof item.source_url === "string" && item.source_url.startsWith("upload:");
 
 function delayed(item: Transfer): boolean {
   if (item.status !== "queued" && item.status !== "pull_ready" && item.status !== "processing") return false;
@@ -45,7 +48,7 @@ function itemState(item: Transfer) {
   if (delayed(item))
     return { label: "Aktarım beklenenden uzun sürüyor", hint: "İşleyici bu kaydı henüz tamamlamadı. Aynı bağlantıyı tekrar göndermene gerek yok.", tone: "review" };
   if (item.status === "processing")
-    return { label: "Tarif hazırlanıyor", hint: "Video, ekrandaki yazılar, ses ve açıklama birlikte inceleniyor. Genellikle 15–40 saniye sürer.", tone: "progress" };
+    return { label: "Tarif hazırlanıyor", hint: isUpload(item) ? "Videonun görüntüsü, sesi ve notun birlikte inceleniyor. Genellikle 1–2 dakika sürer." : "Video, ekrandaki yazılar, ses ve açıklama birlikte inceleniyor. Genellikle 15–40 saniye sürer.", tone: "progress" };
   return { label: "Sıraya alındı", hint: "Tarif aktarma isteğin kaydedildi. İşleyici devreye girdiğinde hazırlanacak.", tone: "progress" };
 }
 
@@ -194,7 +197,7 @@ export default function MyRecipeTransfers() {
                 : state.tone === "review" ? "text-amber-800 bg-amber-50"
                 : "text-brand-dark bg-[#fdf1ea]";
               const platform = platformOf(item.source_url);
-              const title = item.title || `${platform} videosu`;
+              const title = item.title || transferTitle(item.source_url);
               const when = whenLabel(item.created_at);
               return (
                 <li key={item.id} id={`aktarim-${item.id}`}
@@ -226,6 +229,11 @@ export default function MyRecipeTransfers() {
                       <Link href={`/recipe/aktar?job=${item.id}`}
                         className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand px-4 text-sm font-semibold text-white transition hover:bg-brand-dark">
                         Tarifini kontrol et <ArrowRight className="h-4 w-4" aria-hidden />
+                      </Link>
+                    ) : (item.status === "failed" || item.status === "uncertain") && isUpload(item) ? (
+                      <Link href="/recipe/kendi-videon"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-800 ring-1 ring-gray-200 transition hover:text-brand hover:ring-brand/40">
+                        <Upload className="h-4 w-4" aria-hidden /> Yeni video yükle
                       </Link>
                     ) : item.status === "failed" && item.retryable ? (
                       <button type="button" onClick={() => void retry(item)} disabled={retrying !== null}

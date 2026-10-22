@@ -21,8 +21,9 @@ import {
 import type {
   GroundedImportPreview, ImportEditor,
 } from "@/lib/recipe-text-import";
-import { transferPlatform, transferWhen } from "@/lib/video-transfer-display";
-import { isInstagramPostLink, isTikTokShortLink, isVideoRecipeLink, needsRightsConfirmation, parseVideoJob, videoEditorFromJob } from "@/lib/video-recipe-import";
+import { transferTitle, transferWhen } from "@/lib/video-transfer-display";
+import { isInstagramPostLink, isOwnUploadJob, isTikTokShortLink, isVideoRecipeLink, needsRightsConfirmation, parseVideoJob, videoEditorFromJob } from "@/lib/video-recipe-import";
+import MediaRecipeLinks from "@/components/media-recipe/MediaRecipeLinks";
 
 type VideoHistoryEntry = {
   id: number;
@@ -76,6 +77,8 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
   const [videoHistory, setVideoHistory] = useState<VideoHistoryEntry[]>([]);
   const [videoWarnings, setVideoWarnings] = useState<string[]>([]);
   const [videoStatus, setVideoStatus] = useState("");
+  // The member's own uploaded video: its "upload:…" reference is never shown or linked.
+  const [ownVideoReview, setOwnVideoReview] = useState(false);
   const videoRequestRef = useRef<{ url: string; id: string } | null>(null);
   const videoAbortRef = useRef<AbortController | null>(null);
   useEffect(() => () => videoAbortRef.current?.abort(), []);
@@ -124,6 +127,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
     setReviewJobId(null);
     setVideoWarnings([]);
     setVideoStatus("");
+    setOwnVideoReview(false);
     videoAbortRef.current?.abort();
     setEditor(null);
     setAccepted(true);
@@ -206,7 +210,9 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
     setActiveStep(null);
     setVideoStatus("needs_review");
     setImportMethod("social");
-    setSocialUrl(job.source_url);
+    const ownUpload = isOwnUploadJob(job);
+    setOwnVideoReview(ownUpload);
+    setSocialUrl(ownUpload ? "" : job.source_url);
     setError("");
     void quotas.reload();
   };
@@ -233,7 +239,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
       if (job.status === "published" && job.recipe_slug) router.push(`/recipe/${encodeURIComponent(job.recipe_slug)}`);
       else if (job.status === "needs_review") openVideoEditor(job);
       else {
-        setSocialUrl(job.source_url);
+        if (!isOwnUploadJob(job)) setSocialUrl(job.source_url);
         setVideoStatus(job.status);
         setError("Bu kayıt henüz tamamlanmadı. Yeniden ücretli analiz başlatılmadı.");
       }
@@ -261,7 +267,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
       else if (job.status === "needs_review") openVideoEditor(job);
       else {
         setVideoStatus(job.status);
-        setSocialUrl(job.source_url);
+        if (!isOwnUploadJob(job)) setSocialUrl(job.source_url);
         setError("Tarifin henüz hazırlanıyor; tamamlandığında haber vereceğiz.");
       }
     }).catch(() => { if (active) setError("Tarif kaydını açamadık. Tarif aktarımlarını kontrol et."); });
@@ -569,9 +575,15 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
             <p className="mt-2 text-center text-[10px] text-slate-400">Yalnızca istersen başlar. Görsel üretimi yapılmaz.</p>
           </div>
           </> : <>
+            {ownVideoReview && videoReview && (
+              <div className="mb-4 rounded-2xl border border-[#e6dfd5] bg-[#fffcf9] p-3">
+                <p className="text-xs font-bold text-[#5e7167]">Kendi videon · düzenlenmiş tarif sağda</p>
+                <p className="mt-1 text-xs leading-5 text-slate-600">Tarif yüklediğin videodan çıkarıldı. Video dosyan analizden sonra silindi.</p>
+              </div>
+            )}
             <FormLabel htmlFor="social-source-url">Sosyal medya paylaşım bağlantısı</FormLabel>
             <input id="social-source-url" type="url" inputMode="url" value={socialUrl}
-              onChange={event => { videoAbortRef.current?.abort(); videoRequestRef.current = null; setInstagramRightsConfirmed(true); setSocialUrl(event.target.value); setPreview(null); setVideoReview(false); setReviewJobId(null); setVideoWarnings([]); setVideoStatus(""); setEditor(null); setError(""); }}
+              onChange={event => { videoAbortRef.current?.abort(); videoRequestRef.current = null; setOwnVideoReview(false); setInstagramRightsConfirmed(true); setSocialUrl(event.target.value); setPreview(null); setVideoReview(false); setReviewJobId(null); setVideoWarnings([]); setVideoStatus(""); setEditor(null); setError(""); }}
               placeholder="https://www.instagram.com/reel/…"
               disabled={!!busy} maxLength={2048}
               className="min-h-12 w-full rounded-xl border border-[#efe5dc] bg-[#fffdfa] px-4 text-sm text-slate-800 outline-none focus:border-[#db4c3f] focus:ring-2 focus:ring-[#db4c3f]/10" />
@@ -633,7 +645,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
                     className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl bg-[#fcfaf8] px-3.5 py-2.5 text-left ring-1 ring-black/5 transition hover:ring-brand/40 disabled:opacity-50">
                     <span className="min-w-0">
                       <span className="block truncate text-[13px] font-semibold text-slate-800">
-                        {entry.title || `${transferPlatform(entry.source_url)} videosu`}
+                        {entry.title || transferTitle(entry.source_url)}
                       </span>
                       <span className="mt-1 block text-xs text-slate-500">
                         {entry.status === "published" ? "Yayımlanmış tarife git"
@@ -652,6 +664,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               </div>
             </div>
           )}
+          <MediaRecipeLinks current="link" />
         </section>
 
         <section className="min-w-0 rounded-3xl bg-white p-4 ring-1 ring-black/5 sm:p-7" aria-live="polite">
@@ -695,7 +708,7 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><CheckCheck className="h-5 w-5" /></div>
-                  <div><h2 className="font-heading text-xl font-bold text-slate-900">Düzenlenmiş tarifin</h2><p className="text-xs text-[#93887a]">{videoReview ? "Videodan önerilen tarif · Kaynağı kontrol et" : "Orijinal metin solda, düzeltme önerileri sağda"}</p></div>
+                  <div><h2 className="font-heading text-xl font-bold text-slate-900">Düzenlenmiş tarifin</h2><p className="text-xs text-[#93887a]">{videoReview ? (ownVideoReview ? "Kendi videondan önerilen tarif · Kontrol et" : "Videodan önerilen tarif · Kaynağı kontrol et") : "Orijinal metin solda, düzeltme önerileri sağda"}</p></div>
                 </div>
                 <button type="button" onClick={() => { updateSource(source); setVideoReview(false); }} disabled={!!busy}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 hover:border-[#db4c3f] hover:text-[#db4c3f]">

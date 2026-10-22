@@ -57,7 +57,7 @@ export default function VideoRecipeReadyNotice() {
 
   if (!ready || !user?.id) return null;
   // Transfer pages already list this; cooking mode must not be interrupted.
-  if (["/recipe/aktarimlarim", "/recipe/aktar", "/recipe/social"].some(path => pathname.startsWith(path)) || pathname.startsWith("/pilot/")) return null;
+  if (["/recipe/aktarimlarim", "/recipe/aktar", "/recipe/social", "/recipe/kendi-videon"].some(path => pathname.startsWith(path)) || pathname.startsWith("/pilot/")) return null;
   // Pages with a fixed bottom action bar on phones: sit above it.
   const lifted = pathname === "/recipe/create" || pathname.startsWith("/recipe/edit/");
 

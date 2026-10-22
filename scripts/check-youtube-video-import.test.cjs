@@ -164,7 +164,7 @@ function loadSocialSource() {
 test('social source card is premium, safe and genuinely attributable', () => {
   const card = read('src/components/recipe/SocialRecipeSourceCard.tsx');
   const dialog = read('src/components/recipe/SocialVideoDialog.tsx');
-  const detail = read('src/app/recipe/[slug]/page.tsx');
+  const detail = read('src/components/recipe/RecipeDetailView.tsx');
   const types = read('src/types/index.ts');
   const lib = read('src/lib/social-source.ts');
   assert.match(card, /Orijinal kaynak/);
