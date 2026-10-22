@@ -16,6 +16,7 @@ import RecipeCover from "@/components/recipe/RecipeCover";
 import { RecipeAllergenInfo } from "@/components/recipe/RecipeAllergenNotice";
 import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
 import AuthorCard from "@/components/AuthorCard";
+import RecipeNoteCard from "@/components/recipe/RecipeNoteCard";
 import { capitalizeIngredientTr, formatIngredientAmount } from "@/lib/ingredient-display";
 import { LOKMA_RATINGS } from "@/lib/lokma-emoji";
 
@@ -370,6 +371,9 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
               <p className="rounded-3xl border border-gray-200 bg-white p-6 text-sm text-gray-500">Hazırlanış adımları henüz eklenmedi.</p>
             )}
           </section>
+
+          {/* Private to the signed-in member; fetched in the browser, never server-rendered. */}
+          <RecipeNoteCard recipeId={recipe.id} />
 
           {hasVerifiedNutrition && (
             <section aria-labelledby="nutrition-title" className="rounded-3xl border border-gray-200 bg-white p-6">

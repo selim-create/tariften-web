@@ -30,7 +30,7 @@ test('AI candidate is auto-published only after quality and quota guard, with du
  const flow=read('src/app/recipes/page.tsx');
  const generate=flow.slice(flow.indexOf('const handleGenerateRecipe = async ()'),flow.indexOf('const handlePublishQuickRecipe ='));
  const publish=flow.slice(flow.indexOf('const publishGeneratedRecipe ='),flow.indexOf('const handleGenerateRecipe = async ()'));
- assert.match(generate,/await generateRecipeClient\(token, searchTerm\)/);
+ assert.match(generate,/await generateRecipeClient\(token, searchTerm(?:, household)?\)/);
  assert.match(generate,/quickRecipeFromAI\(aiResponse\.recipe\)/);
  assert.match(generate,/if \(duplicateId\)/);
  assert.match(generate,/setReviewOpen\(true\)/);

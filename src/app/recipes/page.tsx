@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getRecipes, getTerms } from "@/lib/api";
@@ -14,6 +14,9 @@ import { type AllergenCaution, type AllergenConflict, allergenCautionsFrom, isAl
 import { AllergenCautionDialog, AllergenConflictDetails } from "@/components/recipes/AllergenGenerationNotice";
 import { Check, ChevronRight, Loader2, Minus, Plus, Search, ShieldAlert, SlidersHorizontal, X } from "lucide-react";
 import RecipeCard from "@/components/recipes/RecipeCard";
+import HouseholdAdaptToggle from "@/components/recipes/HouseholdAdaptToggle";
+import { useHouseholdSize } from "@/hooks/useHouseholdSize";
+import { householdRequest } from "@/lib/household-adapt";
 
 // One honest status line; the request has no measurable sub-steps to report.
 const LOADING_MESSAGES = [
@@ -38,7 +41,7 @@ function RecipeSkeleton() {
 }
 
 function RecipeAICard({
-  query, generating, loadingMessage, reviewReady, onGenerate, saving, uncertain, failure, onNew,
+  query, generating, loadingMessage, reviewReady, onGenerate, saving, uncertain, failure, onNew, householdToggle,
 }: {
   query: string;
   generating: boolean;
@@ -49,6 +52,8 @@ function RecipeAICard({
   failure: string;
   onNew: () => void;
   onGenerate: () => void;
+  /** "Evime göre uyarla" switch; a kept candidate is never regenerated, so it hides then. */
+  householdToggle?: ReactNode;
 }) {
   const term = query.trim();
   return (
@@ -65,6 +70,7 @@ function RecipeAICard({
         </p>
       </div>
       <div className="mt-5">
+        {!reviewReady && householdToggle && <div className="mb-3">{householdToggle}</div>}
         <button type="button" onClick={onGenerate} disabled={generating || saving || uncertain}
           className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60">
           {(generating || saving) && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
@@ -134,6 +140,9 @@ function RecipesContent() {
   // AI Prompt Modal için
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [aiPromptInput, setAiPromptInput] = useState("");
+  // "Evime göre uyarla (N kişi)": off by default; only members with a household size see it.
+  const householdSize = useHouseholdSize();
+  const [adaptHousehold, setAdaptHousehold] = useState(false);
   const [usageNotice, setUsageNotice] = useState("");
   useEffect(() => {
     if (searchParams.get("quick") === "1") {
@@ -321,7 +330,8 @@ function RecipesContent() {
         showModalMessage("error", "Günlük tarif oluşturma hakkın doldu. Yeni hak: " + quotaReset(fresh, key));
         return;
       }
-      const aiResponse = await generateRecipeClient(token, searchTerm);
+      const household = householdRequest(adaptHousehold, householdSize);
+      const aiResponse = await generateRecipeClient(token, searchTerm, household);
       void quotas.reload();
       setUsageNotice("AI tarif oluşturma denemen kullanıldı. Güncel hakların Profil'de.");
       if (!aiResponse.success || !aiResponse.recipe) {
@@ -389,6 +399,11 @@ function RecipesContent() {
     setShowPromptModal(false);
     void handleGenerateRecipe();
   };
+
+  const householdToggle = householdSize !== null ? (
+    <HouseholdAdaptToggle size={householdSize} checked={adaptHousehold} onChange={setAdaptHousehold}
+      disabled={isGenerating || isPublishing} />
+  ) : null;
 
   const renderFilterGroup = (title: string, items: string[], current: string[], setFn: (val: string[]) => void, sectionKey: string) => {
     if (!items || items.length === 0) return null;
@@ -492,12 +507,12 @@ function RecipesContent() {
                 ) : recipes.length > 0 ? (
                     <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
                         {recipes.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
-                        <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen && !cautionOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} />
+                        <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen && !cautionOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} householdToggle={householdToggle} />
                     </div>
                 ) : (
                     <div className="mx-auto max-w-md">
                       <p className="mb-4 text-center text-sm text-gray-500">{anyFilter ? "Bu arama ve filtrelerle eşleşen tarif yok." : "Henüz tarif yok."}</p>
-                      <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen && !cautionOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} />
+                      <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen && !cautionOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} householdToggle={householdToggle} />
                     </div>
                 )}
 
@@ -549,6 +564,7 @@ function RecipesContent() {
                     </button>
                   ))}
                 </div>
+                {householdToggle}
                 <button type="button" onClick={handlePromptModalSubmit} disabled={!aiPromptInput.trim() || isGenerating}
                   className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50">
                   {isGenerating ? <><Loader2 className="h-4 w-4 animate-spin" /> Hazırlanıyor…</> : "Tarif oluştur"}

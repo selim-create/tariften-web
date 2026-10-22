@@ -1,6 +1,7 @@
 /** Browser-only transport for AI generation, recipe publication and editor changes.
  * JSON through a same-origin Next route; never a React Server Action. */
 import { allergenConflictFrom } from "@/lib/recipe-allergens";
+import { buildGeneratePayload, type HouseholdRequest } from "@/lib/household-adapt";
 
 export type RecipeWriteResult = {
   success?: boolean;
@@ -48,8 +49,9 @@ async function writeRecipe(
   }
   return data;
 }
-export async function generateRecipeClient(token: string, query: string) {
-  return writeRecipe(token, "generate", { ingredients: query, type: "suggest" });
+/** `household` comes from householdRequest(); omitted/empty = standard 4-person recipe. */
+export async function generateRecipeClient(token: string, query: string, household: HouseholdRequest = {}) {
+  return writeRecipe(token, "generate", buildGeneratePayload(query, household));
 }
 export async function createRecipeClient(token: string, payload: Record<string, unknown>) {
   return writeRecipe(token, "create", payload);
