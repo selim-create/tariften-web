@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
@@ -29,6 +30,10 @@ export default function CreateMenuPage() {
   const [step, setStep] = useState(1); // 1: Concept, 2: Details, 3: Review
   const [job, setJob] = useState<MenuJob | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  // Core 1.0.51 marks a dish refused for a declared allergen with this code.
+  const allergenFailures = (job?.failures ?? [])
+    .filter(failure => failure.error === "ai_allergen_conflict" && failure.name)
+    .map(failure => failure.name);
   const quotas = useAccountQuotas(user?.token);
   const [recoveryCheckedFor, setRecoveryCheckedFor] = useState("");
   // Never expose one signed-in account's saved job to a second account.
@@ -412,6 +417,12 @@ export default function CreateMenuPage() {
                  {errorMessage && (
                     <div role="alert" className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-950">
                       {errorMessage}
+                      {allergenFailures.length > 0 && (
+                        <p className="mt-2 text-xs leading-5 text-amber-900">
+                          Alerji listendeki malzemeler olmadan hazırlanamayan: {allergenFailures.join(", ")}. Bu yemekler için yeniden deneme de aynı kurala uyar.{" "}
+                          <Link href="/profile/kitchen" className="font-semibold underline underline-offset-2">Alerji bilgimi düzenle</Link>
+                        </p>
+                      )}
                     </div>
                  )}
                  <div className="flex flex-col gap-4">

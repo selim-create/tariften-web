@@ -364,3 +364,45 @@ export async function deleteKitchenProfile(token: string): Promise<{ profile: Ki
   const data = await call(token, "DELETE");
   return { profile: parseKitchenProfile(data.profile) };
 }
+
+/* ------------------------------------------------- per-tab memory cache */
+
+/**
+ * The recipe page reads the member's allergens on every recipe; one GET per
+ * signed-in token per tab is enough. Memory only (never browser storage): this
+ * is health data. A failed request is not cached, so a later page retries.
+ * The kitchen profile screen refreshes the cache after every save.
+ */
+export type KitchenProfileData = { profile: KitchenProfile; options: KitchenOptions };
+const profileCache = new Map<string, { promise: Promise<KitchenProfileData>; value: KitchenProfileData | null }>();
+
+export function peekKitchenProfile(token: string): KitchenProfileData | null {
+  return (token && profileCache.get(token)?.value) || null;
+}
+
+export function loadKitchenProfile(token: string): Promise<KitchenProfileData> {
+  const hit = profileCache.get(token);
+  if (hit) return hit.promise;
+  const entry: { promise: Promise<KitchenProfileData>; value: KitchenProfileData | null } = {
+    promise: Promise.resolve(null as unknown as KitchenProfileData), value: null,
+  };
+  entry.promise = getKitchenProfile(token).then(
+    data => { entry.value = data; return data; },
+    reason => { if (profileCache.get(token) === entry) profileCache.delete(token); throw reason; },
+  );
+  profileCache.set(token, entry);
+  return entry.promise;
+}
+
+/** After a save: keep Core's options, take the saved profile. */
+export function rememberKitchenProfile(token: string, profile: KitchenProfile, options?: KitchenOptions): void {
+  if (!token) return;
+  const known = options ?? peekKitchenProfile(token)?.options;
+  if (!known) { profileCache.delete(token); return; }
+  const value = { profile, options: known };
+  profileCache.set(token, { promise: Promise.resolve(value), value });
+}
+
+export function forgetKitchenProfiles(): void {
+  profileCache.clear();
+}

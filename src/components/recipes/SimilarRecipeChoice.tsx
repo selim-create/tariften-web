@@ -10,12 +10,14 @@ type Props = {
   saving: boolean;
   uncertain: boolean;
   error: string;
+  /** Core's allergen_warning for this candidate, read before publishing. */
+  allergenWarning?: string;
   onCreate: () => void;
   onClose: () => void;
 };
 
 export default function SimilarRecipeChoice({
-  title, existingRecipeId, existingRecipeSlug, saving, uncertain, error, onCreate, onClose,
+  title, existingRecipeId, existingRecipeSlug, saving, uncertain, error, allergenWarning, onCreate, onClose,
 }: Props) {
   const path = `/recipe/${encodeURIComponent(existingRecipeSlug || String(existingRecipeId))}`;
   return (
@@ -34,6 +36,12 @@ export default function SimilarRecipeChoice({
           <strong className="text-[#27373c]">{title}</strong> tarifine benzeyen bir içerik yayında.
           Mevcut tarifi inceleyebilir veya yeni tarifini ayrıca yayımlayabilirsin.
         </p>
+        {allergenWarning && (
+          <p role="note" className="ra-caution mt-4 rounded-2xl border border-[#efe2c4] bg-[#fffaf0] px-4 py-3 text-xs leading-5 text-[#6a4e1e]">
+            <strong className="font-bold">Alerjen notu:</strong> {allergenWarning}{" "}
+            <Link href="/profile/kitchen" onClick={onClose} className="font-bold underline underline-offset-2">Alerji bilgimi düzenle</Link>
+          </p>
+        )}
         <div className="mt-6 grid gap-3">
           <Link href={path} onClick={onClose}
             className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#db4c3f] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#bb4035]">

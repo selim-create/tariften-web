@@ -4,7 +4,10 @@ import { useState, useEffect, useRef, useMemo, ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getPantry, updatePantry, analyzePantry, generateAIRecipe, createRecipe } from "@/lib/api";
+import { getPantry, updatePantry, analyzePantry, createRecipe } from "@/lib/api";
+import { generateRecipeClient } from "@/lib/recipe-write-client";
+import { type AllergenCaution, type AllergenConflict, allergenCautionsFrom, isAllergenConflict } from "@/lib/recipe-allergens";
+import { AllergenCautionDialog, AllergenConflictDetails } from "@/components/recipes/AllergenGenerationNotice";
 import { PantryItem } from "@/types";
 import {
   CalendarDays, Camera, Check, CircleAlert, CookingPot, LifeBuoy, Loader2, Plus, Sparkles, Trash2, X,
@@ -16,7 +19,8 @@ import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 type SaveStatus = "saved" | "saving" | "error";
 type AiActionType = "rescue" | "suggest";
 type Urgency = "expired" | "today" | "soon" | "week" | "fresh" | "none";
-type Notice = { tone: "success" | "error" | "info"; message: string; login?: boolean } | null;
+type Notice = { tone: "success" | "error" | "info"; message: string; login?: boolean; conflicts?: AllergenConflict[] } | null;
+type PendingSave = { recipe: unknown; warning: string; cautions: AllergenCaution[] };
 
 // --- TARİH HESAPLAMA ---
 const formatDateLocal = (date: Date) => {
@@ -87,6 +91,10 @@ export default function PantryPage() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [tempDateInput, setTempDateInput] = useState("");
   const [aiLoading, setAiLoading] = useState<null | AiActionType>(null);
+  // A generated recipe with "possible" allergen matches waits for the member.
+  const [pendingSave, setPendingSave] = useState<PendingSave | null>(null);
+  const [savingPending, setSavingPending] = useState(false);
+  const [pendingError, setPendingError] = useState("");
 
   // --- YARDIMCI: GÖRSEL SIKIŞTIRMA ---
   const resizeImage = (file: File): Promise<string> => {
@@ -292,8 +300,17 @@ export default function PantryPage() {
     setAiLoading(type);
     setNotice(null);
     try {
-      const aiResponse = await generateAIRecipe(user.token, prompt);
+      // Same-origin route: a 422 allergen refusal arrives as a typed error.
+      const aiResponse = await generateRecipeClient(user.token, prompt);
       if (aiResponse.success && aiResponse.recipe) {
+        const caution = allergenCautionsFrom(aiResponse.recipe);
+        if (caution) {
+          // Core's allergen_warning is read before the recipe is saved.
+          setPendingError("");
+          setPendingSave({ recipe: aiResponse.recipe, ...caution });
+          setAiLoading(null);
+          return;
+        }
         const saveResponse = await createRecipe(user.token, aiResponse.recipe);
         if (saveResponse.success) {
           router.push(`/recipe/${saveResponse.slug || saveResponse.id}`);
@@ -303,10 +320,39 @@ export default function PantryPage() {
       } else {
         setNotice({ tone: "error", message: "Şef şu an yanıt veremedi. Birazdan tekrar dene." });
       }
-    } catch {
-      setNotice({ tone: "error", message: "Bir şeyler ters gitti. Birazdan tekrar dene." });
+    } catch (error) {
+      if (isAllergenConflict(error)) {
+        setNotice({ tone: "error", message: error.message, conflicts: error.conflicts });
+      } else {
+        const message = error instanceof Error ? error.message : "";
+        setNotice({ tone: "error", message: message && !/billing/i.test(message) ? message : "Bir şeyler ters gitti. Birazdan tekrar dene." });
+      }
     }
     setAiLoading(null);
+  };
+
+  const confirmPendingSave = async () => {
+    if (!pendingSave || !user?.token || savingPending) return;
+    setSavingPending(true);
+    setPendingError("");
+    try {
+      const saveResponse = await createRecipe(user.token, pendingSave.recipe);
+      if (saveResponse.success) {
+        router.push(`/recipe/${saveResponse.slug || saveResponse.id}`);
+        return;
+      }
+      setPendingError("Tarif hazırlandı ama kaydedilemedi. Birazdan tekrar dener misin?");
+    } catch {
+      setPendingError("Tarif kaydedilemedi. Bağlantını kontrol edip tekrar dene.");
+    } finally {
+      setSavingPending(false);
+    }
+  };
+
+  const dismissPendingSave = () => {
+    if (savingPending) return;
+    setPendingSave(null);
+    setNotice({ tone: "info", message: "Tarif kaydedilmedi. İstersen dolaptan yeni bir tarif iste." });
   };
 
   if (loading || authLoading) {
@@ -363,10 +409,13 @@ export default function PantryPage() {
           {notice && (
             <div role="status" className={`flex items-start gap-3 rounded-2xl border p-4 text-sm ${notice.tone === "error" ? "border-red-200 bg-red-50 text-red-800" : notice.tone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-gray-200 bg-white text-slate-700"}`}>
               {notice.tone === "error" ? <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> : <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />}
-              <p className="flex-1">
-                {notice.message}
-                {notice.login && <> <Link href="/login" className="font-semibold text-brand hover:underline">Giriş yap</Link></>}
-              </p>
+              <div className="flex-1">
+                <p>
+                  {notice.message}
+                  {notice.login && <> <Link href="/login" className="font-semibold text-brand hover:underline">Giriş yap</Link></>}
+                </p>
+                {notice.conflicts && <AllergenConflictDetails conflicts={notice.conflicts} className="mt-3" />}
+              </div>
               <button type="button" onClick={() => setNotice(null)} aria-label="Bildirimi kapat" className="text-current opacity-60 hover:opacity-100"><X className="h-4 w-4" /></button>
             </div>
           )}
@@ -504,6 +553,18 @@ export default function PantryPage() {
             </div>
           </section>
         </div>
+      )}
+
+      {pendingSave && (
+        <AllergenCautionDialog
+          warning={pendingSave.warning}
+          cautions={pendingSave.cautions}
+          confirmLabel="Kaydet ve tarifi aç"
+          saving={savingPending}
+          error={pendingError}
+          onConfirm={() => void confirmPendingSave()}
+          onClose={dismissPendingSave}
+        />
       )}
 
       {aiLoading && (

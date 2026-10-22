@@ -119,7 +119,10 @@ export async function generateAIRecipe(token: string, ingredients: string) {
     });
 
     const data = await res.json();
-    
+
+    // Core 1.0.51 refusal: a Server Action cannot carry a typed error, so the
+    // 422 body (message + allergen_conflicts, no recipe) is returned as-is.
+    if (res.status === 422 && data?.code === "ai_allergen_conflict") return data;
     if (!res.ok) throw new Error(data.message || "AI yanıt vermedi.");
     return data;
   } catch (error) {

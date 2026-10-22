@@ -13,6 +13,7 @@ import { isPlaceholderImage } from "@/lib/utils";
 import { parseIngredients, parseSteps } from "@/lib/recipeUtils";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import RecipeCover from "@/components/recipe/RecipeCover";
+import { RecipeAllergenInfo } from "@/components/recipe/RecipeAllergenNotice";
 import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
 import AuthorCard from "@/components/AuthorCard";
 import { capitalizeIngredientTr, formatIngredientAmount } from "@/lib/ingredient-display";
@@ -324,6 +325,8 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             ) : (
               <p className="py-4 text-sm text-gray-500">Bu tarif için malzeme listesi henüz eklenmedi.</p>
             )}
+
+            {ingredients.length > 0 && <RecipeAllergenInfo allergens={recipe.allergens} />}
 
             {chefTip && (
               <div className="mt-4 rounded-2xl bg-gray-50 p-4">
