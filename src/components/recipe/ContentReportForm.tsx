@@ -29,7 +29,7 @@ export default function ContentReportForm() {
     if (!validId || busy) return;
     setBusy(true); setError("");
     try {
-      const response = await fetch("https://api.tariften.com/wp-json/tariften/v1/content-reports", {
+      const response = await fetch("/api/content-report", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recipe_id: recipeId, name, email, reason, details, website }),
       });
