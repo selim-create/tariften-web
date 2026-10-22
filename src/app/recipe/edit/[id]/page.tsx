@@ -12,6 +12,8 @@ import { getRecipeReviewStatusClient, type RecipeReviewStatus } from "@/lib/reci
 import { updateRecipeClient } from "@/lib/recipe-write-client";
 import { uploadRecipeImage } from "@/lib/recipe-media-upload";
 import { isPlaceholderImage } from "@/lib/utils";
+import { fetchOwnerRecipe } from "@/lib/media-recipe-import";
+import type { Recipe } from "@/types";
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Clock3, LoaderCircle, LockKeyhole, TriangleAlert } from "lucide-react";
 import {
   AddRowButton, CATEGORY_LABELS, MediaPicker, NumberField, OptionDialog, StepsEditor, StudioPreview, StudioSection,
@@ -105,7 +107,10 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         const status = await getRecipeReviewStatusClient(token, recipeId);
         if (cancelled) return;
         setReviewStatus(status);
-        const recipe = await getRecipeById(recipeId);
+        // Private photo/notebook recipes are invisible to the public lookup;
+        // the owner reads them with their own token (never cached).
+        const recipe = (await getRecipeById(recipeId))
+          ?? (await fetchOwnerRecipe<Recipe>(token, String(recipeId)).catch(() => null));
         if (cancelled) return;
         if (!recipe) {
           setPermissionError("Tarif bulunamadı.");

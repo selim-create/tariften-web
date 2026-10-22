@@ -74,7 +74,7 @@ test('all main recipe image slots expose the social source badge', () => {
     'src/components/recipes/RecipeCard.tsx',
     'src/components/account/MyKitchenLibrary.tsx',
     'src/components/recipe/RecipeDetailClient.tsx',
-    'src/app/recipe/[slug]/page.tsx',
+    'src/components/recipe/RecipeDetailView.tsx',
     'src/app/page.tsx',
   ]) {
     assert.match(read(file), /<SocialPlatformBadge source=/, file);

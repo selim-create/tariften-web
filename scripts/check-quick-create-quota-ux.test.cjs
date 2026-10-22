@@ -10,7 +10,7 @@ test('global + prioritizes AI, merges two import methods and leaves pantry in it
  assert.doesNotMatch(menu,/href: "\/pantry"/);
  assert.match(menu,/href: "\/recipe\/aktar"/);
  assert.ok(menu.indexOf('AI ile Tarif Oluştur') < menu.indexOf('Tarifimi Kendim Yazacağım'));
- assert.deepEqual([...menu.matchAll(/href: "([^"]+)"/g)].map(m=>m[1]), ['/recipes?quick=1','/recipe/aktar','/recipe/create','/menu/create']);
+ assert.deepEqual([...menu.matchAll(/href: "([^"]+)"/g)].map(m=>m[1]), ['/recipes?quick=1','/recipe/aktar','/recipe/create','/menu/create','/recipe/fotograftan','/recipe/defterden','/recipe/kendi-videon']);
  assert.doesNotMatch(menu,/Yeni tarifin sen yayınladığında|mevcut tarif düzenlemeleri yönetici onayına sunulur/);
 });
 test('AI recipe search keeps name-ingredient prompt, reads usage quotas only at action and shows short notice',()=>{

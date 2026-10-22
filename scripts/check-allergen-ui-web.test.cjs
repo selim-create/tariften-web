@@ -172,7 +172,7 @@ test('kitchen profile is fetched once per token per tab; failures are not cached
 /* -------------------------------------------------------- source contracts */
 
 test('recipe page: band above Malzemeler, renders nothing until the profile is known', () => {
-  const page = read('src/app/recipe/[slug]/page.tsx');
+  const page = read('src/components/recipe/RecipeDetailView.tsx');
   assert.match(page, /<RecipeAllergenNotice allergens=\{recipe\.allergens\} \/>/);
   assert.ok(page.indexOf('<RecipeAllergenNotice') < page.indexOf('<RecipeDetailClient'));
   assert.ok(page.indexOf('<RecipeAllergenNotice') > page.indexOf('aria-label="Tarif işlemleri"'));

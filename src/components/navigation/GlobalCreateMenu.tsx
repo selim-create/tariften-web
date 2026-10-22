@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
-import { FaLink, FaPen, FaPlus, FaUtensils, FaXmark, FaArrowRight, FaWandMagicSparkles } from "react-icons/fa6";
+import { FaBookOpen, FaCamera, FaLink, FaPen, FaPlus, FaUtensils, FaVideo, FaXmark, FaArrowRight, FaWandMagicSparkles } from "react-icons/fa6";
 import { useAuth } from "@/context/AuthContext";
 
 const ACTIONS = [
@@ -27,6 +27,13 @@ const ACTIONS = [
     description: "Günlük sofran veya özel davetin için bir menü hazırla.",
     icon: FaUtensils,
   },
+] as const;
+
+/** Photo, notebook and own-video recipes: compact tiles under the main actions. */
+const MEDIA_ACTIONS = [
+  { href: "/recipe/fotograftan", title: "Fotoğraftan tarif", icon: FaCamera },
+  { href: "/recipe/defterden", title: "Defterden tarif", icon: FaBookOpen },
+  { href: "/recipe/kendi-videon", title: "Kendi videondan", icon: FaVideo },
 ] as const;
 
 export default function GlobalCreateMenu() {
@@ -83,7 +90,7 @@ export default function GlobalCreateMenu() {
         onClick={() => setOpened(false)}
         className="absolute inset-0 w-full cursor-default bg-[#14202a]/55 backdrop-blur-[3px]" />
       <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby={titleId}
-        className="relative w-full max-w-[520px] overflow-hidden rounded-t-[30px] border border-[#f3e2d7] bg-[#fffbf7] px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-6 shadow-[0_25px_90px_rgba(24,35,40,0.23)] sm:rounded-[30px] sm:p-8">
+        className="relative max-h-[92dvh] w-full max-w-[520px] overflow-y-auto rounded-t-[30px] border border-[#f3e2d7] bg-[#fffbf7] px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-6 shadow-[0_25px_90px_rgba(24,35,40,0.23)] sm:rounded-[30px] sm:p-8">
         <div className="mx-auto mb-5 h-1 w-11 rounded-full bg-[#e1d6cc] sm:hidden" />
         <div className="mb-6 flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -112,6 +119,19 @@ export default function GlobalCreateMenu() {
                 <span className="mt-1 block text-xs leading-5 text-[#90857e]">{description}</span>
               </span>
               <FaArrowRight size={12} className="shrink-0 text-[#cf9b85] transition group-hover:translate-x-1" />
+            </button>
+          ))}
+        </div>
+
+        <p className="mb-2.5 mt-6 text-[10px] font-black tracking-[0.19em] text-[#b39b8c]">FOTOĞRAF VE VİDEODAN</p>
+        <div className="grid grid-cols-3 gap-2.5">
+          {MEDIA_ACTIONS.map(({ href, title, icon: Icon }) => (
+            <button key={href} type="button" onClick={() => navigate(href)}
+              className="group flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[19px] border border-[#eee0d4] bg-white px-2 py-3 text-center transition hover:-translate-y-0.5 hover:border-[#e9bfae] hover:shadow-md">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#fff0e5] text-[#da5545]">
+                <Icon size={16} />
+              </span>
+              <span className="text-xs font-extrabold leading-tight text-[#24343a]">{title}</span>
             </button>
           ))}
         </div>

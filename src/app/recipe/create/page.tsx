@@ -254,6 +254,9 @@ export default function CreateRecipePage() {
             <span aria-current="page" className="inline-flex min-h-10 items-center rounded-full bg-slate-900 px-4 text-white">Kendim yazacağım</span>
             <Link href="/recipes?quick=1" className="inline-flex min-h-10 items-center rounded-full bg-white px-4 text-slate-600 ring-1 ring-gray-200 transition hover:text-brand hover:ring-brand/40">AI ile hızlı oluştur</Link>
             <Link href="/recipe/import" className="inline-flex min-h-10 items-center rounded-full bg-white px-4 text-slate-600 ring-1 ring-gray-200 transition hover:text-brand hover:ring-brand/40">Tarif notlarımı aktar</Link>
+            <Link href="/recipe/fotograftan" className="inline-flex min-h-10 items-center rounded-full bg-white px-4 text-slate-600 ring-1 ring-gray-200 transition hover:text-brand hover:ring-brand/40">Fotoğraftan</Link>
+            <Link href="/recipe/defterden" className="inline-flex min-h-10 items-center rounded-full bg-white px-4 text-slate-600 ring-1 ring-gray-200 transition hover:text-brand hover:ring-brand/40">Defterden</Link>
+            <Link href="/recipe/kendi-videon" className="inline-flex min-h-10 items-center rounded-full bg-white px-4 text-slate-600 ring-1 ring-gray-200 transition hover:text-brand hover:ring-brand/40">Kendi videondan</Link>
           </nav>
         </div>
       </section>

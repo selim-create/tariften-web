@@ -18,7 +18,15 @@ export type VideoJob = {
   error_code?: string;
   retryable?: boolean;
   refunded?: boolean;
+  /** "upload" for the member's own uploaded video; social jobs omit it or send "social". */
+  source_kind?: string;
 };
+
+/** Own-upload jobs carry an opaque "upload:<hex>" reference, never a link. */
+export function isOwnUploadJob(value: { source_url?: unknown; source_kind?: unknown }): boolean {
+  return value.source_kind === "upload" && typeof value.source_url === "string"
+    && /^upload:[A-Za-z0-9]{8,64}$/.test(value.source_url);
+}
 
 export function isYouTubeVideoLink(value: string): boolean {
   try {
@@ -82,7 +90,7 @@ export function isVideoRecipeLink(value: string): boolean {
 export function parseVideoJob(value: unknown): VideoJob {
   if (!object(value) || value.success !== true || !Number.isSafeInteger(value.id) || Number(value.id) < 1
       || !statuses.includes(value.status as VideoJobStatus) || !str(value.source_url)
-      || !isVideoRecipeLink(value.source_url) || !str(value.message) ||
+      || !(isVideoRecipeLink(value.source_url) || isOwnUploadJob(value)) || !str(value.message) ||
       (value.status === "published"
         ? (value.requires_approval !== false || !str(value.recipe_slug) || !value.recipe_slug)
         : value.requires_approval !== true)) {

@@ -8,6 +8,8 @@ export function parseTransferDate(value: string): number {
 
 /** Where the video came from, read from the link the cook pasted. */
 export function transferPlatform(url: string): string {
+  // The member's own upload: an opaque reference, not a link to read a host from.
+  if (typeof url === "string" && url.startsWith("upload:")) return "Kendi videon";
   try {
     const host = new URL(url).hostname.replace(/^www\./, "");
     if (host.includes("instagram")) return "Instagram";
@@ -17,6 +19,12 @@ export function transferPlatform(url: string): string {
     if (host.includes("pinterest") || host === "pin.it") return "Pinterest";
     return host;
   } catch { return "Bağlantı"; }
+}
+
+/** Row title when the transfer has no recipe title yet. */
+export function transferTitle(url: string): string {
+  const platform = transferPlatform(url);
+  return platform === "Kendi videon" ? "Kendi videon" : `${platform} videosu`;
 }
 
 /** "Bugün 10:12", "Dün 19:40" or "18 Ekim". */
