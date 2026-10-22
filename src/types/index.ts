@@ -63,7 +63,11 @@ export interface Recipe {
   steps: string[]; // Backend 'tariften_steps' array of strings döner
   
   nutrition: Nutrition;
+  /** WordPress post_author; may arrive as a numeric string. Prefer author.id. */
+  author_id?: number | string;
   author: Author;
+  /** Core 1.0.67: true only when the requesting member blocked this author. */
+  author_blocked?: boolean;
   
   // Taksonomiler
   categories: string[];

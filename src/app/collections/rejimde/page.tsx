@@ -7,6 +7,8 @@ import { FaClock, FaFire } from 'react-icons/fa6';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import { isPlaceholderImage } from '@/lib/utils';
 import SocialPlatformBadge from '@/components/recipe/SocialPlatformBadge';
+import HideIfBlocked from '@/components/safety/HideIfBlocked';
+import { recipeAuthorId } from '@/lib/ugc-safety';
 
 export const metadata: Metadata = {
   title: 'Rejimde Tarifleri | Tariften',
@@ -74,9 +76,9 @@ export default async function RejimdeCollectionPage() {
         {recipeList.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {recipeList.map((recipe) => (
+              <HideIfBlocked key={recipe.id} authorId={recipeAuthorId(recipe)}>
               <Link 
                 href={`/recipe/${recipe.slug}`} 
-                key={recipe.id} 
                 className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full"
               >
                 <div className="aspect-[4/3] overflow-hidden bg-gray-100 relative">
@@ -122,6 +124,7 @@ export default async function RejimdeCollectionPage() {
                   </div>
                 </div>
               </Link>
+              </HideIfBlocked>
             ))}
           </div>
         ) : (

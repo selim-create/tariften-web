@@ -19,6 +19,9 @@ import AuthorCard from "@/components/AuthorCard";
 import RecipeNoteCard from "@/components/recipe/RecipeNoteCard";
 import { capitalizeIngredientTr, formatIngredientAmount } from "@/lib/ingredient-display";
 import { LOKMA_RATINGS } from "@/lib/lokma-emoji";
+import { useSafety } from "@/context/SafetyContext";
+import ContentSafetyMenu from "@/components/safety/ContentSafetyMenu";
+import { filterBlockedRecipes, filterVisibleComments } from "@/lib/ugc-safety";
 
 /** "Kuru domates (yağda veya yumuşatılmış)" → name + muted qualifier line. */
 function splitIngredientName(raw: string): { name: string; qualifier: string | null } {
@@ -29,6 +32,7 @@ function splitIngredientName(raw: string): { name: string; qualifier: string | n
 export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
   const { user } = useAuth();
   const router = useRouter();
+  const { blockedIds, reportedComments } = useSafety();
 
   // Missing source servings must never appear as an invented "2 kişilik".
   const originalServings = Number(recipe.servings);
@@ -93,7 +97,8 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
       try {
         const response = await getRecipes({ cuisine: recipe.cuisine });
         if (response && response.data) {
-          setSimilarRecipes(response.data.filter(r => r.id !== recipe.id).slice(0, 3));
+          // Keep a few spares so hiding a blocked author's card still leaves three.
+          setSimilarRecipes(response.data.filter(r => r.id !== recipe.id).slice(0, 12));
         }
       } catch (error) {
         console.error("Benzer tarifler hatası:", error);
@@ -266,6 +271,10 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
     }
   };
 
+  // Blocked members' comments and recipes, and comments this member reported, are hidden right away.
+  const visibleComments = filterVisibleComments(comments, blockedIds, reportedComments);
+  const visibleSimilar = filterBlockedRecipes(similarRecipes, blockedIds).slice(0, 3);
+
   const baseServings = verifiedServings;
   const shownRating = hoverRating ?? userRating;
   const ratingLabel = shownRating ? LOKMA_RATINGS.find(r => r.rating === shownRating)?.label : null;
@@ -409,7 +418,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
         </div>
       </div>
 
-      {similarRecipes.length > 0 && (
+      {visibleSimilar.length > 0 && (
         <section aria-labelledby="similar-title" className="mt-16 border-t border-gray-200 pt-10">
           <div className="mb-6 flex items-end justify-between gap-4">
             <h2 id="similar-title" className="font-heading text-2xl font-bold text-slate-900">Bunlar da hoşuna gidebilir</h2>
@@ -418,7 +427,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             </Link>
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {similarRecipes.map((r) => {
+            {visibleSimilar.map((r) => {
               const total = (Number(r.prep_time) || 0) + (Number(r.cook_time) || 0);
               return (
                 <Link key={r.id} href={`/recipe/${r.slug}`} className="group">
@@ -478,7 +487,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
 
         <section aria-labelledby="comments-title" className="lg:col-span-8">
           <h2 id="comments-title" className="mb-6 font-heading text-2xl font-bold text-slate-900">
-            Yorumlar{comments.length > 0 && <span className="ml-2 font-normal text-gray-400 tabular-nums">{comments.length}</span>}
+            Yorumlar{visibleComments.length > 0 && <span className="ml-2 font-normal text-gray-400 tabular-nums">{visibleComments.length}</span>}
           </h2>
 
           {user ? (
@@ -525,9 +534,9 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
             </div>
           )}
 
-          {comments.length > 0 ? (
+          {visibleComments.length > 0 ? (
             <ul className="divide-y divide-gray-100">
-              {comments.map((comment) => (
+              {visibleComments.map((comment) => (
                 <li key={comment.id} className="flex gap-4 py-5 first:pt-0">
                   <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-black/5">
                     {comment.author.avatar ? (
@@ -538,10 +547,14 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
-                      <span className="font-semibold text-slate-900">{comment.author.name}</span>
-                      <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
-                    </p>
+                    <div className="flex items-start gap-2">
+                      <p className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 text-sm">
+                        <span className="font-semibold text-slate-900">{comment.author.name}</span>
+                        <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
+                      </p>
+                      <ContentSafetyMenu targetType="comment" targetId={comment.id} author={comment.author}
+                        label="Yorum seçenekleri" size="sm" className="-my-1.5 -mr-1.5 shrink-0" />
+                    </div>
                     <p className="mt-1 whitespace-pre-line text-[15px] leading-relaxed text-slate-700">{comment.content}</p>
                     <div className="mt-2 flex items-center gap-4">
                       <button type="button" onClick={() => handleLikeComment(comment.id)}
