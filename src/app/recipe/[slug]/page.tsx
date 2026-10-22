@@ -6,6 +6,7 @@ import RecipeDetailClient from "@/components/recipe/RecipeDetailClient";
 import SocialRecipeSourceCard from "@/components/recipe/SocialRecipeSourceCard";
 import PilotEntryButton from "@/components/pilot/PilotEntryButton";
 import RecipeActions from "@/components/recipe/RecipeActions";
+import RecipeKitchenActions from "@/components/recipe/RecipeKitchenActions";
 import EditButton from "@/components/recipe/EditButton";
 import RecipeReviewNotice from "@/components/recipe/RecipeReviewNotice";
 import RecipeCover from "@/components/recipe/RecipeCover";
@@ -219,6 +220,13 @@ export default async function RecipeDetailPage({
             <div className="flex flex-wrap items-center gap-3">
               <PilotEntryButton slug={recipe.slug} />
               <RecipeActions recipeId={recipe.id} title={recipe.title} />
+            </div>
+
+            <div className="mt-3">
+              <RecipeKitchenActions recipe={{
+                id: recipe.id, slug: recipe.slug, title: recipe.title, image: hasPhoto ? recipe.image : undefined,
+                servings, ingredients: recipe.ingredients || [],
+              }} />
             </div>
           </div>
         </header>
