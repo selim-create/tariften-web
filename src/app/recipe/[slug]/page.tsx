@@ -116,12 +116,16 @@ export default async function RecipeDetailPage({
     calories && {
       icon: Flame,
       label: "Kalori",
+      onPhoto: true,
       value: `${caloriesVerified ? "" : "≈"}${calories} kcal`,
       note: caloriesVerified ? undefined : "tahmini",
       hint: caloriesVerified ? "Doğrulanmış besin analizi" : "AI tahmini; besin veritabanıyla doğrulanmadı",
     },
-    difficulty && { icon: Gauge, label: "Zorluk", value: difficulty },
-  ].filter(Boolean) as { icon: typeof Clock3; label: string; value: string; hint?: string; note?: string }[];
+    difficulty && { icon: Gauge, label: "Zorluk", value: difficulty, onPhoto: true },
+  ].filter(Boolean) as { icon: typeof Clock3; label: string; value: string; hint?: string; note?: string; onPhoto?: boolean }[];
+  // Phones: Kalori and Zorluk ride on the photo so the strip below keeps one tidy row.
+  const photoFacts = hasPhoto ? facts.filter(f => f.onPhoto) : [];
+  const phoneFactCount = facts.length - photoFacts.length;
 
   const taxonomy = [
     ...(recipe.meal_type || []).map(m => ({ label: m, href: `/recipes?meal_type=${encodeURIComponent(m)}` })),
@@ -171,6 +175,20 @@ export default async function RecipeDetailPage({
               <RecipeCover title={recipe.title} kicker={recipe.cuisine?.[0]} />
             )}
 
+            {photoFacts.length > 0 && (
+              <dl className="absolute left-4 top-4 z-20 flex max-w-[calc(100%-5rem)] flex-wrap gap-1.5 md:hidden">
+                {photoFacts.map(({ icon: Icon, label, value, note, hint }) => (
+                  <div key={label} title={hint}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[rgba(31,26,23,0.72)] px-3 text-[12.5px] font-semibold text-white backdrop-blur-md">
+                    <dt className="flex items-center"><Icon className="h-3.5 w-3.5" aria-hidden strokeWidth={2} /><span className="sr-only">{label}</span></dt>
+                    <dd className="whitespace-nowrap tabular-nums">
+                      {value}{note && <span className="ml-1 font-normal text-[rgb(255_255_255/0.7)]">{note}</span>}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+
             {/* Over a real photo the creator pill plays the original video, as in the app. */}
             {recipe.social_source && hasPhoto
               ? <SocialHeroSourceButton source={recipe.social_source} />
@@ -206,11 +224,13 @@ export default async function RecipeDetailPage({
 
             {facts.length > 0 && (
               /* A quiet strip, not a box of cells: reads cleanly with 3 or with all 5
-                 facts. Phones: 2–3 columns chosen by count (no orphan cell);
-                 large screens: one line with hairline dividers. */
-              <dl className={`mb-8 grid gap-x-4 gap-y-5 border-y border-gray-200 py-5 ${FACT_COLS[Math.min(facts.length, 5)]} lg:flex lg:gap-0 lg:divide-x lg:divide-gray-200`}>
-                {facts.map(({ icon: Icon, label, value, hint, note }) => (
-                  <div key={label} title={hint} className="min-w-0 lg:flex-1 lg:px-5 lg:first:pl-0 lg:last:pr-0">
+                 facts. Phones: Kalori/Zorluk sit on the photo when there is one, the
+                 rest share one row (columns chosen by count, no orphan cell);
+                 large screens: all five on one line with hairline dividers. */
+              <dl className={`mb-8 grid gap-x-4 gap-y-5 border-y border-gray-200 py-5 ${FACT_COLS[Math.min(Math.max(phoneFactCount, 1), 5)]} lg:flex lg:gap-0 lg:divide-x lg:divide-gray-200`}>
+                {facts.map(({ icon: Icon, label, value, hint, note, onPhoto }) => (
+                  <div key={label} title={hint}
+                    className={`min-w-0 lg:flex-1 lg:px-5 lg:first:pl-0 lg:last:pr-0 ${onPhoto && hasPhoto ? "hidden md:block" : ""}`}>
                     <dt className="flex items-center gap-1.5 whitespace-nowrap text-[11.5px] font-medium text-gray-500">
                       <Icon className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden strokeWidth={1.75} />
                       {label}
