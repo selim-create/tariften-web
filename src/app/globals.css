@@ -633,6 +633,12 @@ body {
   color: #a7f3d0;
 }
 .dark .gd-safety svg { color: #6ee7b7; }
+.dark .gd-safety-warn {
+  background-color: rgb(245 158 11 / 0.1);
+  border-color: rgb(245 158 11 / 0.35);
+  color: #fde68a;
+}
+.dark .gd-safety-warn svg { color: #fbbf24; }
 .dark .gd-body { color: #cbd5e1; }
 .dark .gd-body p,
 .dark .gd-body li,

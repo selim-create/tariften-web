@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, ChevronRight, Clock3, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ChevronRight, Clock3, RefreshCw, ShieldAlert, ShieldCheck } from "lucide-react";
 import GuideToc from "@/components/guide/GuideToc";
 import { Accent, FOCUS, LevelBadge } from "@/components/guide/GuideBits";
 import RecipeCover from "@/components/recipe/RecipeCover";
@@ -109,6 +109,12 @@ export default async function GuidePage({ params }: Props) {
               <ShieldCheck className="mt-px h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
               <span>Gıda güvenliği uzmanı tarafından incelendi{reviewed && <> · <time dateTime={guide.foodSafety.reviewedAt || undefined}>{reviewed}</time></>}</span>
             </p>
+          )}
+          {guide.foodSafetyWarning && (
+            <div role="note" className="gd-safety-warn mt-5 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[13.5px] leading-relaxed text-amber-950">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden />
+              <p><span className="font-semibold">Uzman incelemesi bekleniyor.</span> {guide.foodSafetyWarning}</p>
+            </div>
           )}
         </header>
 

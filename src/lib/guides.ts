@@ -15,6 +15,9 @@ export const GUIDE_PER_PAGE = 12;
 
 export interface GuideTerm { slug: string; name: string }
 
+/** Fallback copy if Core flags a guide unreviewed without sending the text. */
+export const GUIDE_UNREVIEWED_WARNING = "Bu rehber henüz bir gıda güvenliği uzmanı tarafından incelenmedi. Saklama, fermentasyon ve kurutmada süre, sıcaklık ve hijyen kurallarını resmi kaynaklardan da kontrol et; şüpheli görünen, kokan ya da küflenen ürünü tüketme.";
+
 export interface GuideSummary {
   id: number;
   slug: string;
@@ -25,6 +28,8 @@ export interface GuideSummary {
   level: GuideTerm | null;
   readingMinutes: number | null;
   tool: string | null;
+  /** "approved" | "unreviewed" (food-safety topic without expert review) | null. */
+  foodSafetyReview: "approved" | "unreviewed" | null;
   updatedAt: string | null;
 }
 
@@ -51,6 +56,8 @@ export interface Guide extends GuideSummary {
   sources: GuideSource[];
   /** Only set when the food-safety review is approved. */
   foodSafety: { reviewedAt: string | null } | null;
+  /** Shown above the article when a food-safety guide has not been reviewed yet. */
+  foodSafetyWarning: string | null;
   authorName: string | null;
   publishedAt: string | null;
   seo: GuideSeo;
@@ -182,6 +189,7 @@ export function normalizeGuideSummary(value: unknown): GuideSummary | null {
     level: term(raw.level),
     readingMinutes: positiveInt(raw.reading_minutes),
     tool: text(raw.tool) || null,
+    foodSafetyReview: raw.food_safety_review === "approved" || raw.food_safety_review === "unreviewed" ? raw.food_safety_review : null,
     updatedAt: isoDate(raw.updated_at),
   };
 }
@@ -250,6 +258,7 @@ export function normalizeGuide(value: unknown): Guide | null {
     relatedRecipes: relatedRecipes.slice(0, 12),
     sources: sources.slice(0, 10),
     foodSafety,
+    foodSafetyWarning: foodSafety ? null : (text(raw.food_safety_warning) || (summary.foodSafetyReview === "unreviewed" ? GUIDE_UNREVIEWED_WARNING : null)),
     authorName: author || null,
     publishedAt: isoDate(raw.published_at),
     seo: {
