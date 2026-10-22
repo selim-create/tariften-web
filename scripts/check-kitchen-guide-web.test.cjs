@@ -58,7 +58,7 @@ test('list: contract shape maps to camelCase; nulls stay null; junk rows are dro
     excerpt: 'Rafadan, kayısı ve katı kıvam için dakika dakika rehber.',
     image: 'https://api.tariften.com/wp-content/uploads/2026/10/yumurta-1024x683.jpg',
     topics: LIST.data[0].topics, level: { slug: 'baslangic', name: 'Başlangıç' },
-    readingMinutes: 4, tool: 'egg_doneness', updatedAt: '2026-10-21T09:30:00Z',
+    readingMinutes: 4, tool: 'egg_doneness', foodSafetyReview: null, updatedAt: '2026-10-21T09:30:00Z',
   });
   assert.deepEqual({ count: list.count, pages: list.pages, page: list.page, perPage: list.perPage }, { count: 1, pages: 1, page: 1, perPage: 12 });
 
@@ -98,6 +98,15 @@ test('detail: related recipes, https-only sources, approved-only food safety, SE
   assert.equal(other.seo.ogImage, null);
   assert.deepEqual(other.relatedRecipes.map(r => r.slug), ['a']);
   assert.equal(g.normalizeGuide({ ...DETAIL, food_safety: { status: 'pending' } }).foodSafety, null);
+  // 1.0.57: unreviewed food-safety guides are published with a warning.
+  const warned = g.normalizeGuide({ ...DETAIL, food_safety: null, food_safety_review: 'unreviewed', food_safety_warning: 'Uzman incelemesi yok.' });
+  assert.equal(warned.foodSafety, null);
+  assert.equal(warned.foodSafetyReview, 'unreviewed');
+  assert.equal(warned.foodSafetyWarning, 'Uzman incelemesi yok.');
+  assert.equal(g.normalizeGuide({ ...DETAIL, food_safety_review: 'unreviewed' }).foodSafetyWarning, g.GUIDE_UNREVIEWED_WARNING, 'fallback copy');
+  const approved = g.normalizeGuide({ ...DETAIL, food_safety: { status: 'approved', reviewed_at: null }, food_safety_review: 'approved', food_safety_warning: 'x' });
+  assert.equal(approved.foodSafetyWarning, null, 'never both badge and warning');
+  assert.equal(g.normalizeGuide({ ...DETAIL, food_safety_review: 'weird' }).foodSafetyReview, null);
   assert.equal(g.normalizeGuide({ code: 'guide_not_found' }), null);
 });
 
