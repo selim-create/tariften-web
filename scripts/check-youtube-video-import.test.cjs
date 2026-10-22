@@ -259,3 +259,18 @@ test('video pipeline v2: failed transfers show the server reason and can be retr
   assert.match(page, /existing\.status === "failed" && existing\.retryable === true/);
 });
 
+
+test('published status from Core can skip the second manual approval', () => {
+  const result = parseVideoJob({
+    ...fixture(),
+    status: 'published',
+    requires_approval: false,
+    recipe_slug: 'salatalik-sushi',
+    message: 'Tarif otomatik yayımlandı.',
+  });
+  assert.equal(result.status, 'published');
+  assert.equal(result.recipe_slug, 'salatalik-sushi');
+  assert.throws(() => parseVideoJob({ ...fixture(), status: 'published', requires_approval: true }), /beklenen biçimde/);
+  const page = read('src/app/recipe/import/page.tsx');
+  assert.match(page, /job.status === "published" && job.recipe_slug/);
+});

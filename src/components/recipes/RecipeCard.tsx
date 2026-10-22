@@ -4,6 +4,7 @@ import { Clock3, Flame } from "lucide-react";
 import type { Recipe } from "@/types";
 import { isPlaceholderImage } from "@/lib/utils";
 import RecipeCover from "@/components/recipe/RecipeCover";
+import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
 
 /** Positive whole number from API data, or null. Never a default. */
 function positive(value: unknown): number | null {
@@ -30,6 +31,7 @@ export default function RecipeCard({ recipe, sizes = "(min-width: 1024px) 33vw, 
           <Image src={recipe.image} alt="" fill unoptimized sizes={sizes}
             className="object-cover transition duration-500 group-hover:scale-[1.03]" />
         )}
+        <SocialPlatformBadge source={recipe.social_source} />
       </div>
       {kicker && <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">{kicker}</p>}
       <h3 className="line-clamp-2 font-heading text-[17px] font-semibold leading-snug text-slate-900 transition group-hover:text-brand">{recipe.title}</h3>

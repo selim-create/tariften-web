@@ -13,6 +13,7 @@ import { isPlaceholderImage } from "@/lib/utils";
 import { parseIngredients, parseSteps } from "@/lib/recipeUtils";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import RecipeCover from "@/components/recipe/RecipeCover";
+import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
 import AuthorCard from "@/components/AuthorCard";
 import { capitalizeIngredientTr, formatIngredientAmount } from "@/lib/ingredient-display";
 import { LOKMA_RATINGS } from "@/lib/lokma-emoji";
@@ -421,6 +422,7 @@ export default function RecipeDetailClient({ recipe }: { recipe: Recipe }) {
                       <Image src={r.image} alt="" fill unoptimized sizes="(min-width: 640px) 33vw, 100vw"
                         className="object-cover transition duration-500 group-hover:scale-[1.03]" />
                     )}
+                    <SocialPlatformBadge source={r.social_source} />
                   </div>
                   <h3 className="font-heading text-base font-semibold leading-snug text-slate-900 transition group-hover:text-brand line-clamp-2">{r.title}</h3>
                   {total > 0 && (

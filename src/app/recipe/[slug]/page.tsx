@@ -9,6 +9,7 @@ import RecipeActions from "@/components/recipe/RecipeActions";
 import EditButton from "@/components/recipe/EditButton";
 import RecipeReviewNotice from "@/components/recipe/RecipeReviewNotice";
 import RecipeCover from "@/components/recipe/RecipeCover";
+import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
 import { Metadata } from 'next';
 import RecipeJsonLd from '@/components/RecipeJsonLd';
 import { isPlaceholderImage } from "@/lib/utils";
@@ -163,6 +164,7 @@ export default async function RecipeDetailPage({
               <RecipeCover title={recipe.title} kicker={recipe.cuisine?.[0]} />
             )}
 
+            <SocialPlatformBadge source={recipe.social_source} />
             {!videoId && isAiRecipe && (
               <span className="absolute bottom-4 left-4 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-black/5 backdrop-blur">
                 AI önerisi
@@ -217,7 +219,7 @@ export default async function RecipeDetailPage({
           </div>
         </header>
 
-        {recipe.social_source && <SocialRecipeSourceCard source={recipe.social_source} />}
+        {recipe.social_source && <SocialRecipeSourceCard source={recipe.social_source} recipeId={recipe.id} />}
 
         <RecipeDetailClient recipe={recipe} />
       </div>

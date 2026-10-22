@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Check, ChevronDown, Loader2, PenLine, Plus, RotateCw, Search, X } from "lucide-react";
 import RecipeCover from "@/components/recipe/RecipeCover";
+import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
 import { isPlaceholderImage } from "@/lib/utils";
 import { getOwnedLibraryPage, type KitchenKind } from "@/lib/owned-library";
 import type { Menu, Recipe } from "@/types";
@@ -170,6 +171,7 @@ export default function MyKitchenLibrary({
                     ? <RecipeCover title={item.title} compact />
                     : <Image src={item.image} alt="" fill unoptimized sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                         className="object-cover transition duration-500 group-hover:scale-[1.03]" />}
+                  <SocialPlatformBadge source={recipe?.social_source} />
                 </Link>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
