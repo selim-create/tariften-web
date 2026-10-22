@@ -230,7 +230,8 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
       const data: unknown = await response.json().catch(() => null);
       if (!response.ok) throw new Error("Analiz kaydı açılamadı.");
       const job = parseVideoJob(data);
-      if (job.status === "needs_review") openVideoEditor(job);
+      if (job.status === "published" && job.recipe_slug) router.push(`/recipe/${encodeURIComponent(job.recipe_slug)}`);
+      else if (job.status === "needs_review") openVideoEditor(job);
       else {
         setSocialUrl(job.source_url);
         setVideoStatus(job.status);
@@ -256,7 +257,8 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
       if (!res.ok) throw new Error("Aktardığın tarif hesabında bulunamadı.");
       const job = parseVideoJob(await res.json());
       if (!active) return;
-      if (job.status === "needs_review") openVideoEditor(job);
+      if (job.status === "published" && job.recipe_slug) router.push(`/recipe/${encodeURIComponent(job.recipe_slug)}`);
+      else if (job.status === "needs_review") openVideoEditor(job);
       else {
         setVideoStatus(job.status);
         setSocialUrl(job.source_url);
@@ -326,6 +328,10 @@ export default function RecipeTextImportPage({ initialMethod = "text" }: { initi
         job = parseVideoJob(payload);
       } else {
         throw new Error("Yeni video analizi şu anda kapalı. Hazır tarifleri Tarif Aktarımlarım bölümünden açabilirsin.");
+      }
+      if (job.status === "published" && job.recipe_slug) {
+        router.push(`/recipe/${encodeURIComponent(job.recipe_slug)}`);
+        return;
       }
       if (job.status === "needs_review") {
         openVideoEditor(job);
