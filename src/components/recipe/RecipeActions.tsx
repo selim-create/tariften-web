@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toggleInteraction, checkInteractionStatus } from "@/lib/api";
 import { Bookmark, Check, Share2 } from "lucide-react";
+import { QuickActionBody, quickActionClass } from "@/components/recipe/QuickAction";
 
-export default function RecipeActions({ recipeId, title }: { recipeId: number, title: string }) {
+export default function RecipeActions({ recipeId, title, variant = "button" }: { recipeId: number, title: string, variant?: "button" | "quick" }) {
   const { user } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
@@ -60,6 +61,21 @@ export default function RecipeActions({ recipeId, title }: { recipeId: number, t
       }
     }
   };
+
+  if (variant === "quick") {
+    return (
+      <>
+        <button type="button" onClick={handleSave} aria-pressed={isSaved} className={quickActionClass}>
+          <QuickActionBody tone={isSaved ? "active" : "default"} label={isSaved ? "Kaydedildi" : "Kaydet"}
+            icon={<Bookmark className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`} strokeWidth={1.75} />} />
+        </button>
+        <button type="button" onClick={handleShare} className={quickActionClass}>
+          <QuickActionBody tone={shareSuccess ? "active" : "default"} label={shareSuccess ? "Kopyalandı" : "Paylaş"}
+            icon={shareSuccess ? <Check className="h-5 w-5" strokeWidth={2} /> : <Share2 className="h-5 w-5" strokeWidth={1.75} />} />
+        </button>
+      </>
+    );
+  }
 
   const base = "grid h-12 w-12 place-items-center rounded-xl border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
   return (

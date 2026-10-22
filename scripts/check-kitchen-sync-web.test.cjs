@@ -373,7 +373,10 @@ test('login callback accepts only same-site paths', () => {
 
 test('recipe page offers Haftaya ekle (this + next week, today default) and the shopping toggle', () => {
   const page = read('src/app/recipe/[slug]/page.tsx');
-  assert.match(page, /<RecipeKitchenActions recipe=\{\{/);
+  assert.match(page, /<RecipeKitchenActions variant="quick" recipe=\{\{/);
+  // One calm row like the app: Pişir · Haftaya ekle · Alışverişe ekle · Kaydet · Paylaş.
+  assert.match(page, /<PilotEntryButton slug=\{recipe\.slug\} variant="quick" \/>[\s\S]*<RecipeKitchenActions variant="quick"[\s\S]*<RecipeActions recipeId=\{recipe\.id\} title=\{recipe\.title\} variant="quick" \/>/);
+  assert.match(read('src/components/recipe/QuickAction.tsx'), /h-14 w-14[^"]*rounded-full/);
   const ui = read('src/components/recipe/RecipeKitchenActions.tsx');
   assert.match(ui, /"Haftaya ekle"/);
   assert.match(ui, /"Alışverişte" : "Alışverişe ekle"/);

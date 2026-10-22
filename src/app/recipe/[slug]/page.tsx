@@ -200,10 +200,9 @@ export default async function RecipeDetailPage({
             )}
 
             {facts.length > 0 && (
-              <dl className="mb-8 grid grid-cols-2 overflow-hidden rounded-2xl border border-gray-200 bg-white sm:flex sm:divide-x sm:divide-gray-100">
-                {facts.map(({ icon: Icon, label, value, hint, note }, i) => (
-                  <div key={label} title={hint}
-                    className={`flex flex-1 flex-col gap-1 px-4 py-3.5 ${i % 2 === 1 ? "border-l border-gray-100 sm:border-l-0" : ""} ${i > 1 ? "border-t border-gray-100 sm:border-t-0" : ""}`}>
+              <dl className="mb-8 flex flex-wrap gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+                {facts.map(({ icon: Icon, label, value, hint, note }) => (
+                  <div key={label} title={hint} className="flex min-w-0 flex-1 basis-[30%] flex-col gap-1 bg-white px-4 py-3.5 sm:basis-0">
                     <dt className="flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-gray-500">
                       <Icon className="h-3.5 w-3.5 text-gray-400" aria-hidden strokeWidth={1.75} />
                       {label}
@@ -217,17 +216,15 @@ export default async function RecipeDetailPage({
               </dl>
             )}
 
-            <div className="flex flex-wrap items-center gap-3">
-              <PilotEntryButton slug={recipe.slug} />
-              <RecipeActions recipeId={recipe.id} title={recipe.title} />
-            </div>
-
-            <div className="mt-3">
-              <RecipeKitchenActions recipe={{
+            {/* One row of round, labelled actions — the same order and look as the app. */}
+            <nav aria-label="Tarif işlemleri" className="flex flex-wrap items-start justify-between gap-y-2 sm:max-w-[520px] sm:justify-start sm:gap-x-3">
+              <PilotEntryButton slug={recipe.slug} variant="quick" />
+              <RecipeKitchenActions variant="quick" recipe={{
                 id: recipe.id, slug: recipe.slug, title: recipe.title, image: hasPhoto ? recipe.image : undefined,
                 servings, ingredients: recipe.ingredients || [],
               }} />
-            </div>
+              <RecipeActions recipeId={recipe.id} title={recipe.title} variant="quick" />
+            </nav>
           </div>
         </header>
 
