@@ -152,19 +152,43 @@ test('provider estimated calories are labelled tentative, not silently removed',
   assert.ok(warnings.some(w => w.includes('Kalori') && w.includes('tahminidir')));
 });
 
+function loadSocialSource() {
+  const out = ts.transpileModule(read('src/lib/social-source.ts'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const m = { exports: {} };
+  Function('module', 'exports', 'require', out)(m, m.exports, () => { throw Error('unexpected_import'); });
+  return m.exports;
+}
+
 test('social source card is premium, safe and genuinely attributable', () => {
   const card = read('src/components/recipe/SocialRecipeSourceCard.tsx');
+  const dialog = read('src/components/recipe/SocialVideoDialog.tsx');
   const detail = read('src/app/recipe/[slug]/page.tsx');
   const types = read('src/types/index.ts');
+  const lib = read('src/lib/social-source.ts');
   assert.match(card, /Orijinal kaynak/);
-  assert.match(card, /open: "Instagram'da aç"/);
+  assert.match(lib, /at: "Instagram'da"/);
+  assert.match(card, /\{copy\.at\} aç/);
   assert.match(card, /rel="noopener noreferrer nofollow"/);
-  assert.match(card, /setWatching\(v => !v\)/);
-  assert.match(card, /watching && embed &&/, 'video iframe loads only after the visitor asks for it');
-  assert.match(card, /source\.creator_handle/);
-  assert.doesNotMatch(card, /viewCount|likeCount|2\.8M|35K/, 'social counts are never fabricated');
+  // The player iframe exists only in the dialog, which mounts only when the visitor presses play.
+  assert.doesNotMatch(card, /<iframe/);
+  assert.match(card, /<SocialVideoDialog source=\{source\} open=\{watching\}/);
+  assert.match(dialog, /if \(!open \|\| typeof document === "undefined"\) return null;/);
+  assert.match(lib, /source\.creator_handle/);
+  assert.doesNotMatch(card + lib, /viewCount|likeCount|2\.8M|35K/, 'social counts are never fabricated');
   assert.match(detail, /<SocialRecipeSourceCard source=\{recipe\.social_source\}/);
   assert.match(types, /social_source\?: RecipeSocialSource/);
+
+  const { socialCreatorLabel, socialPlayerUrl, socialOriginalUrl } = loadSocialSource();
+  assert.deepEqual(socialCreatorLabel({ creator_name: ' Ayşe ', creator_handle: 'ayse.mutfak' }),
+    { primary: 'Ayşe', handle: '@ayse.mutfak', trustedHandle: 'ayse.mutfak' });
+  assert.equal(socialCreatorLabel({ creator_name: null, creator_handle: 'bad handle!' }).primary, null);
+  assert.equal(socialPlayerUrl('tiktok', '7083514528025136386').startsWith('https://www.tiktok.com/player/v1/7083514528025136386?'), true);
+  assert.equal(socialPlayerUrl('tiktok', '12'), null);
+  assert.equal(socialPlayerUrl('youtube', 'x"><script>'), null);
+  assert.equal(socialOriginalUrl('instagram', 'https://instagram.com.evil.tld/reel/x/'), null);
+  assert.equal(socialOriginalUrl('instagram', 'https://www.instagram.com/reel/C5ToOyqIZvb/'), 'https://www.instagram.com/reel/C5ToOyqIZvb/');
 });
 
 test('async recipe transfer gives a notification without blocking the editor', () => {
@@ -227,14 +251,22 @@ test('Instagram post aliases resolve existing public Reels but never start unkno
 
 test('social card shows only measured and timestamped counts, never synthetic values', () => {
   const card = read('src/components/recipe/SocialRecipeSourceCard.tsx');
+  const lib = read('src/lib/social-source.ts');
   const types = read('src/types/index.ts');
-  assert.match(card, /source\.metrics_origin === "public_instagram_extractor"/);
-  assert.match(card, /source\.view_count/);
-  assert.match(card, /source\.like_count/);
-  assert.match(card, /source\.follower_count/);
-  assert.match(card, /Number\.isSafeInteger/);
-  assert.match(card, /güncel veya resmî hesap istatistiği değildir/);
+  assert.match(lib, /instagram: "public_instagram_extractor"/);
+  assert.match(lib, /source\.view_count/);
+  assert.match(lib, /source\.like_count/);
+  assert.match(lib, /source\.follower_count/);
+  assert.match(lib, /Number\.isSafeInteger/);
+  assert.match(card, /socialTrustedMetrics\(source\)/);
+  assert.match(card, /Canlı istatistik değildir/);
   assert.match(types, /metrics_captured_at\?: string/);
+
+  const { socialTrustedMetrics } = loadSocialSource();
+  const base = { platform: 'instagram', follower_count: 1200, view_count: 5000, like_count: -1, comment_count: 1.5 };
+  assert.deepEqual(socialTrustedMetrics({ ...base, metrics_origin: 'public_instagram_extractor' }).map(m => m.key), ['followers', 'views']);
+  assert.deepEqual(socialTrustedMetrics({ ...base, metrics_origin: 'public_tiktok_extractor' }), [], 'counts from another platform are never shown');
+  assert.equal(socialTrustedMetrics({ platform: 'youtube', follower_count: 9, metrics_origin: 'public_youtube_data_api' })[0].label, 'Abone');
 });
 
 test('video pipeline v2: TikTok links, consent for social video, short-link guidance', () => {
