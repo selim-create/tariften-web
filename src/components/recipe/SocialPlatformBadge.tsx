@@ -6,7 +6,7 @@ export default function SocialPlatformBadge({ source }: { source?: RecipeSocialS
   if (!source) return null;
   const platform = source.platform;
   if (!["instagram", "tiktok", "youtube"].includes(platform)) return null;
-  const label = platform === "instagram" ? "Instagram" : platform === "tiktok" ? "TikTok" : "YouTube Shorts";
+  const label = platform === "instagram" ? "Instagram" : platform === "tiktok" ? "TikTok" : "YouTube";
   return (
     <span title={label} aria-label={label}
       className="pointer-events-none absolute bottom-3 right-3 z-10 inline-flex h-9 min-w-9 items-center justify-center rounded-xl border border-white/20 bg-slate-950/85 px-2 text-white shadow-lg backdrop-blur-sm">
