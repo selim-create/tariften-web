@@ -7,13 +7,19 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import GlobalCreateMenu from "@/components/navigation/GlobalCreateMenu";
-import { Bookmark, ChevronDown, LogOut, Menu, Moon, Search, Settings, Sun, UserRound, X } from "lucide-react";
+import { Bookmark, CalendarDays, ChevronDown, LogOut, Menu, Moon, Search, Settings, ShoppingBasket, Sun, UserRound, X } from "lucide-react";
 
 const NAV = [
   { href: "/recipes", label: "Tarifler", match: ["/recipes", "/recipe/"] },
   { href: "/menus", label: "Menüler", match: ["/menus", "/menu/"] },
   { href: "/pantry", label: "Dolap Modu", match: ["/pantry"] },
   { href: "/blog", label: "Blog", match: ["/blog"] },
+] as const;
+
+/** Same two tabs as the app (Bu Hafta · Alışveriş); kept in the account menus. */
+const KITCHEN = [
+  { href: "/bu-hafta", label: "Bu Hafta", icon: CalendarDays },
+  { href: "/alisveris", label: "Alışveriş listem", icon: ShoppingBasket },
 ] as const;
 
 function isActive(pathname: string, match: readonly string[]) {
@@ -193,6 +199,12 @@ export default function Header() {
                       <Link role="menuitem" href="/cookbook" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 transition hover:bg-gray-50 hover:text-slate-900">
                         <Bookmark className="h-4 w-4 text-gray-400" aria-hidden /> Tarif defterim
                       </Link>
+                      {KITCHEN.map(({ href, label, icon: Icon }) => (
+                        <Link key={href} role="menuitem" href={href} aria-current={isActive(pathname, [href]) ? "page" : undefined}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 transition hover:bg-gray-50 hover:text-slate-900">
+                          <Icon className="h-4 w-4 text-gray-400" aria-hidden /> {label}
+                        </Link>
+                      ))}
                       <Link role="menuitem" href="/profile/edit" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 transition hover:bg-gray-50 hover:text-slate-900">
                         <Settings className="h-4 w-4 text-gray-400" aria-hidden /> Hesap ayarları
                       </Link>
@@ -254,6 +266,12 @@ export default function Header() {
           <Link href="/cookbook" className="flex items-center gap-3 py-4 text-[15px] text-slate-700">
             <Bookmark className="h-[18px] w-[18px] text-gray-400" aria-hidden /> Tarif defterim
           </Link>
+          {KITCHEN.map(({ href, label, icon: Icon }) => (
+            <Link key={href} href={href} aria-current={isActive(pathname, [href]) ? "page" : undefined}
+              className={`flex items-center gap-3 py-4 text-[15px] ${isActive(pathname, [href]) ? "text-brand" : "text-slate-700"}`}>
+              <Icon className="h-[18px] w-[18px] text-gray-400" aria-hidden /> {label}
+            </Link>
+          ))}
           {user && (
             <>
               <Link href="/profile" className="flex items-center gap-3 py-4 text-[15px] text-slate-700">

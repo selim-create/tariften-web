@@ -6,6 +6,7 @@ import VideoRecipeReadyNotice from '@/components/layout/VideoRecipeReadyNotice';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import { AuthProvider } from "@/context/AuthContext";
+import { KitchenProvider } from "@/context/KitchenContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
@@ -95,13 +96,15 @@ export default function RootLayout({
         <ThemeProvider>
           <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <AuthProvider>
-              <Header />
-              <div className="flex-grow">
-                {children}
-              </div>
-              <VideoRecipeReadyNotice />
-              <Footer />
-              <AppBanner /> {/* Dinamik mobil banner'ımız */}
+              <KitchenProvider>
+                <Header />
+                <div className="flex-grow">
+                  {children}
+                </div>
+                <VideoRecipeReadyNotice />
+                <Footer />
+                <AppBanner /> {/* Dinamik mobil banner'ımız */}
+              </KitchenProvider>
             </AuthProvider>
           </GoogleOAuthProvider>
         </ThemeProvider>

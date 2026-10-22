@@ -49,6 +49,8 @@ jobs:
         run: node --test scripts/check-recipe-flow-notifications.test.cjs
       - name: Optional kitchen profile, allergen consent and post-registration sign-in
         run: node --test scripts/check-kitchen-profile-web.test.cjs
+      - name: Bu Hafta / Alışveriş account sync, three-way merge parity and shared shopping keys
+        run: node --test scripts/check-kitchen-sync-web.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build

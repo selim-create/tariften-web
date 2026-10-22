@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
 
   // 3. Korunan Rotalar (Sadece üyeler girebilir)
   // Dashboard, Ayarlar ve Tarif Defterim gibi kişisel alanlar
-  const protectedRoutes = ['/profile', '/profile/edit', '/cookbook'];
+  const protectedRoutes = ['/profile', '/profile/edit', '/cookbook', '/bu-hafta', '/alisveris'];
 
   // Yolun korunan rotalar listesinde olup olmadığını veya bir alt yolu olup olmadığını kontrol et
   const isProtected = protectedRoutes.some(route => 

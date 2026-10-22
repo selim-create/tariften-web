@@ -8,6 +8,13 @@ import { FaEnvelope, FaLock, FaArrowRight, FaSpinner, FaGoogle, FaApple, FaTrian
 import { loginUser, loginWithGoogle } from "@/lib/auth-client"; 
 import { useAuth } from "@/context/AuthContext";
 import { useGoogleLogin } from '@react-oauth/google';
+import { safeCallbackPath } from "@/lib/login-callback";
+
+/** Back to the page that sent the visitor here (?callbackUrl=), else the profile. */
+function afterLoginPath(): string {
+  if (typeof window === "undefined") return "/profile";
+  return safeCallbackPath(new URLSearchParams(window.location.search).get("callbackUrl"));
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,7 +36,7 @@ export default function LoginPage() {
       try {
         const data = await loginWithGoogle(tokenResponse.access_token);
         login(data);
-        router.push("/profile");
+        router.push(afterLoginPath());
       } catch (err: any) {
         console.error(err);
         setError("Google ile giriş yapılamadı: " + (err.message || "Bilinmeyen hata"));
@@ -52,7 +59,7 @@ export default function LoginPage() {
       login(data);
       // Normal login sonrası güncel profil bilgilerini çek
       await refreshUser();
-      router.push("/profile");
+      router.push(afterLoginPath());
     } catch (err: any) {
       console.error(err);
       setError("Giriş başarısız. Kullanıcı adı veya şifre hatalı.");
