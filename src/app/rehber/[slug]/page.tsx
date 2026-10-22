@@ -6,8 +6,9 @@ import { ArrowLeft, ArrowUpRight, ChevronRight, Clock3, RefreshCw, ShieldAlert, 
 import GuideToc from "@/components/guide/GuideToc";
 import { Accent, FOCUS, LevelBadge } from "@/components/guide/GuideBits";
 import RecipeCover from "@/components/recipe/RecipeCover";
+import ShareButtons from "@/components/blog/ShareButtons";
 import { getGuide } from "@/lib/guides-api";
-import { guideDate, guideJsonLd, guideListHref, jsonLdString, prepareGuideHtml } from "@/lib/guides";
+import { GUIDE_AUTHOR, guideDate, guideJsonLd, guideListHref, guideWordCount, jsonLdString, prepareGuideHtml } from "@/lib/guides";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -29,6 +30,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: { absolute: seo.title },
     description: seo.description,
     alternates: { canonical: seo.canonical },
+    authors: [{ name: GUIDE_AUTHOR.name, url: GUIDE_AUTHOR.url }],
+    keywords: [...guide.topics.map(t => t.name), "mutfak rehberi", "Tariften"],
+    // Large image previews and full snippets (Discover / rich results).
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
     openGraph: {
       type: "article",
       title: seo.title,
@@ -40,6 +45,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ...(guide.publishedAt ? { publishedTime: guide.publishedAt } : {}),
       ...(guide.updatedAt ? { modifiedTime: guide.updatedAt } : {}),
       ...(guide.topics[0] ? { section: guide.topics[0].name } : {}),
+      authors: [GUIDE_AUTHOR.url],
+      tags: guide.topics.map(t => t.name),
     },
     twitter: { card: "summary_large_image", title: seo.title, description: seo.description, images: image },
   };
@@ -54,7 +61,7 @@ export default async function GuidePage({ params }: Props) {
   const topic = guide.topics[0] || null;
   const updated = guideDate(guide.updatedAt || guide.publishedAt);
   const reviewed = guide.foodSafety ? guideDate(guide.foodSafety.reviewedAt) : "";
-  const jsonLd = guideJsonLd(guide, faq);
+  const jsonLd = guideJsonLd(guide, faq, { wordCount: guideWordCount(html) });
 
   return (
     <main className="gd-page min-h-screen bg-[#fcfcfc] pb-24">
@@ -77,7 +84,7 @@ export default async function GuidePage({ params }: Props) {
       </div>
 
       <article className="mx-auto max-w-6xl px-4 lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-x-14 xl:gap-x-20">
-        <header className="pt-10 sm:pt-14 lg:col-start-2 lg:max-w-[68ch]">
+        <header className="pt-10 sm:pt-14 lg:col-span-2 lg:max-w-3xl">
           {topic && (
             <Link href={guideListHref({ topic: topic.slug })}
               className="mb-4 inline-block text-[11px] font-semibold uppercase tracking-[0.22em] text-brand transition hover:text-brand-dark">
@@ -116,18 +123,21 @@ export default async function GuidePage({ params }: Props) {
               <p><span className="font-semibold">Uzman incelemesi bekleniyor.</span> {guide.foodSafetyWarning}</p>
             </div>
           )}
+          <div className="mt-7">
+            <ShareButtons title={guide.title} url={guide.seo.canonical} />
+          </div>
         </header>
 
         {guide.image && (
-          <figure className="mt-10 lg:col-span-2 lg:mt-12">
-            <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-[#f6efe8] ring-1 ring-black/5">
-              <Image src={guide.image} alt={guide.title} fill priority unoptimized sizes="(min-width: 1152px) 1120px, 100vw" className="object-cover" />
+          <figure className="mt-10 lg:col-start-2 lg:row-start-2 lg:mt-12 lg:max-w-[68ch]">
+            <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-[#f6efe8] ring-1 ring-black/5 lg:aspect-[2/1]">
+              <Image src={guide.image} alt={guide.title} fill priority unoptimized sizes="(min-width: 1024px) 720px, 100vw" className="object-cover" />
             </div>
           </figure>
         )}
 
         {toc.length >= 2 && (
-          <aside className="hidden lg:col-start-1 lg:row-start-3 lg:block">
+          <aside className="hidden lg:col-start-1 lg:row-span-2 lg:row-start-2 lg:block">
             <div className="sticky top-24 pt-12">
               <GuideToc items={toc} variant="rail" />
             </div>
@@ -177,6 +187,9 @@ export default async function GuidePage({ params }: Props) {
               className={`inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-slate-700 transition hover:text-brand ${FOCUS}`}>
               <ArrowLeft className="h-4 w-4" aria-hidden /> {topic ? `Tüm ${topic.name.toLocaleLowerCase("tr-TR")} rehberleri` : "Tüm rehberler"}
             </Link>
+          </div>
+          <div className="mt-8 max-w-[68ch]">
+            <ShareButtons title={guide.title} url={guide.seo.canonical} />
           </div>
         </div>
       </article>

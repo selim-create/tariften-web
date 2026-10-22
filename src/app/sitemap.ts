@@ -112,6 +112,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(guide.updatedAt ? { lastModified: new Date(guide.updatedAt) } : {}),
     changeFrequency: 'monthly' as const,
     priority: 0.7,
+    // Image sitemap entry (Core 1.0.58+ sends the featured image).
+    ...(guide.image ? { images: [guide.image] } : {}),
   }));
 
   return [...staticPages, ...recipePages, ...menuPages, ...guidePages];

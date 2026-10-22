@@ -6,13 +6,15 @@ import { FaFacebookF, FaXTwitter, FaWhatsapp, FaLinkedinIn } from "react-icons/f
 
 interface ShareButtonsProps {
   title: string;
-  slug: string;
+  /** Blog slug (builds the blog URL) — or pass a full `url` for other pages. */
+  slug?: string;
+  url?: string;
   layout?: "row" | "rail";
 }
 
-export default function ShareButtons({ title, slug, layout = "row" }: ShareButtonsProps) {
+export default function ShareButtons({ title, slug = "", url: fullUrl, layout = "row" }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
-  const url = `https://tariften.com/blog/${slug}`;
+  const url = fullUrl || `https://tariften.com/blog/${slug}`;
 
   const links = [
     { name: "WhatsApp", icon: FaWhatsapp, href: `https://api.whatsapp.com/send?text=${encodeURIComponent(`${title} ${url}`)}` },
