@@ -1,34 +1,32 @@
-import Link from "next/link";
-import { FaArrowLeft } from "react-icons/fa6";
+import LegalPage, { LEGAL_LINK, LegalContact, LegalNote, LegalSectionBlock } from "@/components/legal/LegalPage";
 
 export const metadata = {
   title: "Kullanım Koşulları | Tariften",
   description: "Tariften.com kullanım koşulları ve kullanıcı sözleşmesi.",
 };
 
+const SECTIONS = [
+  { id: "sozlesme-hakkinda", label: "Sözleşme Hakkında" },
+  { id: "konu-kapsam", label: "1. Sözleşme’nin Konusu ve Kapsamı" },
+  { id: "hak-yukumluluk", label: "2. Taraflar’ın Hak ve Yükümlülükleri" },
+  { id: "icerik-paylasimi", label: "3. İçerik Paylaşımı Faaliyetlerine İlişkin Koşullar" },
+  { id: "sorumluluk", label: "4. Sorumluluğun Sınırlandırılması" },
+  { id: "mucbir-sebepler", label: "5. Mücbir Sebepler" },
+  { id: "askiya-alma-fesih", label: "6. Sözleşme’nin Askıya Alınması, Devri ve Feshi" },
+  { id: "uyusmazlik", label: "7. Uyuşmazlıkların Çözümü" },
+  { id: "iletisim", label: "İletişim" },
+];
+
+const LIST = "list-none space-y-4";
+const NUM = "font-semibold text-slate-900";
+
 export default function TermsPage() {
   return (
-    <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-slate-500 hover:text-[#db4c3f] mb-8 transition"
-      >
-        <FaArrowLeft /> Anasayfaya Dön
-      </Link>
-
-      <h1 className="text-4xl font-bold font-heading text-slate-900 mb-2">
-        Kullanıcı Sözleşmesi
-      </h1>
-      <p className="text-slate-500 mb-8">Son Güncelleme: Ocak 2026</p>
-
-      <div className="prose prose-slate max-w-none">
-        {/* Üst Bilgi Kutusu (Privacy tarzı) */}
-        <section className="mb-10">
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-6">
-            <h2 className="text-xl font-bold text-blue-900 mb-2">
-              Sözleşme Hakkında
-            </h2>
-            <p className="text-blue-800 text-sm mb-0">
+    <LegalPage kicker="Kullanım Koşulları" title="Kullanıcı Sözleşmesi"
+      updated="Son Güncelleme: Ocak 2026" sections={SECTIONS}>
+        <section id="sozlesme-hakkinda" className="mb-12 scroll-mt-24">
+          <LegalNote title="Sözleşme Hakkında">
+            <p>
               Bu Kullanıcı Sözleşmesi (“Sözleşme”), HİP Medya’nın (“Şirket”)
               www.tariften.com internet adresinde yer alan site (“Platform”) ile
               kullanıcılarına (“Kullanıcı”) sağladığı çevrimiçi veya çevrimdışı
@@ -37,15 +35,11 @@ export default function TermsPage() {
               ziyaret edilmesiyle yürürlüğe girer. (Şirket ve Kullanıcı birlikte
               “Taraflar” olarak anılacaktır.)
             </p>
-          </div>
+          </LegalNote>
         </section>
 
         {/* 1 */}
-        <section className="mb-10">
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">
-              1. Sözleşme’nin Konusu ve Kapsamı
-            </h2>
+        <LegalSectionBlock id="konu-kapsam" title="1. Sözleşme’nin Konusu ve Kapsamı">
             <p>
               Sözleşme’nin konusu, Platform’dan erişilen ve Platform’da paylaşılan
               fotoğraf, resim, görsel, yazı, yorum, video ve diğer tüm içeriklere
@@ -55,26 +49,21 @@ export default function TermsPage() {
               belirlenmesi ve bu doğrultuda Taraflar’ın hak ve yükümlülüklerinin
               düzenlenmesidir.
             </p>
-            <p className="mb-0">
+            <p>
               Platform’da, Platform’un kullanımına veya koşullarına ilişkin olarak
               sunulan her türlü kural, duyuru ve beyan işbu Sözleşme’nin ayrılmaz
               parçası olarak kabul edilecek olup, Sözleşme ile Kullanıcı, Platform’da
               yer alan veya yer alacak olan her türlü kural, duyuru, uyarı ve beyanı
               peşinen kabul etmektedir.
             </p>
-          </div>
-        </section>
+          </LegalSectionBlock>
 
         {/* 2 */}
-        <section className="mb-10">
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">
-              2. Taraflar’ın Hak ve Yükümlülükleri
-            </h2>
+        <LegalSectionBlock id="hak-yukumluluk" title="2. Taraflar’ın Hak ve Yükümlülükleri">
 
-            <ul className="space-y-3 list-disc pl-5 marker:text-slate-300">
+            <ul className={LIST}>
               <li>
-                <strong>2.1.</strong> Kullanıcı, Platform’dan faydalanmak için Şirket
+                <strong className={NUM}>2.1.</strong> Kullanıcı, Platform’dan faydalanmak için Şirket
                 tarafından talep edilen bilgileri tam, doğru ve güncel bir şekilde
                 sağlayarak işbu Sözleşme’yi onaylaması gerektiğini bildiğini ve
                 Şirket’in dilerse Kullanıcı’dan ek bilgi ve belge talep edebileceğini
@@ -85,7 +74,7 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>2.2.</strong> Kullanıcı statüsünün tesisi veya Platform’da
+                <strong className={NUM}>2.2.</strong> Kullanıcı statüsünün tesisi veya Platform’da
                 sunulan hizmetlerden faydalanmak için sair zamanlarda sağlanan
                 bilgilerde herhangi bir değişiklik olması halinde, Kullanıcı söz
                 konusu bilgileri derhal güncelleyecektir. Bu bilgilerin eksik veya
@@ -94,7 +83,7 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>2.3.</strong> Kullanıcı, işbu Sözleşme’yi akdetmek için gereken
+                <strong className={NUM}>2.3.</strong> Kullanıcı, işbu Sözleşme’yi akdetmek için gereken
                 yasal ehliyete sahip bulunduğunu beyan eder. Kullanıcı, oluşturulmuş
                 hesaplarını, kullanıcı adı ve şifresi ile üyelik profillerini hiçbir
                 şart ve koşulda başka bir kullanıcıya devredemez veya üçüncü kişilerce
@@ -102,7 +91,7 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>2.4.</strong> Kullanıcı, Platform’un kullanımına imkan veren
+                <strong className={NUM}>2.4.</strong> Kullanıcı, Platform’un kullanımına imkan veren
                 hesaplar, kullanıcı adı, e-posta adresi ve şifre de dahil olmak üzere
                 tüm bilgilerin kullanım ve yönetiminden bizzat sorumludur. Kullanıcı’ya
                 ait hesap, kullanıcı adı, e-posta adresi ve şifre ile gerçekleştirilen
@@ -116,7 +105,7 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>2.5.</strong> Kullanıcı Platform’da gerçekleştireceği tüm
+                <strong className={NUM}>2.5.</strong> Kullanıcı Platform’da gerçekleştireceği tüm
                 işlemlerde işbu Sözleşme ile Platform’da zaman zaman yayınlanabilecek
                 koşullar ile kanuna, ahlaka ve adaba, dürüstlük ilkelerine uyacak,
                 herhangi bir yöntem ile Platform’un işleyişini engelleyebilecek
@@ -125,7 +114,7 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>2.6.</strong> Platform’da bulunan yazılım, fotoğraf, resim,
+                <strong className={NUM}>2.6.</strong> Platform’da bulunan yazılım, fotoğraf, resim,
                 görsel ve tasarımların, yazıların, yorumların, videoların, logoların,
                 grafiklerin her türlü hakkı Şirket’e aittir. Platform’un tasarımında,
                 içeriğinde ve veritabanı oluşturulmasında kullanılan bilgi ve/veya
@@ -151,13 +140,13 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>2.7.</strong> Kullanıcı, Platform’da yapılacak iyileştirme ve diğer
+                <strong className={NUM}>2.7.</strong> Kullanıcı, Platform’da yapılacak iyileştirme ve diğer
                 değişikliklerin uygulanması için Platform’a erişimin geçici olarak
                 kapatılabileceğini kabul eder.
               </li>
 
               <li>
-                <strong>2.8.</strong> Şirket’in herhangi bir sebep göstermeksizin ve herhangi
+                <strong className={NUM}>2.8.</strong> Şirket’in herhangi bir sebep göstermeksizin ve herhangi
                 bir ihbarda bulunmaksızın Sözleşme ve Platform üzerinden yayınladığı sair
                 koşulları dilediği zamanda tek taraflı olarak değiştirme, bunlara ilavede
                 bulunma veya yenileme ve Platform’u yeniden organize etme, konu, kapsam ve
@@ -169,7 +158,7 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>2.9.</strong> Platform’un kullanımından ve Platform üzerinden ilgili
+                <strong className={NUM}>2.9.</strong> Platform’un kullanımından ve Platform üzerinden ilgili
                 işlemlerin gerçekleştirilmesinden kaynaklanan her türlü yasal, idari ve cezai
                 sorumluluk Kullanıcı’ya aittir. Şirket, Kullanıcı’nın Platform üzerinde
                 ve/veya işlemler sırasında gerçekleştirdiği faaliyetler ve/veya işbu Sözleşme
@@ -182,24 +171,19 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>2.10.</strong> Platform’a üye olan her Kullanıcı’ya haftalık ve aylık
+                <strong className={NUM}>2.10.</strong> Platform’a üye olan her Kullanıcı’ya haftalık ve aylık
                 e-posta bültenler gönderebilir. Kullanıcı, dilediğinde e-posta tercihlerini
                 değiştirebilir.
               </li>
             </ul>
-          </div>
-        </section>
+          </LegalSectionBlock>
 
         {/* 3 */}
-        <section className="mb-10">
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">
-              3. İçerik Paylaşımı Faaliyetlerine İlişkin Koşullar
-            </h2>
+        <LegalSectionBlock id="icerik-paylasimi" title="3. İçerik Paylaşımı Faaliyetlerine İlişkin Koşullar">
 
-            <ul className="space-y-3 list-disc pl-5 marker:text-slate-300">
+            <ul className={LIST}>
               <li>
-                <strong>3.1.</strong> Platform’da gerçekleştirilebilecek İçerik paylaşımı
+                <strong className={NUM}>3.1.</strong> Platform’da gerçekleştirilebilecek İçerik paylaşımı
                 faaliyetlerinin münhasıran Kullanıcılar tarafından yapıldığı kabul edilir ve
                 Şirket, yalnızca İçerik paylaşımı işlemlerinin gerçekleştirilebilmesi için
                 Kullanıcılar’a bir platform sunmaktadır. Kullanıcılar, Platform’da paylaşılan
@@ -221,7 +205,7 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>3.2.</strong> Şirket, İçerikler’in Platform’da yayınlanmasını herhangi
+                <strong className={NUM}>3.2.</strong> Şirket, İçerikler’in Platform’da yayınlanmasını herhangi
                 bir gerekçe göstermeksizin reddedebilecektir. Herhangi bir İçerik’in Platform’da
                 yayınlanması için Şirket tarafından onay verilmesi Şirket’in İçerikler’e ilişkin
                 sorumsuzluğunun ortadan kalktığı şeklinde yorumlanmayacaktır. Şirket, işbu
@@ -230,7 +214,7 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>3.3.</strong> Kullanıcı, İçerik’i anlaşılır ve açık bir şekilde hazırlayarak
+                <strong className={NUM}>3.3.</strong> Kullanıcı, İçerik’i anlaşılır ve açık bir şekilde hazırlayarak
                 Şirket’e tam ve güncel olarak sağlayacaktır. Şirket, ilgili İçerik kapsamında
                 sunulan sair içeriklerin ve İçerik’lerin isimlendirildiği Etiket ve Kategoriler’in
                 hukuka ve ahlaka aykırı olması, başkalarının şahsi, fikri ve ticari haklarına
@@ -243,14 +227,14 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>3.4.</strong> Kullanıcı, İçerik paylaşımı işlemlerine ilişkin olarak Şirket
+                <strong className={NUM}>3.4.</strong> Kullanıcı, İçerik paylaşımı işlemlerine ilişkin olarak Şirket
                 tarafından farklı kurallar belirlenebileceğini, her durumda İçerik paylaşımı işlemi
                 bakımından ilgili işlem için Platform tarafından belirlenen genel kurallarla bağlı
                 olacağını kabul eder.
               </li>
 
               <li>
-                <strong>3.5.</strong> Kullanıcı, İçerik’i Platform harici herhangi bir platform
+                <strong className={NUM}>3.5.</strong> Kullanıcı, İçerik’i Platform harici herhangi bir platform
                 vasıtasıyla veya herhangi bir yöntem ile üçüncü kişilerle paylaşmamayı, İçerik’e
                 ilişkin hakları üçüncü kişilere devretmemeyi, İçerik’e herhangi bir şekilde zarar
                 vermemeyi, İçerik’in kendisi ya da üçüncü kişiler tarafından zarar görmesini
@@ -261,7 +245,7 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>3.6.</strong> Kullanıcı, Platform’da sunduğu İçerikler’e ilişkin haklar ve
+                <strong className={NUM}>3.6.</strong> Kullanıcı, Platform’da sunduğu İçerikler’e ilişkin haklar ve
                 yetkiler üzerinde çekişmesiz bir şekilde mutlak olarak tasarrufta bulunma hak ve
                 yetkisine sahip olduğunu, İçerik’in paylaşılması ve İçerik’in hak ve yetkilerinin
                 kendisi tarafından devredilmesine karşı herhangi bir hukuki veya fiili engel
@@ -276,7 +260,7 @@ export default function TermsPage() {
               </li>
 
               <li>
-                <strong>3.7.</strong> Kullanıcı, Platform’da sunduğu İçerikler üzerinde sahip olduğu işleme,
+                <strong className={NUM}>3.7.</strong> Kullanıcı, Platform’da sunduğu İçerikler üzerinde sahip olduğu işleme,
                 çoğaltma, yayma, temsil (doğrudan ve dolaylı olarak) ve işaret, ses ve/veya görüntü nakline
                 yarayan araçlarla umuma iletim hakları (mali haklar) ile umuma arz, adın belirtilmesi ve
                 eserde değişiklik yapılmasını men etme yetkilerini içeren manevi hakları kullanma yetkisini;
@@ -285,20 +269,15 @@ export default function TermsPage() {
                 veya karşılık talep etmeksizin, gayri kabili-i rücu Şirket’e devretmeyi taahhüt eder.
               </li>
             </ul>
-          </div>
-        </section>
+          </LegalSectionBlock>
 
         {/* 4 */}
-        <section className="mb-10">
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">
-              4. Sorumluluğun Sınırlandırılması
-            </h2>
+        <LegalSectionBlock id="sorumluluk" title="4. Sorumluluğun Sınırlandırılması">
 
             <div className="space-y-4">
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                <p className="mb-0">
-                  <strong>4.1.</strong> Şirket, Platform’a girilmesi, Platform’un ya da
+              <div>
+                <p>
+                  <strong className={NUM}>4.1.</strong> Şirket, Platform’a girilmesi, Platform’un ya da
                   Platform’daki bilgilerin ve diğer verilerin, programların vs.
                   kullanılması, hizmetlerden yararlanılması yahut Platform’da paylaşılan
                   İçerikler sebebiyle, Sözleşme’nin ihlali, haksız fiil ya da başkaca
@@ -316,11 +295,9 @@ export default function TermsPage() {
                 </p>
               </div>
 
-              {/* 4.2 Uyarı Kartı (Privacy tarzı) */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <h3 className="font-bold text-amber-900 mb-2">Önemli Bilgilendirme</h3>
-                <p className="text-amber-900 text-sm mb-0">
-                  <strong>4.2.</strong> Kullanıcı’nın Platform’u kullanması, Hizmetlerden
+              <LegalNote title="Önemli Bilgilendirme">
+                <p>
+                  <strong className={NUM}>4.2.</strong> Kullanıcı’nın Platform’u kullanması, Hizmetlerden
                   yararlanması ya da paylaşılan İçerikler’den faydalanması ile ilgili her
                   türlü risk münhasıran Kullanıcı üzerinde olacaktır. Kullanıcı, Platform’un
                   kullanımı ve Platform’da paylaşılan İçerikler’e ilişkin olarak Şirket’ten
@@ -337,11 +314,11 @@ export default function TermsPage() {
                   elverişlilik, belli bir amaca veya kullanıma uygunluk veya ihlalin söz konusu
                   olmamasına ilişkin olarak açık veya zımni herhangi bir taahhütte bulunmamaktadır.
                 </p>
-              </div>
+              </LegalNote>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                <p className="mb-0">
-                  <strong>4.3.</strong> Kullanıcı, Platform üzerinden Şirket’in kontrolünde
+              <div>
+                <p>
+                  <strong className={NUM}>4.3.</strong> Kullanıcı, Platform üzerinden Şirket’in kontrolünde
                   olmayan başka internet sitelerine ve/veya platformlara, dosyalara veya
                   içeriklere link verilebileceğini, üçüncü taraflara ait hizmetlerin
                   sunulabileceğini ve bu tür linklerin yöneldiği internet sitesini veya
@@ -353,9 +330,9 @@ export default function TermsPage() {
                 </p>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                <p className="mb-0">
-                  <strong>4.4.</strong> Kullanıcı, Platform ve Platform üzerinden sunulan içeriklere
+              <div>
+                <p>
+                  <strong className={NUM}>4.4.</strong> Kullanıcı, Platform ve Platform üzerinden sunulan içeriklere
                   erişim ve bunların kalitesinin büyük ölçüde ilgili internet servis sağlayıcısından
                   temin edilen hizmetin kalitesine dayandığını ve söz konusu hizmet kalitesinden kaynaklı
                   sorunlarda Şirket’in herhangi bir sorumluluğunun bulunmadığını, Platform’un işleyişinin
@@ -364,24 +341,19 @@ export default function TermsPage() {
                 </p>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                <p className="mb-0">
-                  <strong>4.5.</strong> Kullanıcı, Şirket’in Platform’a virüs veya başka türlü saldırıların
+              <div>
+                <p>
+                  <strong className={NUM}>4.5.</strong> Kullanıcı, Şirket’in Platform’a virüs veya başka türlü saldırıların
                   ve izinsiz erişimlerin olmayacağını veya Platform’a yahut Platform’a bilgi aktarılmayacağını
                   garanti etmediğini bildiğini kabul etmektedir.
                 </p>
               </div>
             </div>
-          </div>
-        </section>
+          </LegalSectionBlock>
 
         {/* 5 */}
-        <section className="mb-10">
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">
-              5. Mücbir Sebepler
-            </h2>
-            <p className="mb-0">
+        <LegalSectionBlock id="mucbir-sebepler" title="5. Mücbir Sebepler">
+            <p>
               Mücbir sebep sayılan tüm durumlarda, Şirket işbu Sözleşme ile belirlenen
               edimlerinden herhangi birini geç veya eksik ifa etme veya ifa etmeme nedeniyle
               sorumlu tutulamaz. Mücbir sebep; doğal afet, isyan, savaş, grev, lokavt,
@@ -391,19 +363,14 @@ export default function TermsPage() {
               süresince Taraflar’ın edimleri askıya alınır. Mücbir sebebin 1 (bir) aydan uzun
               sürmesi halinde işbu Sözleşme hakları ifa edilemeyen Tarafça feshedilebilecektir.
             </p>
-          </div>
-        </section>
+          </LegalSectionBlock>
 
         {/* 6 */}
-        <section className="mb-10">
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">
-              6. Sözleşme’nin Askıya Alınması, Devri ve Feshi
-            </h2>
+        <LegalSectionBlock id="askiya-alma-fesih" title="6. Sözleşme’nin Askıya Alınması, Devri ve Feshi">
 
-            <ul className="space-y-3 list-disc pl-5 marker:text-slate-300">
+            <ul className={LIST}>
               <li>
-                <strong>6.1.</strong> Kullanıcı’nın işbu Sözleşme’de yer alan hükümlere ve
+                <strong className={NUM}>6.1.</strong> Kullanıcı’nın işbu Sözleşme’de yer alan hükümlere ve
                 Platform’da beyan edilen kural ve şartlara uymaması, Kullanıcı’nın İçerik paylaşımı
                 faaliyetleri başta olmak üzere Platform’daki faaliyetlerinin hukuki, teknik veya bilgi
                 güvenliği anlamında risk oluşturması ya da üçüncü kişilerin şahsi ve ticari haklarına
@@ -412,49 +379,39 @@ export default function TermsPage() {
                 bu nedenle Şirket’ten herhangi bir talebi söz konusu olamaz.
               </li>
               <li>
-                <strong>6.2.</strong> Şirket dilediği zamanda Platform’u ve/veya işbu Sözleşme’yi süreli
+                <strong className={NUM}>6.2.</strong> Şirket dilediği zamanda Platform’u ve/veya işbu Sözleşme’yi süreli
                 veya süresiz olarak askıya alabilecek, sona erdirebilecektir.
               </li>
               <li>
-                <strong>6.3.</strong> Kullanıcı, işbu Sözleşme’yi ve/veya Sözleşme’den kaynaklanan hak ve
+                <strong className={NUM}>6.3.</strong> Kullanıcı, işbu Sözleşme’yi ve/veya Sözleşme’den kaynaklanan hak ve
                 yükümlülükleri Şirket’in açık yazılı onayı olmaksızın üçüncü kişilere devredemeyecektir.
                 Şirket işbu Sözleşme’yi, Sözleşme’den kaynaklanan hak ve yükümlülükleri üçüncü kişilere
                 devretme hakkına sahiptir.
               </li>
             </ul>
-          </div>
-        </section>
+          </LegalSectionBlock>
 
         {/* 7 */}
-        <section className="mb-10">
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">
-              7. Uyuşmazlıkların Çözümü
-            </h2>
-            <p className="mb-0">
+        <LegalSectionBlock id="uyusmazlik" title="7. Uyuşmazlıkların Çözümü">
+            <p>
               Bu Sözleşme ile ilgili olarak çıkabilecek bütün uyuşmazlıklarda öncelikle işbu metinde
               yer alan hükümler, hüküm bulunmayan konularda ise Türkiye Cumhuriyeti Kanunları
               uygulanacaktır. Sözleşme’nin uygulanmasından kaynaklanan ihtilafların çözümünde İstanbul
               Merkez (Çağlayan) Mahkemeleri ve İcra Daireleri yetkili olacaktır.
             </p>
-          </div>
-        </section>
+          </LegalSectionBlock>
 
-        {/* İletişim (Privacy stili) */}
-        <div className="mt-12 p-6 bg-slate-50 rounded-2xl">
-          <h3 className="font-bold text-slate-800 mb-2">İletişim</h3>
-          <p className="text-sm text-slate-600 mb-0">
-            Sorularınız için{" "}
-            <a
-              href="mailto:iletisim@tariften.com"
-              className="text-[#db4c3f] hover:underline font-medium"
-            >
-              iletisim@tariften.com
-            </a>{" "}
-            adresinden bize ulaşabilirsiniz.
-          </p>
+        <div id="iletisim" className="scroll-mt-24">
+          <LegalContact title="İletişim">
+            <p>
+              Sorularınız için{" "}
+              <a href="mailto:iletisim@tariften.com" className={LEGAL_LINK}>
+                iletisim@tariften.com
+              </a>{" "}
+              adresinden bize ulaşabilirsiniz.
+            </p>
+          </LegalContact>
         </div>
-      </div>
-    </div>
+    </LegalPage>
   );
 }

@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { requestPasswordReset } from "@/lib/auth-client";
 import Link from "next/link";
-import Image from "next/image";
-import { FaEnvelope, FaArrowLeft, FaPaperPlane, FaCheck, FaSpinner } from "react-icons/fa6";
+import { ArrowLeft, Mail, MailCheck, Send } from "lucide-react";
+import AuthShell, { AuthHeading } from "@/components/auth/AuthShell";
+import { AuthError, AuthInput, FOCUS, SubmitButton } from "@/components/auth/AuthFields";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -28,137 +29,46 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="fixed inset-0 z-[100] bg-white grid grid-cols-1 lg:grid-cols-2 min-h-screen">
-      
-      {/* SOL KOLON (Marka Alanı) */}
-      <div className="hidden lg:flex relative flex-col justify-between bg-[#db4c3f] p-12 text-white overflow-hidden">
-        {/* Dekoratif Arkaplan */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/20 to-transparent"></div>
+    <AuthShell panelKicker="Şifre sıfırlama" panelTitle="Hesabına *yeniden* eriş."
+      panelText="Şifreni unuttuysan endişelenme. E-posta adresini girerek hızlıca yeni bir şifre oluşturabilirsin."
+      lokma={["sarımsak", "limon", "fesleğen"]}>
+      {!isSent ? (
+        <>
+          <AuthHeading title="Şifreni mi unuttun?">
+            Kayıtlı e-posta adresini gir, sana sıfırlama bağlantısı gönderelim.
+          </AuthHeading>
 
-        {/* Logo (Beyaz Kutu İçinde) */}
-        <div className="relative z-10">
-          <Link href="/" className="bg-white p-4 rounded-2xl inline-block shadow-lg shadow-black/10 hover:shadow-xl hover:scale-105 transition-all cursor-pointer">
-            <Image 
-              src="/logo.svg" 
-              alt="Tariften Logo" 
-              width={140} 
-              height={40} 
-              className="h-10 w-auto object-contain"
-            />
+          {errorMessage && <AuthError>{errorMessage}</AuthError>}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <AuthInput label="E-posta adresin" icon={Mail} type="email" name="email" required autoComplete="email"
+              inputMode="email" autoCapitalize="none" spellCheck={false} value={email} invalid={!!errorMessage}
+              onChange={(e) => setEmail(e.target.value)} placeholder="ornek@tariften.com" />
+            <SubmitButton loading={loading} loadingLabel="Gönderiliyor…">
+              Bağlantı gönder <Send className="h-4 w-4" aria-hidden />
+            </SubmitButton>
+          </form>
+
+          <p className="mt-8 text-center">
+            <Link href="/login" className={`group inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-medium text-slate-500 transition hover:text-slate-900 ${FOCUS}`}>
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" aria-hidden /> Giriş sayfasına dön
+            </Link>
+          </p>
+        </>
+      ) : (
+        <div role="status" className="rounded-3xl border border-gray-200 bg-white p-8 text-center">
+          <span className="au-ok mx-auto mb-6 grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600">
+            <MailCheck className="h-6 w-6" aria-hidden />
+          </span>
+          <h1 className="font-heading text-2xl font-bold text-slate-900">Talebin alındı</h1>
+          <p className="mb-8 mt-3 text-[15px] leading-relaxed text-slate-500 [overflow-wrap:anywhere]">
+            <strong className="font-semibold text-slate-800">{email}</strong> kayıtlı bir adres ise şifre sıfırlama bağlantısı gönderilmeye çalışıldı. Lütfen gelen kutunu ve spam klasörünü kontrol et.
+          </p>
+          <Link href="/login" className={`inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand font-semibold text-white transition hover:bg-brand-dark ${FOCUS}`}>
+            Giriş sayfasına dön
           </Link>
         </div>
-
-        {/* Mesaj */}
-        <div className="relative z-10 max-w-md mb-20">
-          <h2 className="text-4xl font-bold font-heading mb-4 leading-tight">
-            Hesabına Yeniden Eriş.
-          </h2>
-          <p className="text-white/80 text-lg font-light leading-relaxed">
-            Şifreni unuttuysan endişelenme. E-posta adresini girerek hızlıca yeni bir şifre oluşturabilirsin.
-          </p>
-        </div>
-
-        {/* Footer */}
-        <div className="relative z-10 text-xs text-white/40 font-mono">
-          © 2025 Tariften Teknoloji A.Ş.
-        </div>
-      </div>
-
-      {/* SAĞ KOLON (Form) */}
-      <div className="flex flex-col justify-center items-center p-6 md:p-12 lg:p-24 overflow-y-auto bg-[#fcfcfc] h-full">
-        
-        <div className="w-full max-w-md space-y-8 my-auto">
-          
-          {/* Mobil Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <Link href="/" className="inline-block hover:opacity-80 transition">
-              <Image 
-                src="/logo.svg" 
-                alt="Tariften Logo" 
-                width={140} 
-                height={40} 
-                className="h-10 w-auto object-contain mx-auto"
-              />
-            </Link>
-          </div>
-
-          {!isSent ? (
-            <>
-              <div className="text-center lg:text-left">
-                <h2 className="text-3xl font-bold text-slate-900 font-heading">Şifreni mi Unuttun?</h2>
-                <p className="text-gray-500 mt-2 text-sm leading-relaxed">
-                  Kayıtlı e-posta adresini gir, sana sıfırlama bağlantısı gönderelim.
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 ml-1">E-posta Adresin</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand transition-colors">
-                      <FaEnvelope />
-                    </div>
-                    <input 
-                      type="email" 
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm"
-                      placeholder="ornek@tariften.com"
-                    />
-                  </div>
-                </div>
-
-                {errorMessage && (
-                  <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                    {errorMessage}
-                  </p>
-                )}
-                <button
-                  type="submit" 
-                  disabled={loading}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <>
-                      <FaSpinner className="animate-spin" /> Gönderiliyor...
-                    </>
-                  ) : (
-                    <>
-                      Bağlantı Gönder <FaPaperPlane className="text-sm" />
-                    </>
-                  )}
-                </button>
-              </form>
-            </>
-          ) : (
-            <div className="text-center py-8 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-              <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl animate-bounce-in">
-                <FaCheck />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Talebin Alındı</h3>
-              <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                <strong>{email}</strong> kayıtlı bir adres ise şifre sıfırlama bağlantısı gönderilmeye çalışıldı. Lütfen gelen kutunu ve spam klasörünü kontrol et.
-              </p>
-              <Link href="/login" className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-500/20 block transition transform active:scale-95">
-                Giriş Sayfasına Dön
-              </Link>
-            </div>
-          )}
-
-          {/* Geri Dön Linki */}
-          {!isSent && (
-            <p className="text-center mt-8">
-              <Link href="/login" className="text-gray-400 hover:text-slate-600 text-sm font-medium flex items-center justify-center gap-2 transition group">
-                <FaArrowLeft className="text-xs group-hover:-translate-x-1 transition-transform" /> Giriş sayfasına dön
-              </Link>
-            </p>
-          )}
-
-        </div>
-      </div>
-    </main>
+      )}
+    </AuthShell>
   );
 }

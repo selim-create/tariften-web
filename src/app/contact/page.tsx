@@ -1,27 +1,33 @@
-import Link from "next/link";
-import { FaArrowLeft, FaEnvelope } from "react-icons/fa6";
+import type { Metadata } from "next";
+import { ArrowUpRight, Mail } from "lucide-react";
+import PageIntro from "@/components/account/PageIntro";
+
+export const metadata: Metadata = {
+  title: "İletişim & Reklam",
+  description: "Öneri, şikayet veya işbirliği teklifleriniz için bize her zaman ulaşabilirsiniz.",
+};
 
 export default function ContactPage() {
   return (
-    <div className="container mx-auto px-4 py-12 max-w-3xl">
-      <Link href="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-[#db4c3f] mb-8 transition">
-        <FaArrowLeft /> Anasayfaya Dön
-      </Link>
-      <h1 className="text-4xl font-bold font-heading text-slate-900 mb-6">İletişim & Reklam</h1>
-      <p className="text-slate-600 mb-8">
+    <main className="bg-[#fcfcfc] pb-20">
+      <PageIntro crumb="İletişim" kicker="İletişim & Reklam" title="Bize *yazın.*">
         Öneri, şikayet veya işbirliği teklifleriniz için bize her zaman ulaşabilirsiniz.
-      </p>
-      
-      <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-center">
-        <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-            <FaEnvelope />
-        </div>
-        <h3 className="text-xl font-bold text-slate-800 mb-2">E-posta Gönderin</h3>
-        <p className="text-slate-500 mb-6">En kısa sürede dönüş yapacağız.</p>
-        <a href="mailto:iletisim@tariften.com" className="text-xl font-bold text-[#db4c3f] hover:underline">
-            iletisim@tariften.com
+      </PageIntro>
+
+      <div className="px-4 pt-10 sm:pt-14"><div className="mx-auto max-w-6xl">
+        <a href="mailto:iletisim@tariften.com"
+          className="ct-card group flex max-w-xl items-center gap-5 rounded-3xl border border-gray-200 bg-white p-6 transition hover:border-gray-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:p-8">
+          <span className="ct-icon grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fdf1ea] text-brand">
+            <Mail className="h-6 w-6" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-heading text-lg font-semibold text-slate-900">E-posta Gönderin</span>
+            <span className="mt-0.5 block text-[15px] text-slate-500">En kısa sürede dönüş yapacağız.</span>
+            <span className="mt-3 block break-all text-lg font-semibold text-brand group-hover:underline sm:text-xl">iletisim@tariften.com</span>
+          </span>
+          <ArrowUpRight className="hidden h-5 w-5 shrink-0 text-slate-300 transition group-hover:text-brand sm:block" aria-hidden />
         </a>
-      </div>
-    </div>
+      </div></div>
+    </main>
   );
 }

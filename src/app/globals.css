@@ -1,5 +1,9 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+/* The site's theme toggle (ThemeContext) sets .dark on <html>. Bind every
+   `dark:` utility to that class instead of the OS setting, so a light site on
+   a dark OS stays light and a dark site on a light OS is fully dark. */
+@custom-variant dark (&:where(.dark, .dark *));
 @theme {
   /* Renk Tanımları (v4 stili) */
   --color-brand: #db4c3f;
@@ -184,6 +188,65 @@ body {
 }
 .dark .kz-warn p { color: #fde68a; }
 .dark .kz-done { color: #6ee7b7; }
+
+/* Auth pages (au-*), legal texts (lg-*), 404 (nf-*), about/contact/delete
+   account (ab-/ct-/da-*): cream panels, brand tints and notices in dark mode. */
+.dark .au-panel {
+  background-color: rgb(30 41 59 / 0.55);
+  border-color: #334155;
+}
+.dark .au-tile,
+.dark .nf-tile {
+  --tw-ring-color: #334155;
+}
+.dark .nf-tile.bg-\[\#f6efe8\] {
+  background-color: #1e293b;
+}
+.dark .au-tier-on,
+.dark .au-optin-on {
+  background-color: rgb(219 76 63 / 0.16);
+  border-color: rgb(219 76 63 / 0.6);
+}
+.dark .au-tier-on { color: #fbc4bd; }
+.dark .au-optin-on .au-optin-title { color: #f1f5f9; }
+.dark .au-error {
+  background-color: rgb(239 68 68 / 0.12);
+  border-color: rgb(239 68 68 / 0.4);
+  color: #fecaca;
+}
+.dark .au-ok {
+  background-color: rgb(16 185 129 / 0.14);
+  color: #6ee7b7;
+}
+.dark .au-soon {
+  border-color: #475569;
+  color: #94a3b8;
+}
+.dark .au-social:not(.au-soon) { background-color: #1e293b; }
+.dark .au-social:not(.au-soon):hover { background-color: #334155; }
+.dark .au-divider .h-px { background-color: #334155; }
+.dark .au-input[aria-invalid="true"] { border-color: #f87171; }
+.dark .nf-icon,
+.dark .ab-icon,
+.dark .ct-icon,
+.dark .da-icon,
+.dark .lg-icon {
+  background-color: rgb(219 76 63 / 0.16);
+  color: #f6a39a;
+}
+.dark .lg-body section {
+  background-color: transparent;
+}
+.dark .lg-note,
+.dark .da-note {
+  background-color: rgb(246 239 232 / 0.06);
+  border-color: #475569;
+}
+.dark .lg-toc summary,
+.dark .lg-note .lg-note-title { color: #f1f5f9; }
+.dark .lg-body [class*="marker:text-brand"] li::marker { color: #f6a39a; }
+.dark .da-danger { color: #fca5a5; }
+.dark .da-num { color: #e2e8f0; }
 
 /* Studio action bar: a frosted bar on phones, part of the page from sm up. */
 .studio-actionbar {
