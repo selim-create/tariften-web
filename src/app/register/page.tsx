@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { registerUser, loginWithGoogle } from "@/lib/auth-client";
 import { subscribeToPrimaryTariftenNewsletters } from "@/lib/newsletter-client";
 import { useAuth } from "@/context/AuthContext";
 import { useGoogleLogin } from '@react-oauth/google';
-import { FaUser, FaEnvelope, FaLock, FaArrowRight, FaSpinner, FaGoogle, FaApple, FaUtensils, FaLeaf, FaCheck, FaTriangleExclamation, FaAt } from "react-icons/fa6";
+import { ArrowRight, AtSign, Check, ChefHat, Lock, Mail, Salad, UserRound } from "lucide-react";
+import AuthShell, { AuthHeading } from "@/components/auth/AuthShell";
+import { AuthError, AuthInput, AuthSelect, Divider, FOCUS, PasswordInput, SocialButtons, SubmitButton } from "@/components/auth/AuthFields";
 
 /** Core returns {success, token, user} once registration also signs the member in. */
 function hasRegistrationSession(data: unknown): data is { success: true; token: string; user: Record<string, unknown> } {
@@ -17,6 +18,8 @@ function hasRegistrationSession(data: unknown): data is { success: true; token: 
   return value.success === true && typeof value.token === "string" && value.token.length > 0
     && !!value.user && typeof value.user === "object";
 }
+
+const TIER_SOON = "au-soon min-h-11 cursor-not-allowed rounded-xl border border-dashed border-gray-200 px-1.5 text-center text-[11.5px] font-medium leading-tight text-slate-400";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -56,9 +59,9 @@ export default function RegisterPage() {
         await subscribeAfterRegistration(googleEmail);
         login(data);
         router.push("/profile");
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
-        setError("Google ile kayıt/giriş yapılamadı: " + (err.message || "Bilinmeyen hata"));
+        setError("Google ile kayıt/giriş yapılamadı: " + ((err instanceof Error && err.message) || "Bilinmeyen hata"));
       } finally {
         setLoading(false);
       }
@@ -90,9 +93,9 @@ export default function RegisterPage() {
         return;
       }
       setShowModal(true);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Register Error:", err);
-      setError(err.message || "Kayıt işlemi sırasında bir hata oluştu.");
+      setError((err instanceof Error && err.message) || "Kayıt işlemi sırasında bir hata oluştu.");
     } finally {
       setLoading(false);
     }
@@ -103,153 +106,95 @@ export default function RegisterPage() {
     router.push("/login");
   };
 
+  const usernameShort = error === "Kullanıcı adı en az 3 karakter olmalıdır.";
+
   return (
-    <main className="fixed inset-0 z-[100] bg-white grid grid-cols-1 lg:grid-cols-2 min-h-screen">
-      <div className="hidden lg:flex relative flex-col justify-between bg-slate-900 p-12 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
-        <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-[#db4c3f] rounded-full blur-[120px] opacity-40"></div>
+    <AuthShell panelKicker="Standart Üyelik" panelTitle="Kendi *tarif defterini* oluştur."
+      panelText="Sevdiğin tarifleri kaydet, dolabını yönet ve sana özel haftalık planlar oluştur. Standart Üyelik ile mutfağını Tariften'de keşfet."
+      lokma={["limon", "yumurta", "makarna"]}>
+      <AuthHeading title="Kayıt ol">Hızlıca aramıza katıl.</AuthHeading>
 
-        <div className="relative z-10">
-          <Link href="/" className="bg-white p-4 rounded-2xl inline-block shadow-lg shadow-black/20 hover:shadow-xl hover:scale-105 transition-all cursor-pointer">
-            <Image src="/logo.svg" alt="Tariften Logo" width={140} height={40} className="h-10 w-auto object-contain" />
-          </Link>
-        </div>
+      {error && <AuthError>{error}</AuthError>}
 
-        <div className="relative z-10 max-w-md mb-20">
-          <h2 className="text-4xl font-bold font-heading mb-4 leading-tight">Kendi Tarif Defterini Oluştur.</h2>
-          <p className="text-slate-400 text-lg font-light leading-relaxed">
-            Sevdiğin tarifleri kaydet, dolabını yönet ve sana özel haftalık planlar oluştur. Standart Üyelik ile mutfağını Tariften'de keşfet.
-          </p>
-        </div>
-
-        <div className="relative z-10 text-xs text-slate-400 font-mono">Topluluğumuza Katıl</div>
-      </div>
-
-      <div className="flex flex-col justify-center items-center p-6 md:p-12 lg:p-20 overflow-y-auto bg-[#fcfcfc] h-full">
-        <div className="w-full max-w-md space-y-5 my-auto">
-          <div className="lg:hidden text-center mb-6">
-            <Link href="/" className="inline-block hover:opacity-80 transition">
-              <Image src="/logo.svg" alt="Tariften Logo" width={140} height={40} className="h-10 w-auto object-contain mx-auto" />
-            </Link>
-          </div>
-
-          <div className="flex flex-col md:flex-row items-center md:items-end justify-center md:justify-start gap-3 text-center md:text-left">
-            <h2 className="text-3xl font-bold text-slate-900 font-heading">Kayıt Ol</h2>
-            <p className="text-gray-500 pb-1.5 font-medium">Hızlıca aramıza katıl.</p>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs flex items-center gap-2 border border-red-100 animate-pulse">
-              <FaTriangleExclamation /> {error}
-            </div>
-          )}
-
-          <div className="rounded-2xl border border-[#eee1da] bg-white p-3">
-            <p className="mb-2 text-[11px] font-bold text-slate-500">Üyelik seçenekleri</p>
-            <div className="grid grid-cols-3 gap-2" aria-label="Üyelik seçenekleri">
-              <span className="flex min-h-10 items-center justify-center rounded-xl border border-[#f0bdb2] bg-[#fff1ec] px-2 text-center text-[11px] font-extrabold text-[#bb5144]">Standart Üye</span>
-              <button type="button" disabled title="Henüz yayında değil" className="min-h-10 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-1 text-[11px] font-semibold text-slate-400 opacity-65">Premium · Yakında</button>
-              <button type="button" disabled title="Henüz yayında değil" className="min-h-10 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-1 text-[11px] font-semibold text-slate-400 opacity-65">Premium + · Yakında</button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => googleLogin()} className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition text-slate-700 font-medium text-xs shadow-sm">
-              <FaGoogle className="text-red-500 text-sm" /> Google ile
-            </button>
-            <button className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-200 rounded-xl text-slate-400 font-medium text-xs shadow-sm cursor-default opacity-60" title="Yakında">
-              <FaApple className="text-black text-sm opacity-50" /> Apple ile
-            </button>
-          </div>
-
-          <div className="relative py-2">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
-            <div className="relative flex justify-center text-[10px] uppercase tracking-wider"><span className="bg-[#fcfcfc] px-2 text-gray-400">veya</span></div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wide">Ad Soyad</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand transition-colors"><FaUser className="text-xs" /></div>
-                  <input type="text" required value={formData.fullname} onChange={(e) => setFormData({...formData, fullname: e.target.value})} className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm" placeholder="Adın Soyadın" />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wide">Kullanıcı Adı</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand transition-colors"><FaAt className="text-xs" /></div>
-                  <input type="text" required value={formData.username} onChange={(e) => setFormData({...formData, username: e.target.value})} className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm" placeholder="kullanici" autoCapitalize="none" />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wide">E-posta</label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand transition-colors"><FaEnvelope className="text-xs" /></div>
-                <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm" placeholder="ornek@tariften.com" />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wide">Şifre</label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand transition-colors"><FaLock className="text-xs" /></div>
-                <input type="password" required value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-sm" placeholder="••••••••" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wide">Diyet</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400"><FaLeaf className="text-xs" /></div>
-                  <select value={formData.diet} onChange={(e) => setFormData({...formData, diet: e.target.value})} className="w-full pl-8 pr-2 py-2 bg-white border border-gray-200 rounded-xl text-slate-700 text-xs focus:outline-none focus:border-brand appearance-none shadow-sm cursor-pointer">
-                    <option value="">Seçiniz...</option><option value="none">Hepçil</option><option value="vegan">Vegan</option><option value="vegetarian">Vejetaryen</option><option value="gluten_free">Glutensiz</option><option value="keto">Ketojenik</option>
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wide">Mutfak Deneyimi</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400"><FaUtensils className="text-xs" /></div>
-                  <select value={formData.level} onChange={(e) => setFormData({...formData, level: e.target.value})} className="w-full pl-8 pr-2 py-2 bg-white border border-gray-200 rounded-xl text-slate-700 text-xs focus:outline-none focus:border-brand appearance-none shadow-sm cursor-pointer">
-                    <option value="">Seçiniz...</option><option value="beginner">Acemi (Yumurta kırarım)</option><option value="intermediate">Orta (Tarif takip ederim)</option><option value="pro">Usta (Göz kararı yaparım)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition ${newsletterOptIn ? 'border-[#efb3ad] bg-red-50/50' : 'border-slate-200 bg-white'}`}>
-              <input type="checkbox" checked={newsletterOptIn} onChange={(e) => setNewsletterOptIn(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#db4c3f] focus:ring-[#db4c3f]" />
-              <span className="min-w-0">
-                <span className="block text-xs font-bold text-slate-700">Tariften bültenlerini de almak istiyorum.</span>
-                <span className="mt-1 block text-[10px] leading-relaxed text-slate-400">Aktif Tariften bültenleri e-posta adresine gönderilir. İsteğe bağlıdır. <Link href="/kvkk" target="_blank" className="font-semibold text-slate-500 underline underline-offset-2 hover:text-[#db4c3f]">KVKK Aydınlatma Metni</Link></span>
-              </span>
-            </label>
-
-            <button type="submit" disabled={loading} className="w-full bg-[#db4c3f] hover:bg-[#b03d32] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed mt-2">
-              {loading ? <><FaSpinner className="animate-spin" /> Kaydediliyor...</> : <><FaArrowRight /> Hesap Oluştur</>}
-            </button>
-          </form>
-
-          <p className="text-center text-xs text-gray-500 pb-2">Zaten hesabın var mı? <Link href="/login" className="text-brand font-bold hover:underline">Giriş Yap</Link></p>
+      <div className="mb-7">
+        <p className="mb-2 text-[13px] font-medium text-slate-500">Üyelik seçenekleri</p>
+        <div className="grid grid-cols-3 gap-2" aria-label="Üyelik seçenekleri">
+          <span className="au-tier-on inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-brand/50 bg-[#fdf1ea] px-2 text-center text-[12px] font-semibold text-[#a8362b]">
+            <Check className="h-3.5 w-3.5 shrink-0" aria-hidden /> Standart Üye
+          </span>
+          <button type="button" disabled title="Henüz yayında değil" className={TIER_SOON}>Premium · Yakında</button>
+          <button type="button" disabled title="Henüz yayında değil" className={TIER_SOON}>Premium + · Yakında</button>
         </div>
       </div>
+
+      <SocialButtons onGoogle={() => googleLogin()} disabled={loading} googleLabel="Google ile kayıt ol" />
+
+      <Divider label="veya e-posta ile" />
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <AuthInput label="Ad soyad" icon={UserRound} type="text" name="name" required autoComplete="name"
+            value={formData.fullname} onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
+            placeholder="Adın Soyadın" />
+          <AuthInput label="Kullanıcı adı" icon={AtSign} type="text" name="username" required autoComplete="username"
+            autoCapitalize="none" spellCheck={false} value={formData.username} invalid={usernameShort}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            placeholder="kullanici" />
+        </div>
+
+        <AuthInput label="E-posta" icon={Mail} type="email" name="email" required autoComplete="email" inputMode="email"
+          autoCapitalize="none" spellCheck={false} value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          placeholder="ornek@tariften.com" />
+
+        <PasswordInput label="Şifre" icon={Lock} name="password" required autoComplete="new-password"
+          value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          placeholder="Bir şifre belirle" />
+
+        <fieldset>
+          <legend className="mb-3 text-[13px] text-slate-500">İsteğe bağlı: tarifleri sana göre sıralamamıza yardım eder.</legend>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <AuthSelect label="Diyet" icon={Salad} value={formData.diet} onChange={(e) => setFormData({ ...formData, diet: e.target.value })}>
+              <option value="">Seçiniz...</option><option value="none">Hepçil</option><option value="vegan">Vegan</option><option value="vegetarian">Vejetaryen</option><option value="gluten_free">Glutensiz</option><option value="keto">Ketojenik</option>
+            </AuthSelect>
+            <AuthSelect label="Mutfak deneyimi" icon={ChefHat} value={formData.level} onChange={(e) => setFormData({ ...formData, level: e.target.value })}>
+              <option value="">Seçiniz...</option><option value="beginner">Acemi (Yumurta kırarım)</option><option value="intermediate">Orta (Tarif takip ederim)</option><option value="pro">Usta (Göz kararı yaparım)</option>
+            </AuthSelect>
+          </div>
+        </fieldset>
+
+        <label className={`au-optin flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${newsletterOptIn ? 'au-optin-on border-brand/50 bg-[#fdf1ea]' : 'border-gray-200 bg-white'}`}>
+          <input type="checkbox" checked={newsletterOptIn} onChange={(e) => setNewsletterOptIn(e.target.checked)}
+            className={`mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 accent-brand ${FOCUS}`} />
+          <span className="min-w-0">
+            <span className="au-optin-title block text-sm font-semibold text-slate-800">Tariften bültenlerini de almak istiyorum.</span>
+            <span className="au-optin-body mt-1 block text-[13px] leading-relaxed text-slate-500">Aktif Tariften bültenleri e-posta adresine gönderilir. İsteğe bağlıdır. <Link href="/kvkk" target="_blank" className="font-medium text-slate-600 underline underline-offset-2 hover:text-brand">KVKK Aydınlatma Metni</Link></span>
+          </span>
+        </label>
+
+        <SubmitButton loading={loading} loadingLabel="Kaydediliyor…">
+          Hesap oluştur <ArrowRight className="h-4 w-4" aria-hidden />
+        </SubmitButton>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-slate-500">
+        Zaten hesabın var mı?{" "}
+        <Link href="/login" className={`rounded font-semibold text-brand hover:underline ${FOCUS}`}>Giriş yap</Link>
+      </p>
 
       {showModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl transform transition-all scale-100 text-center">
-            <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl animate-bounce-in"><FaCheck /></div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-2">Kayıt Başarılı!</h3>
-            <p className="text-gray-500 mb-8">Aramıza hoşgeldin. Şimdi giriş yaparak mutfağını yönetmeye başlayabilirsin.</p>
-            <button onClick={handleModalClose} className="w-full bg-brand text-white font-bold py-3.5 rounded-xl hover:bg-brand-dark transition shadow-lg shadow-brand/20">Giriş Yap</button>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="register-success-title">
+          <div className="w-full max-w-sm rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-xl">
+            <span className="au-ok mx-auto mb-6 grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600">
+              <Check className="h-6 w-6" aria-hidden />
+            </span>
+            <h3 id="register-success-title" className="font-heading text-2xl font-bold text-slate-900">Kayıt başarılı!</h3>
+            <p className="mb-8 mt-2 text-[15px] leading-relaxed text-slate-500">Aramıza hoşgeldin. Şimdi giriş yaparak mutfağını yönetmeye başlayabilirsin.</p>
+            <button type="button" onClick={handleModalClose} autoFocus
+              className={`inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand font-semibold text-white transition hover:bg-brand-dark ${FOCUS}`}>Giriş yap</button>
           </div>
         </div>
       )}
-    </main>
+    </AuthShell>
   );
 }
