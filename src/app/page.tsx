@@ -12,6 +12,7 @@ import SectionHeading from "@/components/home/SectionHeading";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import { lokmaDishName } from "@/lib/lokma-emoji";
 import { isPlaceholderImage } from "@/lib/utils";
+import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,7 @@ function FeatureCard({ recipe, large = false, sizes }: { recipe: Recipe; large?:
           <span className="scale-[1.6]"><LokmaIngredientIcon name={lokmaDishName(recipe.title)} size="xl" /></span>
         </div>
       )}
+      <SocialPlatformBadge source={recipe.social_source} />
       <div className={`absolute inset-x-0 bottom-0 p-5 sm:p-6 ${photo ? "text-white" : "text-slate-900"}`}>
         {kicker && <p className={`mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] ${photo ? "text-white/80" : "text-brand"}`}>{kicker}</p>}
         <h3 className={`font-heading font-bold leading-[1.12] tracking-[-0.015em] ${large ? "text-2xl sm:text-[32px]" : "text-lg sm:text-xl"} line-clamp-3`}>
