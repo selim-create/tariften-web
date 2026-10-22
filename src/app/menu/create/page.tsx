@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 import { generateAIMenu, advanceMenuJob, retryMenuJob, fetchMenuJob, findMenuJob, type MenuJob } from "@/lib/menu-jobs-client";
-import { FaWandMagicSparkles, FaArrowRight, FaArrowLeft, FaCheck, FaUtensils, FaUserGroup, FaChampagneGlasses } from "react-icons/fa6";
+import { ArrowLeft, ArrowRight, Check, LogIn, Pencil, Salad, Users, UtensilsCrossed, WandSparkles } from "lucide-react";
+import { Accent, BTN_GHOST, BTN_OUTLINE, BTN_PRIMARY, CHIP, CHIP_OFF, CHIP_ON, Crumbs, FOCUS, GuestStepper, INPUT, LABEL, Notice } from "@/components/menu/MenuStudio";
 
 const MENU_STORAGE = "tariften_active_menu_job_v2";
+const SIGN_IN_MESSAGE = "Menü hazırlamak için giriş yapmalısınız.";
+const STEPS = ["Konsept", "Detaylar", "Onay"];
+const EVENT_TYPES = ["Kahvaltı", "Öğle Yemeği", "Beş Çayı", "Akşam Yemeği", "Kokteyl"];
+const DIETS = ["Normal", "Vejetaryen", "Vegan", "Glutensiz", "Düşük Karb"];
+// One tap fills the concept; the reader can still type anything.
+const IDEAS = ["Yılbaşı sofrası", "Vegan brunch", "İtalyan gecesi", "Doğum günü", "Pazar kahvaltısı"];
 
 function messageOf(error: unknown): string {
   if (!(error instanceof Error)) {
@@ -24,7 +31,7 @@ function messageOf(error: unknown): string {
 
 export default function CreateMenuPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1); // 1: Concept, 2: Details, 3: Review
@@ -51,6 +58,8 @@ export default function CreateMenuPage() {
   useEffect(() => {
     const token = user?.token;
     if (!token || recoveryCheckedFor === storageKey) return;
+    // One-shot guard per account: the saved job is looked up exactly once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRecoveryCheckedFor(storageKey);
     (async () => {
       try {
@@ -151,7 +160,7 @@ export default function CreateMenuPage() {
 
   const handleSubmit = async () => {
     if (!user?.token) {
-      setErrorMessage("Menü hazırlamak için giriş yapmalısınız.");
+      setErrorMessage(SIGN_IN_MESSAGE);
       return;
     }
     if (loading) return;
@@ -213,234 +222,269 @@ export default function CreateMenuPage() {
     await continueMenuJob(started);
   };
 
-  const next = () => setStep(s => s + 1);
-  const back = () => setStep(s => s - 1);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const goTo = (target: number) => {
+    setStep(target);
+    // Keyboard and screen-reader users land on the new step's question.
+    requestAnimationFrame(() => headingRef.current?.focus());
+  };
+  const next = () => goTo(step + 1);
+  const back = () => goTo(step - 1);
+  const conceptReady = formData.concept.trim() !== "";
+  // The sign-in card below already says why; no second, duplicate warning.
+  const signedOut = !authLoading && !user;
+  const quotaBlocked = !job && recoveryCheckedFor === storageKey && quotaReached(quotas.data, "menu_month") && (typeof window === "undefined" || !localStorage.getItem(storageKey));
 
   if (loading) {
-      return (
-          <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-              <div className="w-24 h-24 relative mb-8">
-                  <div className="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
-                  <div className="absolute inset-0 border-4 border-[#db4c3f] rounded-full border-t-transparent animate-spin"></div>
-                  <FaWandMagicSparkles className="absolute inset-0 m-auto text-2xl text-[#db4c3f] animate-pulse"/>
-              </div>
-              <h2 className="text-3xl font-bold text-slate-900 mb-2 font-heading">Sihir Yapılıyor...</h2>
-              <p className="text-gray-500 max-w-md">
-                  "{formData.concept}" konseptine uygun, {formData.guest_count} kişilik menünüz hazırlanıyor.
-                  Tarifler sırayla oluşturuluyor; bu ekranı kapatırsanız daha sonra kaldığınız yerden devam edebilirsiniz.
-              </p>
-              {job && <div className="max-w-sm w-full mt-7" aria-live="polite">
-                <div className="flex justify-between text-sm font-semibold text-slate-700 mb-3">
-                  <span>Hazırlanan tarifler</span><span>{job.completed} / {job.total}</span>
-                </div>
-                <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#db4c3f] transition-all duration-500" style={{ width: `${job.total ? (100 * job.completed / job.total) : 0}%` }} />
-                </div>
-                <p className="text-xs text-slate-500 mt-3">{job.message || "Tarif hazırlanıyor..."}</p>
-              </div>}
-              <p className="sr-only">Görseller tarifler kaydedildikten sonra arka planda tamamlanabilir.</p>
-
+    const percent = job?.total ? Math.round(100 * job.completed / job.total) : 0;
+    return (
+      <main className="min-h-screen bg-[#fcfcfc] px-4 pb-24 pt-16 sm:pt-24">
+        <div className="mx-auto flex max-w-md flex-col items-center text-center">
+          <div aria-hidden className="relative mb-9 grid h-20 w-20 place-items-center">
+            <span className="absolute inset-0 rounded-full border-4 border-[#f6efe8] dark:border-slate-700" />
+            <span className="absolute inset-0 animate-spin rounded-full border-4 border-brand border-t-transparent motion-reduce:animate-none" />
+            <WandSparkles className="h-7 w-7 text-brand" />
           </div>
-      )
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-brand">Yapay zekâ şefi çalışıyor</p>
+          <h1 className="font-heading text-[34px] font-bold leading-[1.06] tracking-[-0.03em] text-slate-900 text-balance sm:text-[44px]">
+            <Accent text="Menün *hazırlanıyor.*" />
+          </h1>
+          <p className="mt-4 text-[16px] leading-relaxed text-slate-500">
+            “{formData.concept}” konseptine uygun, {formData.guest_count} kişilik menün hazırlanıyor.
+            Tarifler sırayla oluşturuluyor; bu ekranı kapatırsan daha sonra kaldığın yerden devam edebilirsin.
+          </p>
+          {job && (
+            <div className="mt-9 w-full rounded-2xl border border-gray-200 bg-white p-5 text-left" aria-live="polite">
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="font-medium text-slate-700">Hazırlanan tarifler</span>
+                <span className="font-semibold tabular-nums text-slate-900">{job.completed} / {job.total}</span>
+              </div>
+              <div role="progressbar" aria-label="Hazırlanan tarifler" aria-valuemin={0} aria-valuemax={job.total || 0} aria-valuenow={job.completed}
+                className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
+                <div className="h-full rounded-full bg-brand transition-all duration-500" style={{ width: `${percent}%` }} />
+              </div>
+              <span className="mt-3 block text-xs text-slate-500">{job.message || "Tarif hazırlanıyor..."}</span>
+            </div>
+          )}
+          <p className="sr-only">Görseller tarifler kaydedildikten sonra arka planda tamamlanabilir.</p>
+        </div>
+      </main>
+    );
   }
 
+  const heading = step === 1
+    ? { title: "Bugün neyi *kutluyoruz?*", text: "Özel bir davet, romantik bir akşam yemeği ya da kendini şımartacağın bir pazar kahvaltısı. Bir iki kelime yeter." }
+    : step === 2
+      ? { title: "Biraz *detay* verelim.", text: "Kaç kişilik bir sofra, hangi öğün ve nasıl bir beslenme tercihi?" }
+      : job
+        ? { title: "Kaldığın yerden *devam et.*", text: "Bu menü için başlattığın hazırlık kayıtlı. Yeni menü açmadan aynı yerden sürdürebilirsin." }
+        : { title: "Her şey *hazır.*", text: "Son bir kez göz at. Menüyü oluşturduğunda yapay zekâ şefimiz tarifleri tek tek hazırlar." };
+
   return (
-    <div className="min-h-screen bg-[#fcfcfc] flex flex-col pt-24 pb-12">
-      
-      {/* Progress */}
-      <div className="container mx-auto max-w-3xl px-6 mb-12">
-          <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
-              <span className={step >= 1 ? "text-[#db4c3f]" : ""}>01 Konsept</span>
-              <span className={step >= 2 ? "text-[#db4c3f]" : ""}>02 Detaylar</span>
-              <span className={step >= 3 ? "text-[#db4c3f]" : ""}>03 Onay</span>
-          </div>
-          <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-[#db4c3f] transition-all duration-500 ease-out" 
-                style={{ width: `${(step/3)*100}%` }}
-              ></div>
-          </div>
+    <main className="min-h-screen bg-[#fcfcfc] pb-24">
+      <div className="mx-auto max-w-2xl px-4 pt-6">
+        <Crumbs items={[{ label: "Anasayfa", href: "/" }, { label: "Menüler", href: "/menus" }, { label: "Yeni menü" }]} />
+
+        {/* Progress */}
+        <ol aria-label="Menü oluşturma adımları" className="mt-8 grid grid-cols-3 gap-2 sm:mt-12">
+          {STEPS.map((label, i) => {
+            const n = i + 1;
+            const done = step > n;
+            return (
+              <li key={label} aria-current={step === n ? "step" : undefined}>
+                <span aria-hidden className={`block h-1 rounded-full transition-colors ${step >= n ? "bg-brand" : "bg-gray-200 dark:bg-slate-700"}`} />
+                <span className={`mt-2.5 flex items-center gap-1.5 text-xs font-medium ${step === n ? "text-slate-900" : done ? "text-slate-600" : "text-slate-400"}`}>
+                  {done ? <Check className="h-3.5 w-3.5 text-brand" aria-hidden /> : <span aria-hidden className="tabular-nums">{n}</span>}
+                  {label}
+                  {done && <span className="sr-only">, tamamlandı</span>}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+
+        <header className="mt-10 sm:mt-12">
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-brand">Yeni menü · Adım {step} / 3</p>
+          <h1 ref={headingRef} tabIndex={-1} className="font-heading text-[34px] font-bold leading-[1.06] tracking-[-0.03em] text-slate-900 outline-none text-balance sm:text-[46px]">
+            <Accent text={heading.title} />
+          </h1>
+          <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-slate-500">{heading.text}</p>
+        </header>
+
+        <div className="mt-8 sm:mt-10">
+          {/* STEP 1: CONCEPT */}
+          {step === 1 && (
+            <form onSubmit={(e) => { e.preventDefault(); if (conceptReady) next(); }}
+              className="rounded-3xl border border-gray-200 bg-white p-5 sm:p-8">
+              <label htmlFor="menu-concept" className={LABEL}>Menünün konsepti</label>
+              <input
+                id="menu-concept"
+                type="text"
+                autoFocus
+                autoComplete="off"
+                enterKeyHint="next"
+                value={formData.concept}
+                onChange={(e) => setFormData({ ...formData, concept: e.target.value })}
+                placeholder="ör. Yılbaşı, vegan brunch, İtalyan gecesi"
+                className={`${INPUT} h-14 text-lg`}
+              />
+              <div className="mt-6">
+                <span id="menu-ideas" className="text-[13px] text-slate-500">Aklına bir şey gelmediyse:</span>
+                <div role="group" aria-labelledby="menu-ideas" className="mt-2 flex flex-wrap gap-2">
+                  {IDEAS.map(idea => {
+                    const selected = formData.concept === idea;
+                    return (
+                      <button key={idea} type="button" aria-pressed={selected}
+                        onClick={() => setFormData({ ...formData, concept: idea })}
+                        className={`${CHIP} ${selected ? CHIP_ON : CHIP_OFF}`}>
+                        {selected && <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+                        {idea}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="mt-8 flex justify-end border-t border-gray-100 pt-6">
+                <button type="submit" disabled={!conceptReady} className={`${BTN_PRIMARY} w-full sm:w-auto`}>
+                  Devam et <ArrowRight className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 2: DETAILS */}
+          {step === 2 && (
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 sm:p-8">
+              <div className="space-y-8">
+                <div>
+                  <h2 id="menu-guests" className="flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
+                    <Users className="h-4 w-4 text-gray-400" aria-hidden /> Kişi sayısı
+                  </h2>
+                  <span className="mb-3 mt-0.5 block text-sm text-gray-500">1–20 kişi arası</span>
+                  <GuestStepper labelledBy="menu-guests" min={1} max={20} value={formData.guest_count}
+                    onChange={(guest_count) => setFormData({ ...formData, guest_count })} />
+                </div>
+
+                <div>
+                  <h2 id="menu-event" className="mb-3 flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
+                    <UtensilsCrossed className="h-4 w-4 text-gray-400" aria-hidden /> Öğün tipi
+                  </h2>
+                  <div role="group" aria-labelledby="menu-event" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {EVENT_TYPES.map(option => {
+                      const selected = formData.event_type === option;
+                      return (
+                        <button key={option} type="button" aria-pressed={selected}
+                          onClick={() => setFormData({ ...formData, event_type: option })}
+                          className={`flex min-h-12 items-center justify-between gap-2 rounded-2xl border px-4 py-3 text-left text-[15px] font-medium transition ${FOCUS} ${selected ? CHIP_ON : CHIP_OFF}`}>
+                          <span>{option}</span>
+                          <span aria-hidden className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${selected ? "border-brand bg-brand text-white" : "border-gray-300 dark:border-slate-500"}`}>
+                            {selected && <Check className="h-3 w-3" />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <h2 id="menu-diet" className="mb-3 flex items-center gap-2 font-heading text-base font-semibold text-slate-900">
+                    <Salad className="h-4 w-4 text-gray-400" aria-hidden /> Diyet tercihi
+                  </h2>
+                  <div role="group" aria-labelledby="menu-diet" className="flex flex-wrap gap-2">
+                    {DIETS.map(opt => {
+                      const selected = formData.diet === opt;
+                      return (
+                        <button key={opt} type="button" aria-pressed={selected}
+                          onClick={() => setFormData({ ...formData, diet: opt })}
+                          className={`${CHIP} ${selected ? CHIP_ON : CHIP_OFF}`}>
+                          {selected && <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                <button type="button" onClick={back} className={BTN_GHOST}>
+                  <ArrowLeft className="h-4 w-4" aria-hidden /> Geri
+                </button>
+                <button type="button" onClick={next} className={BTN_PRIMARY}>
+                  Son adım <ArrowRight className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: REVIEW */}
+          {step === 3 && (
+            <div className="space-y-4">
+              {job && (
+                <Notice tone="ok" title="Kaydedilmiş menü bulundu.">
+                  {job.completed}/{job.total} tarif hazır. Yeni menü başlatmadan kaldığınız yerden devam edebilirsiniz.
+                </Notice>
+              )}
+              {errorMessage && !(signedOut && errorMessage === SIGN_IN_MESSAGE) && <Notice tone="warn">
+                {errorMessage}
+                {allergenFailures.length > 0 && (
+                  <span className="mt-2 block text-xs leading-5">
+                    Alerji listendeki malzemeler olmadan hazırlanamayan: {allergenFailures.join(", ")}. Bu yemekler için yeniden deneme de aynı kurala uyar.{" "}
+                    <Link href="/profile/kitchen" className="font-semibold underline underline-offset-2">Alerji bilgimi düzenle</Link>
+                  </span>
+                )}
+              </Notice>}
+              {signedOut && (
+                <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                  <span>Menüyü hazırlamak için giriş yapman gerekiyor. Seçimlerin bu sayfada kalır.</span>
+                  <Link href={`/login?callbackUrl=${encodeURIComponent("/menu/create")}`} className={`${BTN_OUTLINE} shrink-0`}>
+                    <LogIn className="h-4 w-4" aria-hidden /> Giriş yap
+                  </Link>
+                </div>
+              )}
+
+              <div className="rounded-3xl border border-gray-200 bg-white p-5 sm:p-8">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="font-heading text-lg font-semibold text-slate-900">Menü özeti</h2>
+                  <button type="button" onClick={back} className={`${BTN_GHOST} -mr-3`}>
+                    <Pencil className="h-3.5 w-3.5" aria-hidden /> Düzenle
+                  </button>
+                </div>
+                <dl className="mt-3 divide-y divide-gray-100 dark:divide-slate-700">
+                  {[
+                    ["Konsept", formData.concept],
+                    ["Kişi", `${formData.guest_count} kişi`],
+                    ["Öğün", formData.event_type],
+                    ["Tercih", formData.diet],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex items-baseline justify-between gap-4 py-3">
+                      <dt className="text-sm text-gray-500">{label}</dt>
+                      <dd className="min-w-0 text-right text-[15px] font-semibold text-slate-900 [overflow-wrap:anywhere]">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+
+                <div className="mt-6 border-t border-gray-100 pt-6">
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={quotaBlocked}
+                    className={`${BTN_PRIMARY} w-full`}
+                  >
+                    <WandSparkles className="h-4 w-4" aria-hidden />
+                    {job ? (job.status === "ready" ? "Menüyü aç" : job.status === "needs_attention" ? "Başarısız tarifleri yeniden dene (ücretli olabilir)" : "Kaldığım yerden devam et") : "Menüyü oluştur"}
+                  </button>
+                  <span className="mt-3 block text-center text-[13px] leading-relaxed text-slate-500">
+                    {quotaBlocked
+                      ? `Aylık menü hakkın doldu.${quotaReset(quotas.data, "menu_month") ? ` Yeni hak: ${quotaReset(quotas.data, "menu_month")}` : ""}`
+                      : "Tarifler sırayla hazırlanır; ekranı kapatsan da kaldığın yerden devam edebilirsin."}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-
-      <div className="container mx-auto max-w-3xl px-6 flex-grow flex flex-col justify-center">
-        
-        {/* STEP 1: CONCEPT */}
-        {step === 1 && (
-            <div className="animate-fade-in-up">
-                <h1 className="text-4xl md:text-5xl font-bold font-heading text-slate-900 mb-6">
-                    Bugün neyi kutluyoruz?
-                </h1>
-                <p className="text-xl text-gray-500 mb-10">
-                    Özel bir davet, romantik bir akşam yemeği veya sadece kendinizi şımartacağınız bir pazar kahvaltısı...
-                </p>
-                <div className="relative">
-                    <input 
-                        type="text" 
-                        autoFocus
-                        value={formData.concept}
-                        onChange={(e) => setFormData({...formData, concept: e.target.value})}
-                        placeholder="Örn: Yılbaşı, Vegan Brunch, İtalyan Gecesi..."
-                        className="w-full text-3xl md:text-4xl font-bold bg-transparent border-b-2 border-gray-200 py-4 focus:border-[#db4c3f] outline-none placeholder:text-gray-300 transition-colors"
-                        onKeyDown={(e) => e.key === 'Enter' && formData.concept && next()}
-                    />
-                </div>
-                
-                <div className="mt-12 flex justify-end">
-                    <button 
-                        onClick={next} 
-                        disabled={!formData.concept}
-                        className="group flex items-center gap-4 bg-slate-900 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-slate-800 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                        Devam Et 
-                        <FaArrowRight className="group-hover:translate-x-1 transition-transform"/>
-                    </button>
-                </div>
-            </div>
-        )}
-
-        {/* STEP 2: DETAILS */}
-        {step === 2 && (
-            <div className="animate-fade-in-up">
-                <h1 className="text-3xl md:text-4xl font-bold font-heading text-slate-900 mb-8">
-                    Biraz detay verelim.
-                </h1>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    {/* Kişi Sayısı */}
-                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition">
-                        <label className="flex items-center gap-2 text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">
-                            <FaUserGroup /> Kişi Sayısı
-                        </label>
-                        <div className="flex items-center gap-4">
-                            <input 
-                                type="range" min="1" max="20" 
-                                value={formData.guest_count}
-                                onChange={(e) => setFormData({...formData, guest_count: parseInt(e.target.value)})}
-                                className="flex-grow h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#db4c3f]"
-                            />
-                            <div className="w-12 h-12 flex items-center justify-center bg-[#fff5f5] text-[#db4c3f] font-bold text-xl rounded-xl">
-                                {formData.guest_count}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Etkinlik Türü */}
-                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition">
-                        <label className="flex items-center gap-2 text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">
-                            <FaUtensils /> Öğün Tipi
-                        </label>
-                        <select 
-                            value={formData.event_type}
-                            onChange={(e) => setFormData({...formData, event_type: e.target.value})}
-                            className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 font-bold text-slate-800 focus:ring-2 focus:ring-[#db4c3f]"
-                        >
-                            <option>Kahvaltı</option>
-                            <option>Öğle Yemeği</option>
-                            <option>Beş Çayı</option>
-                            <option>Akşam Yemeği</option>
-                            <option>Kokteyl</option>
-                        </select>
-                    </div>
-
-                     {/* Diyet */}
-                     <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition md:col-span-2">
-                        <label className="flex items-center gap-2 text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">
-                            <FaUtensils /> Diyet Tercihi
-                        </label>
-                        <div className="flex flex-wrap gap-3">
-                            {["Normal", "Vejetaryen", "Vegan", "Glutensiz", "Düşük Karb"].map(opt => (
-                                <button 
-                                    key={opt}
-                                    onClick={() => setFormData({...formData, diet: opt})}
-                                    className={`px-5 py-2.5 rounded-full text-sm font-bold transition border ${formData.diet === opt ? 'bg-[#db4c3f] text-white border-[#db4c3f]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
-                                >
-                                    {opt}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex justify-between items-center mt-8">
-                    <button onClick={back} className="text-gray-400 font-bold hover:text-slate-900 transition flex items-center gap-2">
-                        <FaArrowLeft /> Geri
-                    </button>
-                    <button 
-                        onClick={next}
-                        className="group flex items-center gap-4 bg-slate-900 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-slate-800 transition"
-                    >
-                        Son Adım 
-                        <FaArrowRight className="group-hover:translate-x-1 transition-transform"/>
-                    </button>
-                </div>
-            </div>
-        )}
-
-        {/* STEP 3: REVIEW */}
-        {step === 3 && (
-            <div className="animate-fade-in-up text-center max-w-xl mx-auto">
-                 <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
-                     <FaChampagneGlasses />
-                 </div>
-                 <h1 className="text-3xl md:text-4xl font-bold font-heading text-slate-900 mb-4">
-                    Her şey harika görünüyor!
-                 </h1>
-                 <p className="text-gray-500 mb-8">
-                     Yapay zeka şefimiz şimdi <strong>{formData.concept}</strong> konseptinde, <strong>{formData.guest_count} kişilik</strong> muazzam bir menü planlayacak.
-                 </p>
-
-                 <div className="bg-white border border-gray-100 p-6 rounded-3xl shadow-sm mb-8 text-left">
-                     <div className="flex justify-between py-2 border-b border-gray-50">
-                         <span className="text-gray-400">Konsept</span>
-                         <span className="font-bold text-slate-800">{formData.concept}</span>
-                     </div>
-                     <div className="flex justify-between py-2 border-b border-gray-50">
-                         <span className="text-gray-400">Kişi</span>
-                         <span className="font-bold text-slate-800">{formData.guest_count}</span>
-                     </div>
-                     <div className="flex justify-between py-2 border-b border-gray-50">
-                         <span className="text-gray-400">Öğün</span>
-                         <span className="font-bold text-slate-800">{formData.event_type}</span>
-                     </div>
-                     <div className="flex justify-between py-2">
-                         <span className="text-gray-400">Tercih</span>
-                         <span className="font-bold text-slate-800">{formData.diet}</span>
-                     </div>
-                 </div>
-
-                 {job && (
-                    <div className="mb-5 rounded-2xl border border-green-100 bg-green-50 p-4 text-left text-sm text-green-900">
-                      <strong>Kaydedilmiş menü bulundu.</strong>
-                      <p className="mt-1 mb-0">{job.completed}/{job.total} tarif hazır. Yeni menü başlatmadan kaldığınız yerden devam edebilirsiniz.</p>
-                    </div>
-                 )}
-                 {errorMessage && (
-                    <div role="alert" className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-950">
-                      {errorMessage}
-                      {allergenFailures.length > 0 && (
-                        <p className="mt-2 text-xs leading-5 text-amber-900">
-                          Alerji listendeki malzemeler olmadan hazırlanamayan: {allergenFailures.join(", ")}. Bu yemekler için yeniden deneme de aynı kurala uyar.{" "}
-                          <Link href="/profile/kitchen" className="font-semibold underline underline-offset-2">Alerji bilgimi düzenle</Link>
-                        </p>
-                      )}
-                    </div>
-                 )}
-                 <div className="flex flex-col gap-4">
-                    <button 
-                        onClick={handleSubmit}
-                        disabled={!job && recoveryCheckedFor === storageKey && quotaReached(quotas.data, "menu_month") && (typeof window === "undefined" || !localStorage.getItem(storageKey))}
-                        className="disabled:opacity-50 disabled:cursor-not-allowed w-full bg-[#db4c3f] text-white py-4 rounded-full text-lg font-bold shadow-xl shadow-red-500/30 hover:bg-red-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
-                    >
-                        <FaWandMagicSparkles /> {job ? (job.status === "ready" ? "Menüyü Aç" : job.status === "needs_attention" ? "Başarısız Tarifleri Yeniden Dene (Ücretli Olabilir)" : "Kaldığım Yerden Devam Et") : "Menüyü Oluştur"}
-                    </button>
-                    <button onClick={back} className="text-gray-400 font-bold hover:text-slate-900 transition">
-                        Düzenle
-                    </button>
-                 </div>
-            </div>
-        )}
-
-      </div>
-    </div>
+    </main>
   );
 }
