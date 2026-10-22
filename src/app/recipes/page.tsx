@@ -10,7 +10,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useAccountQuotas, fetchAccountQuotas, quotaReached, quotaReset } from "@/lib/account-quotas-client";
 import SimilarRecipeChoice from "@/components/recipes/SimilarRecipeChoice";
 import { approvedQuickRecipe, quickRecipeFromAI, validateQuickRecipe, type QuickRecipeDraft } from "@/lib/quick-recipe-review";
-import { Check, ChevronRight, Loader2, Minus, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { type AllergenCaution, type AllergenConflict, allergenCautionsFrom, isAllergenConflict } from "@/lib/recipe-allergens";
+import { AllergenCautionDialog, AllergenConflictDetails } from "@/components/recipes/AllergenGenerationNotice";
+import { Check, ChevronRight, Loader2, Minus, Plus, Search, ShieldAlert, SlidersHorizontal, X } from "lucide-react";
 import RecipeCard from "@/components/recipes/RecipeCard";
 
 // One honest status line; the request has no measurable sub-steps to report.
@@ -103,6 +105,9 @@ function RecipesContent() {
   const [publishUncertain, setPublishUncertain] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
+  // Core's "possible" allergen matches for the kept candidate; read before publishing.
+  const [allergenCaution, setAllergenCaution] = useState<{ warning: string; cautions: AllergenCaution[] } | null>(null);
+  const [cautionOpen, setCautionOpen] = useState(false);
 
   // Filtreler
   const [availableFilters, setAvailableFilters] = useState({
@@ -116,13 +121,15 @@ function RecipesContent() {
   const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>([]);
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
 
-  const [modal, setModal] = useState({ show: false, type: 'success', message: '' });
-  
+  const [modal, setModal] = useState<{ show: boolean; type: string; message: string; conflicts?: AllergenConflict[] }>({ show: false, type: 'success', message: '' });
+  // An allergen refusal lists ingredients and a link: it stays until closed.
+  const modalSticky = !!modal.conflicts;
+
   useEffect(() => {
-    if (!modal.show) return;
+    if (!modal.show || modalSticky) return;
     const timer = setTimeout(() => setModal(previous => ({ ...previous, show: false })), 4800);
     return () => clearTimeout(timer);
-  }, [modal.show, modal.message]);
+  }, [modal.show, modal.message, modalSticky]);
 
   // AI Prompt Modal için
   const [showPromptModal, setShowPromptModal] = useState(false);
@@ -258,6 +265,8 @@ function RecipesContent() {
       setReviewDraft(null);
       setSimilarRecipeId(null);
       setSimilarRecipeSlug(null);
+      setAllergenCaution(null);
+      setCautionOpen(false);
       setReviewOpen(false);
       setAiPromptInput("");
       router.push(`/recipe/${encodeURIComponent(String(saved.slug || saved.id))}`);
@@ -285,6 +294,7 @@ function RecipesContent() {
     }
     if (reviewDraft) {
       if (similarRecipeId) setReviewOpen(true);
+      else if (allergenCaution) setCautionOpen(true);
       else if (!publishUncertain) await publishGeneratedRecipe(reviewDraft, token);
       return; // Never incur a second AI charge for an existing candidate.
     }
@@ -320,6 +330,8 @@ function RecipesContent() {
       }
       const draft = quickRecipeFromAI(aiResponse.recipe);
       setReviewDraft(draft); // Keep the paid-for candidate for safe retries.
+      const caution = allergenCautionsFrom(aiResponse.recipe);
+      setAllergenCaution(caution);
       const existingId = aiResponse.existing_recipe_id;
       const duplicateId = typeof existingId === "number" && Number.isSafeInteger(existingId) && existingId > 0
         ? existingId : null;
@@ -330,10 +342,20 @@ function RecipesContent() {
       if (duplicateId) {
         // Duplicates require an explicit choice; no extra AI call on either option.
         setReviewOpen(true);
+      } else if (caution) {
+        // "Possible" allergen matches: the member reads Core's warning first.
+        setCautionOpen(true);
       } else {
         await publishGeneratedRecipe(draft, token);
       }
     } catch (error: unknown) {
+      if (isAllergenConflict(error)) {
+        // 422: Core refused the recipe; nothing to keep or publish. The daily
+        // AI attempt was still used, which the notice says in plain words.
+        void quotas.reload();
+        setModal({ show: true, type: 'error', message: error.message, conflicts: error.conflicts });
+        return;
+      }
       const message = error instanceof Error ? error.message : "Tarif oluşturulamadı.";
       showModalMessage("error", message.toLowerCase().includes("billing")
         ? "AI bütçe sınırına ulaşıldı. Lütfen sonra tekrar dene." : message);
@@ -353,6 +375,8 @@ function RecipesContent() {
     setReviewDraft(null);
     setSimilarRecipeId(null);
     setSimilarRecipeSlug(null);
+    setAllergenCaution(null);
+    setCautionOpen(false);
     setPublishUncertain(false);
     setPublishError("");
     setReviewOpen(false);
@@ -468,12 +492,12 @@ function RecipesContent() {
                 ) : recipes.length > 0 ? (
                     <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
                         {recipes.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
-                        <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} />
+                        <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen && !cautionOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} />
                     </div>
                 ) : (
                     <div className="mx-auto max-w-md">
                       <p className="mb-4 text-center text-sm text-gray-500">{anyFilter ? "Bu arama ve filtrelerle eşleşen tarif yok." : "Henüz tarif yok."}</p>
-                      <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} />
+                      <RecipeAICard query={query} generating={isGenerating} loadingMessage={LOADING_MESSAGES[loadingMsgIndex]} reviewReady={!!reviewDraft} saving={isPublishing} uncertain={publishUncertain} failure={publishError && !reviewOpen && !cautionOpen ? publishError : ""} onNew={handleNewQuickRecipe} onGenerate={() => void handleGenerateRecipe()} />
                     </div>
                 )}
 
@@ -542,8 +566,20 @@ function RecipesContent() {
             saving={isPublishing}
             uncertain={publishUncertain}
             error={publishError}
+            allergenWarning={allergenCaution?.warning}
             onCreate={() => void handlePublishQuickRecipe()}
             onClose={() => { if (!isPublishing) setReviewOpen(false); }}
+          />
+        )}
+        {cautionOpen && reviewDraft && allergenCaution && !similarRecipeId && (
+          <AllergenCautionDialog
+            warning={allergenCaution.warning}
+            cautions={allergenCaution.cautions}
+            confirmLabel="Yayımla ve tarifi aç"
+            saving={isPublishing}
+            error={publishUncertain ? "" : publishError}
+            onConfirm={() => void handlePublishQuickRecipe()}
+            onClose={() => { if (!isPublishing) setCautionOpen(false); }}
           />
         )}
                 {/* HATA MODALI */}
@@ -551,11 +587,12 @@ function RecipesContent() {
             <div className="fixed bottom-5 right-5 left-5 sm:left-auto z-[200] flex items-center justify-center sm:w-[360px]">
                <div className="relative w-full rounded-2xl border border-[#f1d2c7] bg-white p-5 shadow-2xl">
                    <button type="button" aria-label="Kapat" onClick={() => setModal({ ...modal, show: false })} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
-                   <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-2 text-lg ${modal.type === 'success' ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>
-                      {modal.type === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                   <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-2 text-lg ${modal.type === 'success' ? 'bg-green-100 text-green-500' : modal.conflicts ? 'ra-icon ra-red bg-[#db4c3f]/10 text-[#b8412f]' : 'bg-red-100 text-red-500'}`}>
+                      {modal.type === 'success' ? <Check className="h-4 w-4" /> : modal.conflicts ? <ShieldAlert className="h-4 w-4" /> : <X className="h-4 w-4" />}
                    </div>
-                   <h3 className="text-sm font-bold text-slate-900 mb-1">{modal.type === 'success' ? 'Başarılı!' : 'Hata'}</h3>
+                   <h3 className="text-sm font-bold text-slate-900 mb-1">{modal.type === 'success' ? 'Başarılı!' : modal.conflicts ? 'Tarif gösterilmedi' : 'Hata'}</h3>
                    <p className="text-xs leading-5 text-gray-500">{modal.message}</p>
+                   {modal.conflicts && <AllergenConflictDetails conflicts={modal.conflicts} className="mt-3" />}
                    
                </div>
             </div>

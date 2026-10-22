@@ -158,6 +158,30 @@ body {
   }
 }
 
+/* Allergen band and notes (ra-*): calm tints that stay readable in dark mode. */
+.dark .ra-contains {
+  background-color: rgb(219 76 63 / 0.1);
+  border-color: rgb(219 76 63 / 0.38);
+  color: #fbd3cb;
+}
+.dark .ra-possible,
+.dark .ra-caution {
+  background-color: rgb(245 158 11 / 0.08);
+  border-color: rgb(245 158 11 / 0.32);
+  color: #fde4a8;
+}
+.dark .ra-band p { color: inherit; }
+.dark .ra-band .ra-muted { color: inherit; opacity: 0.75; }
+.dark .ra-caution [class*="text-[#7a5518]"],
+.dark .ra-caution p { color: #fde4a8; }
+.dark .ra-icon {
+  background-color: rgb(255 255 255 / 0.06);
+  color: #fcd34d;
+}
+.dark [class~="text-[#8f3a2c]"] { color: #f6a39a; }
+.dark .ra-contains .ra-icon,
+.dark .ra-icon.ra-red { color: #f6a39a; }
+
 /* Bu Hafta / Alışveriş (kz-*): warm tints, today row and notices in dark mode. */
 .dark .kz-cream {
   background-color: rgb(246 239 232 / 0.08);

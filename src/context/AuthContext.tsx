@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { User } from "@/types"; // Tipleri merkezi dosyadan alıyoruz
 import { useRouter } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth-client";
+import { forgetKitchenProfiles } from "@/lib/kitchen-profile";
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    forgetKitchenProfiles(); // Allergen data stays in memory only, and never past sign-out.
     localStorage.removeItem("tariften_user");
     localStorage.removeItem("tariften_token");
     // Cookie'yi temizle

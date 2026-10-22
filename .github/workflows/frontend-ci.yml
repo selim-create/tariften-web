@@ -51,6 +51,8 @@ jobs:
         run: node --test scripts/check-kitchen-profile-web.test.cjs
       - name: Bu Hafta / Alışveriş account sync, three-way merge parity and shared shopping keys
         run: node --test scripts/check-kitchen-sync-web.test.cjs
+      - name: Recipe allergen band, public allergen info and AI allergen refusal/warning handling
+        run: node --test scripts/check-allergen-ui-web.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build

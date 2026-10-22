@@ -1,5 +1,7 @@
 /** Browser-only transport for AI generation, recipe publication and editor changes.
  * JSON through a same-origin Next route; never a React Server Action. */
+import { allergenConflictFrom } from "@/lib/recipe-allergens";
+
 export type RecipeWriteResult = {
   success?: boolean;
   message?: string;
@@ -37,6 +39,9 @@ async function writeRecipe(
   }
   const data = json as RecipeWriteResult;
   if (!res.ok) {
+    // 422 ai_allergen_conflict: Core refused the recipe (no body to save).
+    const conflict = allergenConflictFrom(res.status, data);
+    if (conflict) throw conflict;
     const detail = typeof data.message === "string" ? data.message : "";
     throw new Error(detail && !/React error|Server Components render|minified|digest:/i.test(detail)
       ? detail : "İşlem tamamlanamadı. Biraz sonra tekrar dene.");

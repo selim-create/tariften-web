@@ -9,6 +9,7 @@ import RecipeActions from "@/components/recipe/RecipeActions";
 import RecipeKitchenActions from "@/components/recipe/RecipeKitchenActions";
 import EditButton from "@/components/recipe/EditButton";
 import RecipeReviewNotice from "@/components/recipe/RecipeReviewNotice";
+import RecipeAllergenNotice from "@/components/recipe/RecipeAllergenNotice";
 import RecipeCover from "@/components/recipe/RecipeCover";
 import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
 import SocialHeroSourceButton from "@/components/recipe/SocialHeroSourceButton";
@@ -257,6 +258,11 @@ export default async function RecipeDetailPage({
         </header>
 
         {recipe.social_source && <SocialRecipeSourceCard source={recipe.social_source} recipeId={recipe.id} />}
+
+        {/* Personal allergen band: directly above Malzemeler, below the first
+            screen on phones, so a late profile answer never moves what the
+            reader is looking at. Renders nothing for everyone else. */}
+        <RecipeAllergenNotice allergens={recipe.allergens} />
 
         <RecipeDetailClient recipe={recipe} />
       </div>

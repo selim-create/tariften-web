@@ -85,6 +85,13 @@ export interface Recipe {
   cooked_count?: number;
   average_rating?: number;
   rating_count?: number;
+  /** Core 1.0.51: EU-14 keys detected from ingredient names. Absent on old cache. */
+  allergens?: RecipeAllergenSummary;
+}
+
+export interface RecipeAllergenSummary {
+  contains: string[];
+  possible: string[];
 }
 
 export interface Ingredient {

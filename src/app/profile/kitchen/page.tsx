@@ -9,7 +9,7 @@ import PageIntro from "@/components/account/PageIntro";
 import KitchenProfileWizard from "@/components/account/KitchenProfileWizard";
 import {
   type KitchenOptions, type KitchenPatch, type KitchenProfile,
-  deleteKitchenProfile, getKitchenProfile, updateKitchenProfile,
+  deleteKitchenProfile, getKitchenProfile, rememberKitchenProfile, updateKitchenProfile,
 } from "@/lib/kitchen-profile";
 
 function KitchenProfileScreen() {
@@ -30,13 +30,25 @@ function KitchenProfileScreen() {
     if (!token) return;
     let cancelled = false;
     getKitchenProfile(token)
-      .then(result => { if (!cancelled) { setData(result); setError(""); } })
+      .then(result => {
+        rememberKitchenProfile(token, result.profile, result.options);
+        if (!cancelled) { setData(result); setError(""); }
+      })
       .catch(reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : "Mutfak profilin yüklenemedi."); });
     return () => { cancelled = true; };
   }, [token, attempt]);
 
-  const save = useCallback(async (patch: KitchenPatch) => (await updateKitchenProfile(token, patch)).profile, [token]);
-  const erase = useCallback(async () => (await deleteKitchenProfile(token)).profile, [token]);
+  // Saves refresh the per-tab cache the recipe page's allergen band reads.
+  const save = useCallback(async (patch: KitchenPatch) => {
+    const { profile } = await updateKitchenProfile(token, patch);
+    rememberKitchenProfile(token, profile);
+    return profile;
+  }, [token]);
+  const erase = useCallback(async () => {
+    const { profile } = await deleteKitchenProfile(token);
+    rememberKitchenProfile(token, profile);
+    return profile;
+  }, [token]);
   const finished = useCallback(() => {
     void refreshUser();
     router.push("/profile?mutfak=kaydedildi");
