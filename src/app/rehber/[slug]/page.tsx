@@ -7,6 +7,8 @@ import GuideToc from "@/components/guide/GuideToc";
 import { Accent, FOCUS, LevelBadge } from "@/components/guide/GuideBits";
 import RecipeCover from "@/components/recipe/RecipeCover";
 import ShareButtons from "@/components/blog/ShareButtons";
+import GuideToolCard from "@/components/guide/tools/GuideToolCard";
+import { GUIDE_TOOLS } from "@/lib/guide-tools";
 import { getGuide } from "@/lib/guides-api";
 import { GUIDE_AUTHOR, guideDate, guideJsonLd, guideListHref, guideWordCount, jsonLdString, prepareGuideHtml } from "@/lib/guides";
 
@@ -148,6 +150,13 @@ export default async function GuidePage({ params }: Props) {
           {toc.length >= 2 && (
             <div className="mt-8 lg:hidden">
               <GuideToc items={toc} variant="inline" />
+            </div>
+          )}
+
+          {/* The guide's interactive tool sits between the intro and the article: use it first, read the details below. */}
+          {guide.tool && (
+            <div className="mt-10 max-w-[68ch] lg:mt-12">
+              <GuideToolCard tool={guide.tool} id={GUIDE_TOOLS[guide.tool].anchor} />
             </div>
           )}
 

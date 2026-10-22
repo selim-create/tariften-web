@@ -15,6 +15,14 @@ export const GUIDE_PER_PAGE = 12;
 
 export interface GuideTerm { slug: string; name: string }
 
+/** P23 interactive tools (Core `_guide_tool`, closed list). Unknown keys are ignored. */
+export const GUIDE_TOOL_KEYS = ["egg_doneness", "pasta_timer", "drying_guide", "measure_converter"] as const;
+export type GuideToolKey = (typeof GUIDE_TOOL_KEYS)[number];
+
+export function isGuideToolKey(value: unknown): value is GuideToolKey {
+  return typeof value === "string" && (GUIDE_TOOL_KEYS as readonly string[]).includes(value);
+}
+
 /** Fallback copy if Core flags a guide unreviewed without sending the text. */
 export const GUIDE_UNREVIEWED_WARNING = "Bu rehber henüz bir gıda güvenliği uzmanı tarafından incelenmedi. Saklama, fermentasyon ve kurutmada süre, sıcaklık ve hijyen kurallarını resmi kaynaklardan da kontrol et; şüpheli görünen, kokan ya da küflenen ürünü tüketme.";
 
@@ -27,7 +35,8 @@ export interface GuideSummary {
   topics: GuideTerm[];
   level: GuideTerm | null;
   readingMinutes: number | null;
-  tool: string | null;
+  /** Interactive tool shown on the guide page; null for none or an unknown key. */
+  tool: GuideToolKey | null;
   /** "approved" | "unreviewed" (food-safety topic without expert review) | null. */
   foodSafetyReview: "approved" | "unreviewed" | null;
   updatedAt: string | null;
@@ -188,7 +197,7 @@ export function normalizeGuideSummary(value: unknown): GuideSummary | null {
     topics,
     level: term(raw.level),
     readingMinutes: positiveInt(raw.reading_minutes),
-    tool: text(raw.tool) || null,
+    tool: isGuideToolKey(text(raw.tool)) ? text(raw.tool) as GuideToolKey : null,
     foodSafetyReview: raw.food_safety_review === "approved" || raw.food_safety_review === "unreviewed" ? raw.food_safety_review : null,
     updatedAt: isoDate(raw.updated_at),
   };
