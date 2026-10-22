@@ -13,6 +13,7 @@ export type VideoJob = {
   message: string;
   requires_approval: boolean;
   recipe_slug?: string;
+  review_reason?: string;
   preview?: unknown;
   error_code?: string;
   retryable?: boolean;
@@ -124,6 +125,8 @@ export function videoEditorFromJob(job: VideoJob): { editor: ImportEditor; warni
     editorial_rewrite: true,
   }));
   const warnings = [
+    ...(typeof job.review_reason === "string" && job.review_reason.length <= 180
+      ? [job.review_reason] : []),
     "Malzemeler ve adımlar yapay zekânın videodan çıkardığı önerilerdir; videodan bağımsız doğrulanmış sayılmaz.",
     "Ölçüler tahminidir. Yayınlamadan önce porsiyonu, miktarları ve hazırlama sırasını kontrol et.",
   ];
