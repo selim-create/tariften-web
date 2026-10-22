@@ -47,6 +47,8 @@ jobs:
         run: node --test scripts/check-legacy-ingredient-edit-auth.test.cjs
       - name: User review notes, feedback toast, stable AI modal and same-origin recipe writes
         run: node --test scripts/check-recipe-flow-notifications.test.cjs
+      - name: Optional kitchen profile, allergen consent and post-registration sign-in
+        run: node --test scripts/check-kitchen-profile-web.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build

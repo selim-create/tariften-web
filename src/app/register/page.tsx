@@ -10,9 +10,17 @@ import { useAuth } from "@/context/AuthContext";
 import { useGoogleLogin } from '@react-oauth/google';
 import { FaUser, FaEnvelope, FaLock, FaArrowRight, FaSpinner, FaGoogle, FaApple, FaUtensils, FaLeaf, FaCheck, FaTriangleExclamation, FaAt } from "react-icons/fa6";
 
+/** Core returns {success, token, user} once registration also signs the member in. */
+function hasRegistrationSession(data: unknown): data is { success: true; token: string; user: Record<string, unknown> } {
+  if (!data || typeof data !== "object") return false;
+  const value = data as { success?: unknown; token?: unknown; user?: unknown };
+  return value.success === true && typeof value.token === "string" && value.token.length > 0
+    && !!value.user && typeof value.user === "object";
+}
+
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, refreshUser } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +80,15 @@ export default function RegisterPage() {
     }
 
     try {
-      await registerUser(formData);
+      const data = await registerUser(formData);
       await subscribeAfterRegistration(formData.email);
+      if (hasRegistrationSession(data)) {
+        // Core 1.0.47+ signs the new member in: same cookie + AuthContext path as login.
+        login(data);
+        void refreshUser();
+        router.push("/profile/kitchen?welcome=1");
+        return;
+      }
       setShowModal(true);
     } catch (err: any) {
       console.error("Register Error:", err);

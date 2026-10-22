@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BookmarkCheck, ChefHat, Loader2, NotebookPen, Settings2, UtensilsCrossed } from "lucide-react";
@@ -9,6 +9,7 @@ import { getUserInteractions } from "@/lib/api";
 import { useAccountQuotas } from "@/lib/account-quotas-client";
 import QuotaPanel from "@/components/account/QuotaPanel";
 import MyKitchenLibrary from "@/components/account/MyKitchenLibrary";
+import KitchenProfileCard from "@/components/account/KitchenProfileCard";
 import PageIntro from "@/components/account/PageIntro";
 import AccountAvatar from "@/components/account/AccountAvatar";
 import RecipeCard from "@/components/recipes/RecipeCard";
@@ -88,6 +89,10 @@ export default function ProfilePage() {
       </PageIntro>
 
       <div className="mx-auto max-w-6xl space-y-14 px-4 pt-8">
+        <Suspense fallback={null}>
+          <KitchenProfileCard token={user.token} completed={user.kitchen_profile_completed} />
+        </Suspense>
+
         <div>
           <div role="tablist" aria-label="Mutfak kütüphanem"
             className="mb-8 grid grid-cols-2 gap-1 rounded-2xl border border-gray-200 bg-white p-1 sm:inline-grid sm:grid-cols-4">
