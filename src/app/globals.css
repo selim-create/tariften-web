@@ -113,6 +113,47 @@ body {
   @apply bg-slate-900;
 }
 
+/* Kitchen profile (kp-*): warm tints, consent and success surfaces in dark mode. */
+.dark .kp-tint {
+  background-color: rgb(219 76 63 / 0.16);
+  color: #f6a39a;
+}
+.dark .kp-chip-on {
+  background-color: rgb(219 76 63 / 0.16);
+  border-color: #db4c3f;
+  color: #fbc4bd;
+}
+.dark .kp-consent {
+  background-color: rgb(15 23 42 / 0.45);
+  border-color: #475569;
+}
+.dark .kp-consent .kp-consent-title { color: #f1f5f9; }
+.dark .kp-consent .kp-consent-body { color: #cbd5e1; }
+.dark .kp-ok,
+.dark .kp-ok [class*="text-emerald"] {
+  background-color: rgb(16 185 129 / 0.12);
+  border-color: rgb(16 185 129 / 0.35);
+  color: #a7f3d0;
+}
+.dark .kp-ok [class*="text-emerald"] { background-color: transparent; }
+.dark .kp-ok-btn {
+  background-color: transparent;
+  border-color: rgb(16 185 129 / 0.4);
+  color: #a7f3d0;
+}
+.dark .kp-ok-btn.kp-danger { color: #fca5a5; }
+.dark .kp-error {
+  background-color: rgb(239 68 68 / 0.12);
+  border-color: rgb(239 68 68 / 0.4);
+  color: #fecaca;
+}
+@media (min-width: 1024px) {
+  .dark .kp-step-idle {
+    background-color: transparent;
+    border-color: transparent;
+  }
+}
+
 /* Studio action bar: a frosted bar on phones, part of the page from sm up. */
 .studio-actionbar {
   background-color: rgb(255 255 255 / 0.95);

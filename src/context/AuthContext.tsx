@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           diet: userData.diet || "",
           experience: userData.experience || "",
           bio: userData.bio || "",
+          kitchen_profile_completed: userData.kitchen_profile_completed === true,
           token: storedToken
         };
         setUser(userToStore);
@@ -119,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         diet: u.diet || "",
         experience: u.experience || "",
         bio: u.bio || "",
+        ...(typeof u.kitchen_profile_completed === "boolean" ? { kitchen_profile_completed: u.kitchen_profile_completed } : {}),
       };
     } else {
       // Normal JWT login yanıtı (root seviyesinde veriler)
@@ -132,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         diet: userData.diet || "",
         experience: userData.experience || "",
         bio: userData.bio || "",
+        ...(typeof userData.kitchen_profile_completed === "boolean" ? { kitchen_profile_completed: userData.kitchen_profile_completed } : {}),
       };
     }
 

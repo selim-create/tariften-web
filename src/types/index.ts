@@ -8,6 +8,8 @@ export interface User {
   diet?: string;
   experience?: string;
   bio?: string;
+  /** Core /auth/me: the member finished (or skipped through) the kitchen profile. */
+  kitchen_profile_completed?: boolean;
   token?: string;
 }
 

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Camera, Check, CircleAlert, Loader2, Save, Trash2, TriangleAlert, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, ChefHat, CircleAlert, Loader2, Save, Trash2, TriangleAlert, X } from "lucide-react";
 import { updateProfile, uploadAvatar, deleteAccount } from "@/lib/auth-client";
 import { useAuth } from "@/context/AuthContext";
 import PageIntro from "@/components/account/PageIntro";
@@ -265,6 +265,12 @@ export default function EditProfilePage() {
                   </select>
                 </div>
               </div>
+              <Link href="/profile/kitchen"
+                className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 text-sm text-slate-600 transition hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+                <ChefHat className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                <span className="flex-1">Hane, sevmediklerin, ekipman ve alerjiler için <span className="font-semibold text-slate-900">mutfak profilin</span></span>
+                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+              </Link>
             </Card>
 
             <Card id="edit-security" title="Şifre" hint="Değiştirmek istemiyorsan boş bırak.">
