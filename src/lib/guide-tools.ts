@@ -6,15 +6,13 @@
  * file directly. Roadmap rule: results can never leave safe ranges, so every
  * calculation clamps to (or refuses outside) the bounds declared here.
  *
- * Values (see the P23 report for sources):
- * - Egg times: whole eggs lowered into boiling water, EU size M from the
- *   fridge as the base (Serious Eats boiled-egg tests; USDA FSIS: yolk and
- *   white firm for people at risk).
- * - Pasta: 1 L water and 10 g salt per 100 g dry pasta; typical package times.
- * - Drying: NCHFP (National Center for Home Food Preservation) temperatures
- *   and times, kept conservative (60 °C produce, 35–50 °C herbs).
- * - Densities: King Arthur / USDA cup weights per ml, cross-checked with common
- *   Turkish kitchen references, rounded.
+ * Parity rule: the mobile app's lib/guide-tools.ts is the source of truth.
+ * Every shared number here (egg minutes and clamps, pasta package times and
+ * timer window, drying temperatures/times/sun rules, converter units,
+ * densities, rounding and limits) is the mobile value, and the test suite
+ * asserts the same expectations as the mobile suite. Change both together.
+ * Web-only extras: egg altitude (sea level adds nothing) and the "sensitive
+ * eater" switch that forces katı; esmer şeker, kabartma tozu, karbonat.
  */
 
 import type { GuideToolKey } from "./guides";
@@ -61,7 +59,7 @@ export function formatClock(totalSeconds: number): string {
   return `${m}:${String(s % 60).padStart(2, "0")}`;
 }
 
-/** "6 dk 30 sn" / "11 dk" for prose and screen readers. */
+/** "6 dk 30 sn" / "11 dk" for prose and screen readers (mobile `minutesLabel`). */
 export function formatMinutes(totalSeconds: number): string {
   const s = Math.max(0, Math.round(totalSeconds));
   const m = Math.floor(s / 60);
@@ -70,24 +68,38 @@ export function formatMinutes(totalSeconds: number): string {
   return rest ? `${m} dk ${rest} sn` : `${m} dk`;
 }
 
-/** Turkish decimal: 2.5 → "2,5"; integers stay plain. */
-export function formatDecimal(value: number, maxFractionDigits = 1): string {
-  return new Intl.NumberFormat("tr-TR", { maximumFractionDigits: maxFractionDigits }).format(value);
-}
-
-const QUARTERS = ["", "¼", "½", "¾"];
-
-/** 1.25 → "1¼", 0.5 → "½", 3 → "3". Input must already be a multiple of ¼. */
-export function formatQuarters(value: number): string {
-  const quarters = Math.round(value * 4);
-  const whole = Math.floor(quarters / 4);
-  const frac = QUARTERS[quarters % 4];
-  if (whole === 0) return frac || "0";
-  return `${whole}${frac}`;
+/** Turkish decimal, same as mobile: 1.5 → "1,5"; trailing zeros dropped, no thousands separator. */
+export function formatNumberTr(value: number, maxDecimals = 1): string {
+  const factor = 10 ** maxDecimals;
+  const rounded = Math.round(value * factor) / factor;
+  return String(rounded).replace(".", ",");
 }
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function roundTo(value: number, step: number): number {
+  return Math.round(value / step) * step;
+}
+
+/**
+ * Amount as people type it, identical to mobile: "1,5" · "1.5" · "1/2" ·
+ * "1 1/2" · "1½" · "½" → number; anything else → null. Zero and negatives
+ * parse but every calculator refuses them.
+ */
+export function parseAmount(input: unknown): number | null {
+  if (typeof input === "number") return Number.isFinite(input) ? input : null;
+  if (typeof input !== "string") return null;
+  const fractions: Record<string, string> = { "½": " 1/2", "¼": " 1/4", "¾": " 3/4", "⅓": " 1/3", "⅔": " 2/3" };
+  const text = input.trim().replace(/[½¼¾⅓⅔]/g, c => fractions[c]).replace(/\s+/g, " ").trim();
+  if (!text) return null;
+  let m = /^(\d+) (\d+)\/(\d+)$/.exec(text);
+  if (m) return Number(m[3]) > 0 ? Number(m[1]) + Number(m[2]) / Number(m[3]) : null;
+  m = /^(\d+)\/(\d+)$/.exec(text);
+  if (m) return Number(m[2]) > 0 ? Number(m[1]) / Number(m[2]) : null;
+  if (/^\d+(?:[.,]\d+)?$/.test(text)) return Number(text.replace(",", "."));
+  return null;
 }
 
 /* ------------------------------------------------------------- the timer */
@@ -138,6 +150,7 @@ export function timerReset(state: TimerState, durationMs = state.duration): Time
   return timerIdle(durationMs);
 }
 
+
 /* ------------------------------------------------------------------- egg */
 
 export type EggSize = "S" | "M" | "L" | "XL";
@@ -145,43 +158,52 @@ export type EggStart = "fridge" | "room";
 export type EggDoneness = "rafadan" | "kayisi" | "kati";
 export type EggAltitude = "low" | "mid" | "high";
 
-export const EGG_SIZES: { id: EggSize; label: string; hint: string; adjust: number }[] = [
-  { id: "S", label: "S", hint: "53 g altı", adjust: -30 },
-  { id: "M", label: "M", hint: "53–63 g", adjust: 0 },
-  { id: "L", label: "L", hint: "63–73 g", adjust: 45 },
-  { id: "XL", label: "XL", hint: "73 g üstü", adjust: 90 },
+export const EGG_SIZES: { id: EggSize; label: string; hint: string }[] = [
+  { id: "S", label: "S", hint: "53 g altı" },
+  { id: "M", label: "M", hint: "53–63 g" },
+  { id: "L", label: "L", hint: "63–73 g" },
+  { id: "XL", label: "XL", hint: "73 g üstü" },
 ];
 
-export const EGG_STARTS: { id: EggStart; label: string; hint: string; adjust: number }[] = [
-  { id: "fridge", label: "Buzdolabından", hint: "Soğuk yumurta", adjust: 0 },
-  { id: "room", label: "Oda sıcaklığında", hint: "En az 30 dk dışarıda", adjust: -60 },
+export const EGG_STARTS: { id: EggStart; label: string; hint: string }[] = [
+  { id: "fridge", label: "Buzdolabından", hint: "Soğuk yumurta" },
+  { id: "room", label: "Oda sıcaklığında", hint: "En az 30 dk dışarıda" },
 ];
 
-export const EGG_ALTITUDES: { id: EggAltitude; label: string; hint: string; adjust: number }[] = [
-  { id: "low", label: "0–1000 m", hint: "Deniz kıyısı, İstanbul, Ankara", adjust: 0 },
-  { id: "mid", label: "1000–2000 m", hint: "Kayseri, Sivas, Erzurum", adjust: 60 },
-  { id: "high", label: "2000 m +", hint: "Yayla", adjust: 120 },
+/** Web-only extra. Sea level (the default) adds nothing, so it gives the mobile numbers. */
+export const EGG_ALTITUDES: { id: EggAltitude; label: string; hint: string; minutes: number }[] = [
+  { id: "low", label: "0–1000 m", hint: "Deniz kıyısı, İstanbul, Ankara", minutes: 0 },
+  { id: "mid", label: "1000–2000 m", hint: "Kayseri, Sivas, Erzurum", minutes: 1 },
+  { id: "high", label: "2000 m +", hint: "Yayla", minutes: 2 },
 ];
 
-export const EGG_DONENESS: {
-  id: EggDoneness; label: string; summary: string; base: number; min: number; max: number; cooling: string; runny: boolean;
-}[] = [
+export const EGG_DONENESS: { id: EggDoneness; label: string; summary: string; cooling: string; runny: boolean }[] = [
   {
-    id: "rafadan", label: "Rafadan", summary: "Beyazı pişmiş, sarısı akışkan.", base: 360, min: 270, max: 600, runny: true,
+    id: "rafadan", label: "Rafadan", summary: "Beyazı pişmiş, sarısı akışkan.", runny: true,
     cooling: "Süre dolunca 1 dakika soğuk suya al ve hemen servis et.",
   },
   {
-    id: "kayisi", label: "Kayısı", summary: "Sarısı koyu ve kremamsı, kenarları hafifçe tutmuş.", base: 450, min: 360, max: 690, runny: true,
+    id: "kayisi", label: "Kayısı", summary: "Sarısı koyu, kremamsı; ortası hafif yumuşak.", runny: true,
     cooling: "Süre dolunca 2 dakika buzlu suya al; kesince sarısı akmadan durur.",
   },
   {
-    id: "kati", label: "Katı", summary: "Beyazı ve sarısı tamamen pişmiş.", base: 660, min: 600, max: 960, runny: false,
+    id: "kati", label: "Katı", summary: "Beyazı ve sarısı tamamen pişmiş.", runny: false,
     cooling: "Süre dolunca 5 dakika buzlu suya al; kabuğu kolay soyulur, sarının çevresi yeşillenmez.",
   },
 ];
 
+/* Same numbers as mobile lib/guide-tools.ts (source of truth). */
+/** Minutes from boiling water for a fridge-cold M egg. */
+export const EGG_BASE_MINUTES: Record<EggDoneness, number> = { rafadan: 6, kayisi: 8, kati: 11 };
+/** Size correction, minutes. */
+export const EGG_SIZE_OFFSET: Record<EggSize, number> = { S: -0.5, M: 0, L: 0.5, XL: 1 };
+/** A room-temperature egg is ready about a minute sooner. */
+export const EGG_ROOM_OFFSET = -1;
+/** Safe window per doneness, minutes. Katı never goes under 10: the yolk must be fully set. */
+export const EGG_RANGE: Record<EggDoneness, [number, number]> = { rafadan: [4.5, 7.5], kayisi: [6.5, 9.5], kati: [10, 13] };
+
 /** Shortest time for a fully set yolk; no "katı" result is ever shorter. */
-export const EGG_FULLY_SET_MIN_SECONDS = 600;
+export const EGG_FULLY_SET_MIN_SECONDS = EGG_RANGE.kati[0] * 60;
 
 export const EGG_SAFETY_NOTE = "Rafadan ve kayısı kıvamda sarı tam pişmez. Çocuklar, hamileler, yaşlılar ve bağışıklığı zayıf kişiler için yumurtayı sarısı tamamen katılaşana kadar pişir.";
 
@@ -196,6 +218,7 @@ export interface EggInput {
 
 export interface EggResult {
   seconds: number;
+  minutes: number;
   size: EggSize;
   start: EggStart;
   altitude: EggAltitude;
@@ -208,7 +231,11 @@ function pick<T extends string>(list: { id: T }[], value: unknown, fallback: T):
   return list.some(item => item.id === value) ? value as T : fallback;
 }
 
-/** Minutes in boiling water, rounded to 15 s and clamped to the doneness' safe range. */
+/**
+ * Minutes in boiling water, as mobile `eggTime`: base + size + room offset
+ * (+ the web-only altitude offset), rounded to half minutes, then clamped to
+ * the doneness' safe window.
+ */
 export function eggBoilTime(input: EggInput = {}): EggResult {
   const size = pick(EGG_SIZES, input.size, "M");
   const start = pick(EGG_STARTS, input.start, "fridge");
@@ -216,293 +243,378 @@ export function eggBoilTime(input: EggInput = {}): EggResult {
   const wanted = pick(EGG_DONENESS, input.doneness, "kayisi");
   const sensitive = input.sensitive === true;
   const doneness: EggDoneness = sensitive ? "kati" : wanted;
-  const level = EGG_DONENESS.find(d => d.id === doneness)!;
-  const raw = level.base
-    + EGG_SIZES.find(s => s.id === size)!.adjust
-    + EGG_STARTS.find(s => s.id === start)!.adjust
-    + EGG_ALTITUDES.find(a => a.id === altitude)!.adjust;
-  let seconds = clamp(Math.round(raw / 15) * 15, level.min, level.max);
-  if (doneness === "kati") seconds = Math.max(seconds, EGG_FULLY_SET_MIN_SECONDS);
-  return { seconds, size, start, altitude, doneness, forcedFullySet: sensitive && wanted !== "kati" };
+  const [min, max] = EGG_RANGE[doneness];
+  const raw = EGG_BASE_MINUTES[doneness]
+    + EGG_SIZE_OFFSET[size]
+    + (start === "room" ? EGG_ROOM_OFFSET : 0)
+    + EGG_ALTITUDES.find(a => a.id === altitude)!.minutes;
+  const minutes = clamp(roundTo(raw, 0.5), min, max);
+  return { seconds: Math.round(minutes * 60), minutes, size, start, altitude, doneness, forcedFullySet: sensitive && wanted !== "kati" };
 }
 
 /* ----------------------------------------------------------------- pasta */
 
-export type PastaTexture = "aldente" | "yumusak";
+export type PastaShape = "spagetti" | "linguine" | "penne" | "burgu" | "fiyonk" | "rigatoni" | "eriste" | "taze";
+export type PastaTexture = "al_dente" | "yumusak";
 
-export const PASTA_TYPES: { id: string; label: string; minutes: number; precook?: boolean }[] = [
+/** Typical package time (minutes) for dried pasta; fresh pasta is short. Same list as mobile. */
+export const PASTA_SHAPES: { id: PastaShape; label: string; minutes: number }[] = [
   { id: "spagetti", label: "Spagetti", minutes: 9 },
   { id: "linguine", label: "Linguine", minutes: 10 },
   { id: "penne", label: "Penne", minutes: 11 },
-  { id: "fusilli", label: "Burgu (fusilli)", minutes: 10 },
-  { id: "farfalle", label: "Kelebek (farfalle)", minutes: 11 },
+  { id: "burgu", label: "Burgu", minutes: 10 },
+  { id: "fiyonk", label: "Fiyonk", minutes: 11 },
   { id: "rigatoni", label: "Rigatoni", minutes: 12 },
-  { id: "dirsek", label: "Dirsek", minutes: 8 },
-  { id: "eriste", label: "Erişte", minutes: 9 },
-  { id: "lazanya", label: "Lazanya yaprağı", minutes: 4, precook: true },
+  { id: "eriste", label: "Erişte", minutes: 8 },
+  { id: "taze", label: "Taze makarna", minutes: 3 },
 ];
 
-export const PASTA_PACKAGE_MIN = 2;
-export const PASTA_PACKAGE_MAX = 30;
-export const PASTA_MIN_SECONDS = 120;
-export const PASTA_GRAMS_MIN = 50;
-export const PASTA_GRAMS_MAX = 1000;
-export const PASTA_GRAMS_STEP = 50;
-/** Per 100 g dry pasta. */
-export const PASTA_WATER_LITERS_PER_100G = 1;
-export const PASTA_SALT_GRAMS_PER_100G = 10;
-/** Fine table salt: 1 yemek kaşığı (15 ml) ≈ 18 g, 1 çay kaşığı (5 ml) ≈ 6 g. */
-const SALT_TBSP_GRAMS = 18;
-const SALT_TSP_GRAMS = 6;
+export const PASTA_TEXTURES: { id: PastaTexture; label: string; description: string }[] = [
+  { id: "al_dente", label: "Al dente", description: "Dişe gelen, ortası hafif diri." },
+  { id: "yumusak", label: "Yumuşak", description: "Tamamen yumuşak; çocuklar için ideal." },
+];
+
+/** Package minutes we accept from the person; outside → refused. */
+export const PASTA_PACKAGE_RANGE: [number, number] = [2, 20];
+/** Final timer window, minutes. */
+export const PASTA_TIMER_RANGE: [number, number] = [2, 20];
+export const PASTA_GRAMS_PER_PORTION = 100;
+export const PASTA_PORTION_RANGE: [number, number] = [1, 10];
+/** 1 L water and 10 g salt per 100 g pasta. */
+export const PASTA_WATER_L_PER_100G = 1;
+export const PASTA_SALT_G_PER_100G = 10;
+
+export const PASTA_FRESH_NOTE = "Taze makarna çok çabuk pişer; paketinde süre yazıyorsa onu gir.";
+export const PASTA_BIG_POT_NOTE = "Bu kadar su için tencere küçük kalırsa makarnayı iki partide haşla.";
+
+/** Package minutes as typed ("9", "8,5"), parsed like mobile; null if not a number in 2–20. */
+export function parsePackageMinutes(value: unknown): number | null {
+  const n = parseAmount(value);
+  if (n === null || n < PASTA_PACKAGE_RANGE[0] || n > PASTA_PACKAGE_RANGE[1]) return null;
+  return n;
+}
 
 export interface PastaInput {
-  /** A PASTA_TYPES id, or "paket" to use packageMinutes. */
+  /** A PASTA_SHAPES id, or "paket" to use packageMinutes. */
   type?: unknown;
   packageMinutes?: unknown;
   texture?: unknown;
 }
 
 export type PastaTimeResult =
-  | { ok: true; seconds: number; precook: boolean; packageMinutes: number; texture: PastaTexture | null }
-  | { ok: false; error: "invalid_package_time" };
-
-/** Package minutes as typed ("9", "8,5"); null if not a number in 2–30. */
-export function parsePackageMinutes(value: unknown): number | null {
-  const raw = typeof value === "number" ? value : typeof value === "string" ? Number(value.trim().replace(",", ".")) : NaN;
-  if (!Number.isFinite(raw) || raw < PASTA_PACKAGE_MIN || raw > PASTA_PACKAGE_MAX) return null;
-  return Math.round(raw * 2) / 2;
-}
+  | { ok: true; seconds: number; minutes: number; packageMinutes: number; texture: PastaTexture; note: string | null }
+  | { ok: false; error: "invalid_package_time" | "unknown_type" | "unknown_texture" };
 
 /**
- * Package time is the reference: al dente = 1 minute less, yumuşak = 1 minute
- * more. Lazanya sheets are only pre-cooked (they finish in the oven).
+ * Package time is the reference (mobile `pastaPlan`): al dente = 1 minute
+ * less, yumuşak = 1 minute more, rounded to half minutes, timer clamped to 2–20.
  */
 export function pastaCookTime(input: PastaInput = {}): PastaTimeResult {
-  const texture: PastaTexture = input.texture === "yumusak" ? "yumusak" : "aldente";
-  let minutes: number;
-  let precook = false;
+  let pkg: number;
   if (input.type === "paket") {
     const parsed = parsePackageMinutes(input.packageMinutes);
     if (parsed === null) return { ok: false, error: "invalid_package_time" };
-    minutes = parsed;
+    pkg = parsed;
   } else {
-    const type = PASTA_TYPES.find(p => p.id === input.type) || PASTA_TYPES[0];
-    minutes = type.minutes;
-    precook = Boolean(type.precook);
+    const shape = PASTA_SHAPES.find(p => p.id === input.type);
+    if (!shape) return { ok: false, error: "unknown_type" };
+    pkg = shape.minutes;
   }
-  const offset = precook ? 0 : texture === "aldente" ? -1 : 1;
-  const seconds = Math.max(PASTA_MIN_SECONDS, Math.round((minutes + offset) * 60));
-  return { ok: true, seconds, precook, packageMinutes: minutes, texture: precook ? null : texture };
+  if (input.texture !== "al_dente" && input.texture !== "yumusak") return { ok: false, error: "unknown_texture" };
+  const texture: PastaTexture = input.texture;
+  const minutes = clamp(roundTo(pkg + (texture === "al_dente" ? -1 : 1), 0.5), PASTA_TIMER_RANGE[0], PASTA_TIMER_RANGE[1]);
+  return { ok: true, seconds: Math.round(minutes * 60), minutes, packageMinutes: pkg, texture, note: input.type === "taze" ? PASTA_FRESH_NOTE : null };
 }
 
 export interface PastaWaterSalt {
+  portions: number;
   grams: number;
   waterLiters: number;
   saltGrams: number;
-  /** Salt as a kitchen spoon amount, e.g. { amount: 1.5, unit: "yemek kaşığı" }. */
-  saltSpoon: { amount: number; unit: "yemek kaşığı" | "çay kaşığı" };
-  /** Rough servings at 100 g per main-course portion. */
-  servings: number;
+  /** "yaklaşık 1 ¾ tatlı kaşığı" (mobile `spoonHint`). */
+  saltHint: string;
+  note: string | null;
 }
 
-/** Clamp a portion to 50–1000 g in 50 g steps. */
-export function clampPastaGrams(value: unknown): number {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 200;
-  return clamp(Math.round(n / PASTA_GRAMS_STEP) * PASTA_GRAMS_STEP, PASTA_GRAMS_MIN, PASTA_GRAMS_MAX);
-}
-
-/** 1 L water and 10 g salt per 100 g pasta, scaled linearly. */
-export function pastaWaterSalt(gramsInput: unknown): PastaWaterSalt {
-  const grams = clampPastaGrams(gramsInput);
-  const waterLiters = (grams / 100) * PASTA_WATER_LITERS_PER_100G;
-  const saltGrams = (grams / 100) * PASTA_SALT_GRAMS_PER_100G;
-  const tbsp = Math.round((saltGrams / SALT_TBSP_GRAMS) * 2) / 2;
-  const saltSpoon = tbsp >= 1
-    ? { amount: tbsp, unit: "yemek kaşığı" as const }
-    : { amount: Math.max(0.5, Math.round((saltGrams / SALT_TSP_GRAMS) * 2) / 2), unit: "çay kaşığı" as const };
-  return { grams, waterLiters, saltGrams, saltSpoon, servings: Math.max(0.5, Math.round(grams / 50) / 2) };
+/** 100 g per portion (1–10), 1 L water and 10 g salt per 100 g; out of range → null. */
+export function pastaWaterSalt(portionsInput: unknown): PastaWaterSalt | null {
+  const portions = Math.round(Number(portionsInput));
+  if (!Number.isFinite(portions) || portions < PASTA_PORTION_RANGE[0] || portions > PASTA_PORTION_RANGE[1]) return null;
+  const grams = portions * PASTA_GRAMS_PER_PORTION;
+  const waterLiters = (grams / 100) * PASTA_WATER_L_PER_100G;
+  const saltGrams = (grams / 100) * PASTA_SALT_G_PER_100G;
+  return { portions, grams, waterLiters, saltGrams, saltHint: spoonHint(saltGrams, "tuz"), note: waterLiters > 6 ? PASTA_BIG_POT_NOTE : null };
 }
 
 /* ---------------------------------------------------------------- drying */
 
-export type DryingMethod = "oven" | "dehydrator" | "sun";
-export type DryingKind = "produce" | "herb";
+export type DryingFoodId = "domates" | "biber" | "patlican" | "elma" | "armut" | "kayisi" | "mantar" | "nane" | "kekik";
+export type DryingMethod = "firin" | "makine" | "gunes";
+export type DryingGroup = "sebze" | "meyve" | "ot";
 
 export const DRYING_METHODS: { id: DryingMethod; label: string }[] = [
-  { id: "oven", label: "Fırın" },
-  { id: "dehydrator", label: "Kurutma makinesi" },
-  { id: "sun", label: "Güneş / açık hava" },
+  { id: "firin", label: "Fırın" },
+  { id: "makine", label: "Kurutma makinesi" },
+  { id: "gunes", label: "Güneş" },
 ];
 
-/**
- * Safe air temperatures. Produce: warm enough to dry before spoiling, cool
- * enough not to cook or case-harden. Herbs: low heat keeps the aroma.
- */
-export const DRYING_SAFE_BOUNDS: Record<DryingKind, { min: number; max: number }> = {
-  produce: { min: 50, max: 70 },
-  herb: { min: 35, max: 50 },
+export interface DryingSpec {
+  prep: string;
+  /** null when drying happens at ambient temperature (sun, shade). */
+  tempC: [number, number] | null;
+  /** Ambient conditions or oven handling. */
+  conditions: string;
+  time: { min: number; max: number; unit: "saat" | "gün" };
+  ready: string;
+  storage: string;
+  notes: string[];
+}
+
+export interface DryingFood {
+  id: DryingFoodId;
+  label: string;
+  group: DryingGroup;
+  methods: Record<DryingMethod, DryingSpec | { notRecommended: string }>;
+}
+
+/** Safe bounds every spec must respect (checked by the tests). */
+export const DRYING_TEMP_LIMITS: Record<DryingGroup, [number, number]> = {
+  sebze: [50, 70],
+  meyve: [50, 70],
+  ot: [35, 50],
 };
 
 /** Sun drying only on hot, dry days. */
 export const SUN_MIN_AIR_C = 30;
 
-export interface DryingRange { min: number; max: number }
-export interface DryingTime extends DryingRange { unit: "saat" | "gün" }
+export const DRYING_GENERAL_NOTES = [
+  "Yalnızca taze, sağlam ve iyice yıkanmış ürün kurut; ezik ya da küflü kısımları ayıkla.",
+  "Dilimleri aynı kalınlıkta kes ve tepsiye üst üste gelmeden diz.",
+  "Et, tavuk ve balık kurutma (jerky) bu rehberde yok: güvenli olması için özel ısıl işlem ve ölçüm gerekir.",
+];
 
-export interface DryingMethodPlan {
-  /** Air temperature in °C; null for sun / open-air drying. */
-  temperature: DryingRange | null;
-  time: DryingTime;
-  note?: string;
-}
+export const DRYING_NO_MEAT_NOTE = "Et ve balık bu araçta yok. Güvenli kuru et ve balık için önce etin iç sıcaklığının 71 °C'ye ulaşması, ardından düzenli sıcaklık ve sıkı hijyen kontrolü gerekir. Ev fırını ya da güneş bunu güvenle sağlayamadığı için Salmonella ve E. coli gibi bakterilerin hayatta kalma riski yüksektir; bu yüzden et ve balık kurutmayı önermiyoruz.";
 
-export interface DryingFood {
-  id: string;
-  label: string;
-  kind: DryingKind;
-  prep: string;
-  ready: string;
-  storage: string;
-  methods: Partial<Record<DryingMethod, DryingMethodPlan>>;
-  /** Why a method is left out for this food. */
-  unsupported?: Partial<Record<DryingMethod, string>>;
-}
+/* Data below mirrors mobile DRYING_FOODS one to one (temperatures, times, sun rules, warnings). */
+const OVEN = "Fırını en düşük ısıya ayarla, kapağı tahta kaşıkla 3–5 cm aralık bırak; fanlı programı kullan. Tepsilerin yerini ara ara değiştir.";
+const DEHYDRATOR = "Raflar arasında hava dolaşsın; yarı sürede rafların yerini değiştir.";
+const SUN = "Hava en az 30 °C, güneşli ve nemi düşük olmalı. Tepsiyi yerden yükseğe koy, üstünü tülbentle ört; akşam çiğ düşmeden içeri al.";
+/** After sun drying fruit (mobile SUN_PASTEURIZE): kills insect eggs. */
+export const DRYING_SUN_PASTEURIZE = "Güneşte kuruyan ürünü saklamadan önce 48 saat dondurucuda beklet ya da 70 °C fırında 30 dakika tut; olası böcek yumurtalarından arınır.";
+const CONDITION = "Kavanoza gevşek doldurup 7–10 gün her gün çalkala; kavanozda buğu oluşursa kurutmaya geri dön.";
+const LOW_ACID = "Düşük asitli sebzelerde güneşte bozulma riski yüksek olduğu için önermiyoruz; fırın ya da kurutma makinesini kullan.";
+const OIL_TOMATO = "Yağlı domatesi oda sıcaklığında saklama: botulizm riski taşır.";
+const WILD_MUSHROOM = "Yalnızca market ya da güvenilir kaynaktan kültür mantarı kurut; yabani mantarı tanımadan toplama.";
+const HERB_OVEN = "Fırının en düşük ısısı 50 °C üstündeyse fırın yerine gölgede kurut. Kapağı aralık bırak, sık kontrol et.";
+const HERB_DEHYDRATOR = "En düşük ayarı kullan; yüksek ısı aromayı uçurur.";
 
-const FRUIT_STORAGE = "Önce şartlandır: kavanozu üçte iki dolduracak kadar koy, 7–10 gün her gün çalkala. Camda buğu ya da nem görürsen kurumaya geri gönder. Sonra hava almayan kavanozda serin ve karanlık yerde 6–12 ay saklanır.";
-const VEG_STORAGE = "Tamamen soğuyunca kuru, hava almayan kavanoza ya da bez torbaya koy; serin, kuru ve karanlık yerde 6–12 ay saklanır. Küf, koku ya da nem görürsen tüketme.";
+const FRUIT_STORAGE = `Ağzı sıkı kapanan kavanozda, serin ve karanlık yerde 6 aya kadar; daha uzun saklamak için dondurucuya al. ${CONDITION}`;
+const VEG_STORAGE = "Ağzı sıkı kapanan kavanozda, serin ve karanlık yerde 6 aya kadar. Nem kapmışsa ya da kokusu değiştiyse tüketme.";
+const TOMATO_STORAGE = `${FRUIT_STORAGE} Zeytinyağına yatırırsan buzdolabında sakla ve 1 hafta içinde tüket.`;
+const MINT_STORAGE = "Işık almayan, ağzı kapalı kavanozda; aroması 6–12 ayda azalır. Kullanırken ufala.";
+const THYME_STORAGE = "Işık almayan, ağzı kapalı kavanozda; aroması 6–12 ayda azalır.";
 
 export const DRYING_FOODS: DryingFood[] = [
   {
-    id: "domates", label: "Domates", kind: "produce",
-    prep: "Olgun ama sert domatesleri yıka. Çeri domatesi ikiye böl, iri domatesi 1 cm kalınlıkta dilimle ya da dörde böl. Kesik yüzü yukarıda, parçalar birbirine değmeden diz; istersen hafifçe tuzla.",
-    ready: "Deri gibi esnek ve kuru; sıkınca nem çıkmıyor, yapış yapış değil. Ortası hâlâ sulu olanları kurumaya devam ettir.",
-    storage: "Tamamen soğuyunca hava almayan kavanozda serin ve karanlık yerde 6 aya kadar saklanır. Zeytinyağına yatıracaksan buzdolabında tut ve 1 hafta içinde tüket; yağda oda sıcaklığında bekletme.",
+    id: "domates", label: "Domates", group: "meyve",
     methods: {
-      oven: { temperature: { min: 60, max: 70 }, time: { min: 8, max: 14, unit: "saat" } },
-      dehydrator: { temperature: { min: 57, max: 63 }, time: { min: 6, max: 12, unit: "saat" } },
-      sun: { temperature: null, time: { min: 4, max: 8, unit: "gün" } },
+      firin: {
+        prep: "İkiye ya da 1 cm kalın dilimlere böl; çekirdekli suyunu hafifçe al. Kesik yüz yukarı gelecek şekilde diz, az tuz serp.",
+        tempC: [60, 70], conditions: OVEN, time: { min: 6, max: 12, unit: "saat" },
+        ready: "Deri gibi esnek; sıkınca nem çıkmıyor, ortası yapış yapış değil.", storage: TOMATO_STORAGE, notes: [OIL_TOMATO],
+      },
+      makine: {
+        prep: "İkiye ya da 1 cm kalın dilimlere böl; çekirdekli suyunu hafifçe al. Kesik yüz yukarı gelecek şekilde diz, az tuz serp.",
+        tempC: [55, 60], conditions: DEHYDRATOR, time: { min: 8, max: 16, unit: "saat" },
+        ready: "Deri gibi esnek; sıkınca nem çıkmıyor, ortası yapış yapış değil.", storage: TOMATO_STORAGE, notes: [OIL_TOMATO],
+      },
+      gunes: {
+        prep: "İkiye böl, çekirdekli suyunu hafifçe al; kesik yüzlere tuz serp ve tepsiye diz.",
+        tempC: null, conditions: SUN, time: { min: 4, max: 8, unit: "gün" },
+        ready: "Deri gibi esnek; sıkınca nem çıkmıyor, ortası yapış yapış değil.", storage: TOMATO_STORAGE, notes: [DRYING_SUN_PASTEURIZE, OIL_TOMATO],
+      },
     },
   },
   {
-    id: "biber", label: "Biber", kind: "produce",
-    prep: "Yıka, sapını ve çekirdeklerini çıkar; 1 cm şeritler ya da halkalar halinde kes. Dolmalık biber kurusu için bütün biberi oyup ipe diz (bu yalnızca güneşte kurutulur).",
-    ready: "Sert ve kırılgan ya da deri gibi esnek; içinde nem kalmamış. İpe dizili bütün biberlerin içi de tamamen kurumuş olmalı.",
-    storage: VEG_STORAGE,
+    id: "biber", label: "Biber", group: "sebze",
     methods: {
-      oven: { temperature: { min: 60, max: 70 }, time: { min: 6, max: 10, unit: "saat" } },
-      dehydrator: { temperature: { min: 57, max: 63 }, time: { min: 8, max: 12, unit: "saat" } },
-      sun: { temperature: null, time: { min: 5, max: 14, unit: "gün" }, note: "İpe dizili bütün biber şeritlerden daha uzun sürer." },
+      firin: {
+        prep: "Sap ve çekirdeklerini çıkar; 1 cm şeritler ya da halkalar halinde doğra. Acı biberde eldiven kullan.",
+        tempC: [60, 70], conditions: OVEN, time: { min: 6, max: 10, unit: "saat" },
+        ready: "Gevrek ve kırılgan; büküldüğünde çıt diye kırılıyor.", storage: VEG_STORAGE, notes: [],
+      },
+      makine: {
+        prep: "Sap ve çekirdeklerini çıkar; 1 cm şeritler ya da halkalar halinde doğra. Acı biberde eldiven kullan.",
+        tempC: [55, 60], conditions: DEHYDRATOR, time: { min: 8, max: 12, unit: "saat" },
+        ready: "Gevrek ve kırılgan; büküldüğünde çıt diye kırılıyor.", storage: VEG_STORAGE, notes: [],
+      },
+      gunes: { notRecommended: `Biber geleneksel olarak güneşte de kurutulur. ${LOW_ACID}` },
     },
   },
   {
-    id: "patlican", label: "Patlıcan", kind: "produce",
-    prep: "Yıka, 1 cm kalınlıkta dilimle ve 4 dakika buharda haşla; rengi ve dokusu korunur. Dolmalık patlıcan kurusu için bütün patlıcanı oyup ipe diz (haşlamadan, yalnızca güneşte).",
-    ready: "Deri gibi sert ya da kırılgan; dilimin ortasında yumuşak yer kalmamış.",
-    storage: VEG_STORAGE,
+    id: "patlican", label: "Patlıcan", group: "sebze",
     methods: {
-      oven: { temperature: { min: 60, max: 70 }, time: { min: 6, max: 10, unit: "saat" } },
-      dehydrator: { temperature: { min: 57, max: 63 }, time: { min: 6, max: 12, unit: "saat" } },
-      sun: { temperature: null, time: { min: 7, max: 14, unit: "gün" }, note: "İpe dizili bütün patlıcan dilimlerden daha uzun sürer." },
+      firin: {
+        prep: "6 mm kalın dilimle. Kaynar suda 3–4 dakika haşla, soğuk suya alıp iyice kurula; renk ve güvenlik için önerilir.",
+        tempC: [60, 70], conditions: OVEN, time: { min: 4, max: 8, unit: "saat" },
+        ready: "Gevrek ve kırılgan; ortasında nem kalmamış.", storage: VEG_STORAGE, notes: [],
+      },
+      makine: {
+        prep: "6 mm kalın dilimle. Kaynar suda 3–4 dakika haşla, soğuk suya alıp iyice kurula; renk ve güvenlik için önerilir.",
+        tempC: [55, 60], conditions: DEHYDRATOR, time: { min: 6, max: 10, unit: "saat" },
+        ready: "Gevrek ve kırılgan; ortasında nem kalmamış.", storage: VEG_STORAGE, notes: [],
+      },
+      gunes: { notRecommended: `Dolmalık patlıcan geleneksel olarak güneşte de kurutulur. ${LOW_ACID}` },
     },
   },
   {
-    id: "elma", label: "Elma", kind: "produce",
-    prep: "Yıka, çekirdek evini çıkar; kabuklu ya da kabuksuz 0,5 cm halkalar halinde kes. Kararmaması için 1 litre suya 1 limonun suyunu kat, dilimleri 5 dakika beklet, süz ve kurula.",
-    ready: "Deri gibi esnek; ortadan kesince ıslaklık görünmüyor, ikiye katlayınca yapışmıyor.",
-    storage: FRUIT_STORAGE,
+    id: "elma", label: "Elma", group: "meyve",
     methods: {
-      oven: { temperature: { min: 60, max: 70 }, time: { min: 6, max: 10, unit: "saat" } },
-      dehydrator: { temperature: { min: 57, max: 63 }, time: { min: 6, max: 12, unit: "saat" } },
-      sun: { temperature: null, time: { min: 3, max: 5, unit: "gün" } },
+      firin: {
+        prep: "Çekirdek evini çıkar, 6 mm halkalar kes. Kararmasın diye 1 litre suya 1 limonun suyunu ekleyip dilimleri 10 dakika beklet, kurula.",
+        tempC: [60, 70], conditions: OVEN, time: { min: 5, max: 10, unit: "saat" },
+        ready: "Deri gibi esnek; ikiye kesince içinde nem görünmüyor.", storage: FRUIT_STORAGE, notes: [],
+      },
+      makine: {
+        prep: "Çekirdek evini çıkar, 6 mm halkalar kes. Kararmasın diye 1 litre suya 1 limonun suyunu ekleyip dilimleri 10 dakika beklet, kurula.",
+        tempC: [55, 60], conditions: DEHYDRATOR, time: { min: 6, max: 12, unit: "saat" },
+        ready: "Deri gibi esnek; ikiye kesince içinde nem görünmüyor.", storage: FRUIT_STORAGE, notes: [],
+      },
+      gunes: {
+        prep: "Çekirdek evini çıkar, 6 mm halkalar kes; limonlu suda 10 dakika beklet, kurula.",
+        tempC: null, conditions: SUN, time: { min: 2, max: 4, unit: "gün" },
+        ready: "Deri gibi esnek; ikiye kesince içinde nem görünmüyor.", storage: FRUIT_STORAGE, notes: [DRYING_SUN_PASTEURIZE],
+      },
     },
   },
   {
-    id: "kayisi", label: "Kayısı", kind: "produce",
-    prep: "Olgun ama sert kayısıları yıka, ikiye bölüp çekirdeğini çıkar. Kararmaması için limonlu suda 10 dakika beklet. Kesik yüzü yukarıda, aralıklı diz.",
-    ready: "Deri gibi esnek, ortası yumuşak ama ıslak değil; sıkınca su çıkmıyor.",
-    storage: FRUIT_STORAGE,
+    id: "armut", label: "Armut", group: "meyve",
     methods: {
-      oven: { temperature: { min: 60, max: 70 }, time: { min: 18, max: 28, unit: "saat" } },
-      dehydrator: { temperature: { min: 57, max: 63 }, time: { min: 20, max: 28, unit: "saat" } },
-      sun: { temperature: null, time: { min: 4, max: 7, unit: "gün" } },
+      firin: {
+        prep: "Kabuğunu soy, çekirdek evini çıkar; 6 mm dilimle. Limonlu suda 10 dakika beklet, kurula.",
+        tempC: [60, 70], conditions: OVEN, time: { min: 6, max: 12, unit: "saat" },
+        ready: "Esnek ve hafif yumuşak; sıkınca nem çıkmıyor.", storage: FRUIT_STORAGE, notes: [],
+      },
+      makine: {
+        prep: "Kabuğunu soy, çekirdek evini çıkar; 6 mm dilimle. Limonlu suda 10 dakika beklet, kurula.",
+        tempC: [55, 60], conditions: DEHYDRATOR, time: { min: 8, max: 14, unit: "saat" },
+        ready: "Esnek ve hafif yumuşak; sıkınca nem çıkmıyor.", storage: FRUIT_STORAGE, notes: [],
+      },
+      gunes: {
+        prep: "Kabuğunu soy, çekirdek evini çıkar; 6 mm dilimle. Limonlu suda 10 dakika beklet, kurula.",
+        tempC: null, conditions: SUN, time: { min: 3, max: 5, unit: "gün" },
+        ready: "Esnek ve hafif yumuşak; sıkınca nem çıkmıyor.", storage: FRUIT_STORAGE, notes: [DRYING_SUN_PASTEURIZE],
+      },
     },
   },
   {
-    id: "mantar", label: "Mantar", kind: "produce",
-    prep: "Yıkamak yerine nemli bir bezle sil, 0,5 cm dilimle. Yalnızca kültür mantarı ya da güvenilir yerden alınmış mantar kullan.",
-    ready: "Kâğıt gibi kuru; büktüğünde esnemeden kırılıyor.",
-    storage: "Hava almayan kavanozda serin ve karanlık yerde 6–12 ay saklanır. Kullanmadan önce 20 dakika ılık suda beklet; süzülmüş suyunu yemeğe katabilirsin.",
+    id: "kayisi", label: "Kayısı", group: "meyve",
     methods: {
-      oven: { temperature: { min: 60, max: 65 }, time: { min: 4, max: 8, unit: "saat" } },
-      dehydrator: { temperature: { min: 52, max: 60 }, time: { min: 4, max: 10, unit: "saat" } },
+      firin: {
+        prep: "İkiye böl, çekirdeğini çıkar. Limonlu suda 10 dakika beklet, kurula; kesik yüz yukarı gelecek şekilde diz.",
+        tempC: [60, 70], conditions: OVEN, time: { min: 12, max: 20, unit: "saat" },
+        ready: "Esnek, yapışkan değil; ikiye katlayınca nem damlası çıkmıyor.", storage: FRUIT_STORAGE, notes: [],
+      },
+      makine: {
+        prep: "İkiye böl, çekirdeğini çıkar. Limonlu suda 10 dakika beklet, kurula; kesik yüz yukarı gelecek şekilde diz.",
+        tempC: [55, 60], conditions: DEHYDRATOR, time: { min: 18, max: 30, unit: "saat" },
+        ready: "Esnek, yapışkan değil; ikiye katlayınca nem damlası çıkmıyor.", storage: FRUIT_STORAGE, notes: [],
+      },
+      gunes: {
+        prep: "İkiye böl, çekirdeğini çıkar; kesik yüz yukarı gelecek şekilde diz.",
+        tempC: null, conditions: SUN, time: { min: 3, max: 6, unit: "gün" },
+        ready: "Esnek, yapışkan değil; ikiye katlayınca nem damlası çıkmıyor.", storage: FRUIT_STORAGE, notes: [DRYING_SUN_PASTEURIZE],
+      },
     },
-    unsupported: { sun: "Mantar güneşte yavaş kurur ve kururken bozulabilir. Fırın ya da kurutma makinesi kullan." },
   },
   {
-    id: "nane-kekik", label: "Nane ve kekik", kind: "herb",
-    prep: "Sabah çiy kalktıktan sonra topla. Gerekiyorsa yıka ve iyice kurula; sararmış yaprakları ayıkla. Küçük demetler yap ya da tepsiye tek kat ser.",
-    ready: "Yapraklar parmak arasında ufalanıyor, saplar bükünce kırılıyor.",
-    storage: "Yaprakları saplarından ayır; hava almayan, mümkünse koyu renkli kavanozda ışıktan uzak sakla. Aroması en iyi 6–12 ay korunur.",
+    id: "mantar", label: "Mantar", group: "sebze",
     methods: {
-      oven: { temperature: { min: 40, max: 50 }, time: { min: 2, max: 4, unit: "saat" }, note: "Fırının bu kadar düşük ısıyı tutamıyorsa gölgede kurut; yüksek ısıda aroma uçar." },
-      dehydrator: { temperature: { min: 35, max: 45 }, time: { min: 1, max: 4, unit: "saat" } },
-      sun: { temperature: null, time: { min: 5, max: 14, unit: "gün" } },
+      firin: {
+        prep: "Yıkamadan, nemli bezle ya da fırçayla temizle; 6 mm dilimle.",
+        tempC: [55, 65], conditions: OVEN, time: { min: 3, max: 6, unit: "saat" },
+        ready: "Kuru ve sert; büküldüğünde kırılıyor.", storage: VEG_STORAGE, notes: [WILD_MUSHROOM],
+      },
+      makine: {
+        prep: "Yıkamadan, nemli bezle ya da fırçayla temizle; 6 mm dilimle.",
+        tempC: [50, 55], conditions: DEHYDRATOR, time: { min: 4, max: 8, unit: "saat" },
+        ready: "Kuru ve sert; büküldüğünde kırılıyor.", storage: VEG_STORAGE, notes: [WILD_MUSHROOM],
+      },
+      gunes: { notRecommended: `Mantar nemi hızla çeker. ${LOW_ACID}` },
+    },
+  },
+  {
+    id: "nane", label: "Nane", group: "ot",
+    methods: {
+      firin: {
+        prep: "Yıkayıp iyice kurula; yaprakları saplarından ayır ve tepsiye tek kat ser.",
+        tempC: [40, 50], conditions: HERB_OVEN, time: { min: 1, max: 3, unit: "saat" },
+        ready: "Yapraklar parmakta ufalanıyor, saplar çıt diye kırılıyor.", storage: MINT_STORAGE, notes: [],
+      },
+      makine: {
+        prep: "Yıkayıp iyice kurula; yaprakları saplarından ayır ve rafa tek kat ser.",
+        tempC: [35, 45], conditions: HERB_DEHYDRATOR, time: { min: 2, max: 4, unit: "saat" },
+        ready: "Yapraklar parmakta ufalanıyor, saplar çıt diye kırılıyor.", storage: MINT_STORAGE, notes: [],
+      },
+      gunes: {
+        prep: "Yıkayıp iyice kurula; küçük demetler halinde bağla.",
+        tempC: null, conditions: "Doğrudan güneş rengini ve aromasını soldurur: demetleri gölgede, havadar bir yerde baş aşağı as ya da tülbent üstüne ser.",
+        time: { min: 5, max: 10, unit: "gün" },
+        ready: "Yapraklar parmakta ufalanıyor, saplar çıt diye kırılıyor.", storage: MINT_STORAGE, notes: [],
+      },
+    },
+  },
+  {
+    id: "kekik", label: "Kekik", group: "ot",
+    methods: {
+      firin: {
+        prep: "Yıkayıp iyice kurula; dalları tepsiye tek kat ser.",
+        tempC: [40, 50], conditions: HERB_OVEN, time: { min: 1, max: 2, unit: "saat" },
+        ready: "Yapraklar dallardan kolayca dökülüyor ve ufalanıyor.", storage: THYME_STORAGE, notes: [],
+      },
+      makine: {
+        prep: "Yıkayıp iyice kurula; dalları rafa tek kat ser.",
+        tempC: [35, 45], conditions: HERB_DEHYDRATOR, time: { min: 2, max: 4, unit: "saat" },
+        ready: "Yapraklar dallardan kolayca dökülüyor ve ufalanıyor.", storage: THYME_STORAGE, notes: [],
+      },
+      gunes: {
+        prep: "Yıkayıp iyice kurula; küçük demetler halinde bağla.",
+        tempC: null, conditions: "Doğrudan güneş yerine gölgede, havadar bir yerde baş aşağı as.",
+        time: { min: 5, max: 10, unit: "gün" },
+        ready: "Yapraklar dallardan kolayca dökülüyor ve ufalanıyor.", storage: THYME_STORAGE, notes: [],
+      },
     },
   },
 ];
 
-export const DRYING_METHOD_NOTES: Record<DryingMethod, string> = {
-  oven: "Fırın kapağını tahta bir kaşıkla 3–5 cm aralık bırak ki nem çıksın; fanlı modu kullan. Sıcaklığı bir fırın termometresiyle kontrol et, tepsileri ara ara çevir.",
-  dehydrator: "Tepsileri tek kat doldur, parçalar birbirine değmesin. Kurumanın eşit olması için tepsilerin yerini ara ara değiştir.",
-  sun: `Yalnızca gündüz en az ${SUN_MIN_AIR_C} °C, nemi düşük (yaklaşık %60 altı), rüzgârlı ve tozsuz günlerde kurut. Tepsiyi yerden yükselt, üstünü tülbentle ört ve akşam içeri al; gece çiyi yeniden nemlendirir.`,
-};
-
-export const DRYING_HERB_SHADE_NOTE = "Otları doğrudan güneşte değil; gölgede, havadar ve tozsuz bir yerde kurut. Güneş rengini ve aromasını soldurur.";
-
-/** After sun drying fruit or vegetables (NCHFP): kills insect eggs. */
-export const DRYING_SUN_PASTEURIZE = "Bitince böcek yumurtalarına karşı son bir işlem yap: 48 saat dondurucuda (−18 °C) beklet ya da tek kat tepside 75 °C fırında 30 dakika tut.";
-
-export const DRYING_NO_MEAT_NOTE = "Et ve balık bu araçta yok. Güvenli kuru et ve balık için önce etin iç sıcaklığının 71 °C'ye ulaşması, ardından düzenli sıcaklık ve sıkı hijyen kontrolü gerekir. Ev fırını ya da güneş bunu güvenle sağlayamadığı için Salmonella ve E. coli gibi bakterilerin hayatta kalma riski yüksektir; bu yüzden et ve balık kurutmayı önermiyoruz.";
-
 export type DryingPlanResult =
-  | {
-    ok: true; food: DryingFood; method: DryingMethod; plan: DryingMethodPlan;
-    /** Extra notes for the method: oven/dehydrator handling, sun conditions, herb shade. */
-    methodNotes: string[];
-    /** Required finishing step (sun-dried produce). */
+  | ({
+    ok: true; food: DryingFood; method: DryingMethod; tempLabel: string; timeLabel: string;
+    /** The post-sun freezer/oven step when it applies (also kept in `notes`, as on mobile). */
     finish: string | null;
-  }
+  } & DryingSpec)
   | { ok: false; error: "unknown_food" | "unknown_method" }
-  | { ok: false; error: "unsupported"; food: DryingFood; method: DryingMethod; reason: string; alternatives: DryingMethod[] };
+  | { ok: false; error: "not_recommended"; food: DryingFood; method: DryingMethod; reason: string; alternatives: DryingMethod[] };
 
+/** Food × method, same rules as mobile `dryingPlan`. Meat, fish and unknown foods are refused. */
 export function dryingPlan(foodId: unknown, methodId: unknown): DryingPlanResult {
   const food = DRYING_FOODS.find(f => f.id === foodId);
   if (!food) return { ok: false, error: "unknown_food" };
   const method = DRYING_METHODS.find(m => m.id === methodId)?.id;
   if (!method) return { ok: false, error: "unknown_method" };
-  const plan = food.methods[method];
-  if (!plan) {
+  const spec = food.methods[method];
+  if ("notRecommended" in spec) {
     return {
-      ok: false, error: "unsupported", food, method,
-      reason: food.unsupported?.[method] || "Bu yöntem bu yiyecek için önerilmiyor.",
-      alternatives: DRYING_METHODS.map(m => m.id).filter(id => food.methods[id]),
+      ok: false, error: "not_recommended", food, method, reason: spec.notRecommended,
+      alternatives: DRYING_METHODS.map(m => m.id).filter(m => m !== method && !("notRecommended" in food.methods[m])),
     };
   }
-  const methodNotes = method === "sun" && food.kind === "herb" ? [DRYING_HERB_SHADE_NOTE] : [DRYING_METHOD_NOTES[method]];
-  const finish = method === "sun" && food.kind === "produce" ? DRYING_SUN_PASTEURIZE : null;
-  return { ok: true, food, method, plan, methodNotes, finish };
-}
-
-/** True when every temperature in the table sits inside the safe bounds. */
-export function dryingRangeIsSafe(kind: DryingKind, range: DryingRange | null): boolean {
-  if (range === null) return true;
-  const bounds = DRYING_SAFE_BOUNDS[kind];
-  return range.min >= bounds.min && range.max <= bounds.max && range.min <= range.max;
-}
-
-export function formatRange(range: DryingRange, unit: string): string {
-  return range.min === range.max ? `${range.min} ${unit}` : `${range.min}–${range.max} ${unit}`;
+  const tempLabel = spec.tempC
+    ? `${spec.tempC[0]}–${spec.tempC[1]} °C`
+    : method === "gunes" && food.group === "ot" ? "Gölgede, oda sıcaklığı" : `Hava en az ${SUN_MIN_AIR_C} °C`;
+  const timeLabel = `${spec.time.min}–${spec.time.max} ${spec.time.unit}`;
+  const finish = spec.notes.includes(DRYING_SUN_PASTEURIZE) ? DRYING_SUN_PASTEURIZE : null;
+  return { ok: true, food, method, tempLabel, timeLabel, finish, ...spec };
 }
 
 /* --------------------------------------------------------------- measure */
@@ -519,77 +631,81 @@ export const MEASURE_UNITS: { id: MeasureUnitId; label: string; short: string; m
   { id: "g", label: "Gram (g)", short: "g", ml: null },
 ];
 
-/** Grams per ml, level (silme) measures. */
-export const MEASURE_INGREDIENTS: { id: string; label: string; density: number }[] = [
-  { id: "un", label: "Un (elenmiş)", density: 0.55 },
-  { id: "toz-seker", label: "Toz şeker", density: 0.84 },
-  { id: "pudra-sekeri", label: "Pudra şekeri", density: 0.5 },
-  { id: "esmer-seker", label: "Esmer şeker (bastırılmış)", density: 0.9 },
-  { id: "pirinc", label: "Pirinç (çiğ)", density: 0.84 },
-  { id: "irmik", label: "İrmik", density: 0.75 },
-  { id: "nisasta", label: "Mısır nişastası", density: 0.5 },
-  { id: "kakao", label: "Kakao", density: 0.4 },
-  { id: "tuz", label: "Tuz (sofra tuzu)", density: 1.2 },
-  { id: "kabartma-tozu", label: "Kabartma tozu", density: 0.8 },
-  { id: "karbonat", label: "Karbonat", density: 1.2 },
-  { id: "tereyagi", label: "Tereyağı", density: 0.95 },
-  { id: "sut", label: "Süt", density: 1.03 },
-  { id: "su", label: "Su", density: 1 },
-  { id: "yogurt", label: "Yoğurt", density: 1.03 },
-  { id: "sivi-yag", label: "Sıvı yağ", density: 0.92 },
-  { id: "zeytinyagi", label: "Zeytinyağı", density: 0.91 },
-  { id: "bal", label: "Bal", density: 1.42 },
+/**
+ * Grams per ml, level (silme) measures. Every ingredient mobile has uses the
+ * mobile density and key; esmer şeker, kabartma tozu and karbonat are web-only.
+ */
+export const MEASURE_INGREDIENTS: { id: string; label: string; density: number; aliases: string[] }[] = [
+  { id: "un", label: "Un", density: 0.55, aliases: ["buğday unu", "beyaz un"] },
+  { id: "seker", label: "Toz şeker", density: 0.85, aliases: ["şeker", "toz şeker", "kristal şeker"] },
+  { id: "pudra_sekeri", label: "Pudra şekeri", density: 0.56, aliases: ["pudra şekeri", "pudra"] },
+  { id: "esmer_seker", label: "Esmer şeker (bastırılmış)", density: 0.9, aliases: ["esmer şeker"] },
+  { id: "pirinc", label: "Pirinç", density: 0.85, aliases: ["pirinç", "baldo", "osmancık"] },
+  { id: "bulgur", label: "Bulgur", density: 0.75, aliases: ["bulgur", "pilavlık bulgur"] },
+  { id: "mercimek", label: "Mercimek", density: 0.85, aliases: ["mercimek", "kırmızı mercimek", "yeşil mercimek"] },
+  { id: "tuz", label: "Tuz", density: 1.2, aliases: ["tuz", "sofra tuzu", "ince tuz"] },
+  { id: "kabartma_tozu", label: "Kabartma tozu", density: 0.8, aliases: ["kabartma tozu"] },
+  { id: "karbonat", label: "Karbonat", density: 1.2, aliases: ["karbonat", "yemek sodası"] },
+  { id: "tereyagi", label: "Tereyağı", density: 0.91, aliases: ["tereyağı", "tereyag", "margarin"] },
+  { id: "sut", label: "Süt", density: 1.03, aliases: ["süt"] },
+  { id: "su", label: "Su", density: 1, aliases: ["su"] },
+  { id: "yogurt", label: "Yoğurt", density: 1.05, aliases: ["yoğurt"] },
+  { id: "sivi_yag", label: "Sıvı yağ", density: 0.92, aliases: ["sıvı yağ", "yağ", "ayçiçek yağı", "mısırözü yağı"] },
+  { id: "zeytinyagi", label: "Zeytinyağı", density: 0.91, aliases: ["zeytinyağı", "zeytin yağı"] },
+  { id: "bal", label: "Bal", density: 1.42, aliases: ["bal"] },
+  { id: "kakao", label: "Kakao", density: 0.42, aliases: ["kakao", "kakao tozu"] },
+  { id: "irmik", label: "İrmik", density: 0.75, aliases: ["irmik"] },
+  { id: "nisasta", label: "Nişasta", density: 0.55, aliases: ["nişasta", "mısır nişastası", "buğday nişastası"] },
 ];
 
-/** Largest amount converted: 20 litres / 20 kg. Anything bigger is a typo. */
-export const MEASURE_MAX_ML = 20000;
-export const MEASURE_MAX_G = 20000;
+const trLower = (s: string) => s.replace(/I/g, "ı").replace(/İ/g, "i").toLocaleLowerCase("tr-TR").replace(/\s+/g, " ").trim();
 
-const UNICODE_FRACTIONS: Record<string, number> = { "¼": 0.25, "½": 0.5, "¾": 0.75, "⅓": 1 / 3, "⅔": 2 / 3, "⅛": 0.125 };
-
-/**
- * Amount as people type it: "2", "1,5", "1.5", "1/2", "1 1/2", "1½", "½".
- * Null for anything else (including negatives and zero).
- */
-export function parseAmount(value: unknown): number | null {
-  if (typeof value === "number") return Number.isFinite(value) && value > 0 ? value : null;
-  if (typeof value !== "string") return null;
-  let s = value.trim().replace(/\s+/g, " ");
-  if (!s) return null;
-  let extra = 0;
-  const uni = s.match(/^(\d+)?\s?([¼½¾⅓⅔⅛])$/);
-  if (uni) {
-    extra = UNICODE_FRACTIONS[uni[2]];
-    s = uni[1] || "0";
-    const whole = Number(s);
-    const total = whole + extra;
-    return total > 0 ? total : null;
-  }
-  const mixed = s.match(/^(\d+) (\d+)\/(\d+)$/);
-  if (mixed) {
-    const den = Number(mixed[3]);
-    if (den === 0) return null;
-    const total = Number(mixed[1]) + Number(mixed[2]) / den;
-    return total > 0 ? total : null;
-  }
-  const frac = s.match(/^(\d+)\/(\d+)$/);
-  if (frac) {
-    const den = Number(frac[2]);
-    if (den === 0) return null;
-    const total = Number(frac[1]) / den;
-    return total > 0 ? total : null;
-  }
-  if (!/^\d+(?:[.,]\d+)?$/.test(s)) return null;
-  const n = Number(s.replace(",", "."));
-  return Number.isFinite(n) && n > 0 ? n : null;
+/** Density for an id or a Turkish name (aliases, any case); null when unknown. */
+export function ingredientDensity(nameOrId: unknown): { id: string; label: string; density: number } | null {
+  if (typeof nameOrId !== "string" || !nameOrId.trim()) return null;
+  const q = trLower(nameOrId);
+  const hit = MEASURE_INGREDIENTS.find(i => i.id === nameOrId || trLower(i.label) === q || i.aliases.some(a => trLower(a) === q));
+  return hit ? { id: hit.id, label: hit.label, density: hit.density } : null;
 }
 
-/** Sensible rounding for grams / ml: <1 → 0.1, <10 → 0.5, <100 → 1, else 5. */
-export function roundMetric(value: number): number {
-  if (value < 1) return Math.max(0.1, Math.round(value * 10) / 10);
-  if (value < 10) return Math.round(value * 2) / 2;
-  if (value < 100) return Math.round(value);
-  return Math.round(value / 5) * 5;
+/** Largest amount converted: 10 litres (grams count through their density, as on mobile). */
+export const MEASURE_MAX_ML = 10_000;
+
+/** Household units (cups, spoons) are only shown between ¼ and 20, as on mobile. */
+export const MEASURE_HOUSEHOLD_RANGE: [number, number] = [0.25, 20];
+
+/** Mobile rounding: grams/ml by size (0,5 · 1 · 5 · 10); cups and spoons to quarters. */
+export function roundMeasure(value: number, unit: MeasureUnitId): number {
+  if (unit === "g" || unit === "ml") {
+    if (value < 10) return roundTo(value, 0.5);
+    if (value < 100) return Math.round(value);
+    if (value < 1000) return roundTo(value, 5);
+    return roundTo(value, 10);
+  }
+  return roundTo(value, 0.25);
+}
+
+/** 1.5 → "1 ½ su bardağı", 0.25 → "¼ çay kaşığı"; grams/ml with a Turkish decimal comma. */
+export function formatMeasure(value: number, unit: MeasureUnitId): string {
+  const v = roundMeasure(value, unit);
+  if (unit === "g" || unit === "ml") return `${formatNumberTr(v)} ${unit}`;
+  const whole = Math.floor(v + 1e-9);
+  const frac = Math.round((v - whole) * 4);
+  const glyph = ["", "¼", "½", "¾"][frac] || "";
+  const num = whole && glyph ? `${whole} ${glyph}` : whole ? String(whole) : glyph || "0";
+  return `${num} ${MEASURE_UNITS.find(u => u.id === unit)?.short || ""}`.trim();
+}
+
+/** "yaklaşık ¾ tatlı kaşığı" style hint for a weight (salt for pasta water, etc.). */
+export function spoonHint(grams: number, ingredient: string): string {
+  const info = ingredientDensity(ingredient);
+  if (!info || !(grams > 0)) return "";
+  const ml = grams / info.density;
+  const tbsp = ml / 15;
+  if (tbsp >= 2) return `yaklaşık ${formatMeasure(tbsp, "yemek_kasigi")}`;
+  const dsp = ml / 10;
+  if (dsp >= 0.75) return `yaklaşık ${formatMeasure(dsp, "tatli_kasigi")}`;
+  return `yaklaşık ${formatMeasure(Math.max(0.25, ml / 5), "cay_kasigi")}`;
 }
 
 export interface MeasureAmount {
@@ -598,10 +714,10 @@ export interface MeasureAmount {
   value: number;
   /** Rounded value shown to people. */
   rounded: number;
-  /** "1½ su bardağı", "120 g". */
+  /** "1 ½ su bardağı", "120 g"; for an out-of-range cup/spoon a "¼ … az" / "20 … fazla" hint. */
   text: string;
-  /** Less than ¼ of a household unit: too small to measure with it. */
-  tooSmall: boolean;
+  /** A cup or spoon amount under ¼ or over 20: mobile hides such rows. */
+  outOfRange: boolean;
 }
 
 export type MeasureResult =
@@ -612,59 +728,55 @@ export const MEASURE_ERRORS: Record<"invalid_amount" | "unknown_unit" | "unknown
   invalid_amount: "Sıfırdan büyük bir miktar yaz: 2, 1,5 ya da 1/2 gibi.",
   unknown_unit: "Bu ölçü birimini tanımıyoruz.",
   unknown_ingredient: "Gram çevirisi için malzemeyi seç. Listede olmayan bir malzemenin yoğunluğunu bilmediğimiz için gram hesaplamıyoruz; bardak, kaşık ve ml arasında çevirebilirsin.",
-  too_large: "Bu miktar bir mutfak ölçüsü için çok büyük; 20 litre / 20 kg'a kadar çevirebiliriz.",
+  too_large: "Bu kadar büyük bir miktarı çevirmiyoruz; 10 litre / 10 kg altında bir değer yaz.",
 };
 
-function amountIn(unit: (typeof MEASURE_UNITS)[number], ml: number, grams: number | null): MeasureAmount | null {
-  if (unit.ml === null) {
-    if (grams === null) return null;
-    const rounded = roundMetric(grams);
-    return { unit: unit.id, value: grams, rounded, text: `${formatDecimal(rounded)} g`, tooSmall: false };
-  }
-  const value = ml / unit.ml;
-  if (unit.id === "ml") {
-    const rounded = roundMetric(value);
-    return { unit: unit.id, value, rounded, text: `${formatDecimal(rounded)} ml`, tooSmall: false };
-  }
-  const rounded = Math.round(value * 4) / 4;
-  const tooSmall = rounded === 0;
-  return { unit: unit.id, value, rounded, text: tooSmall ? `¼ ${unit.short}ndan az` : `${formatQuarters(rounded)} ${unit.short}`, tooSmall };
+function amountIn(unit: (typeof MEASURE_UNITS)[number], value: number): MeasureAmount {
+  const rounded = roundMeasure(value, unit.id);
+  const household = unit.id !== "g" && unit.id !== "ml";
+  const outOfRange = household && (value < MEASURE_HOUSEHOLD_RANGE[0] || value > MEASURE_HOUSEHOLD_RANGE[1]);
+  const text = !outOfRange ? formatMeasure(value, unit.id)
+    : value < MEASURE_HOUSEHOLD_RANGE[0] ? `¼ ${unit.short}ndan az` : `20 ${unit.short}ndan fazla`;
+  return { unit: unit.id, value, rounded, text, outOfRange };
 }
 
 /**
- * Converts between household measures, ml and grams. Grams need a known
- * ingredient (density); an unknown or missing one is refused, never guessed.
+ * Converts between household measures, ml and grams with the mobile math:
+ * everything goes through millilitres; grams need a known ingredient
+ * (density), an unknown or missing one is refused, never guessed.
+ * `others` are the remaining units, skipping out-of-range cups/spoons and
+ * grams for an unknown ingredient (mobile `converterRows`).
  */
 export function convertMeasure(input: { amount: unknown; from: unknown; to: unknown; ingredient?: unknown }): MeasureResult {
-  const amount = parseAmount(input.amount);
-  if (amount === null) return { ok: false, error: "invalid_amount" };
+  const n = parseAmount(input.amount);
+  if (n === null || n <= 0) return { ok: false, error: "invalid_amount" };
   const from = MEASURE_UNITS.find(u => u.id === input.from);
   const to = MEASURE_UNITS.find(u => u.id === input.to);
   if (!from || !to) return { ok: false, error: "unknown_unit" };
-  const ingredient = MEASURE_INGREDIENTS.find(i => i.id === input.ingredient) || null;
-  const needsDensity = from.ml === null || to.ml === null;
-  if (needsDensity && from.id !== to.id && !ingredient) return { ok: false, error: "unknown_ingredient" };
+  const info = ingredientDensity(input.ingredient);
+  const needsDensity = (from.id === "g") !== (to.id === "g");
+  if (needsDensity && !info) return { ok: false, error: "unknown_ingredient" };
 
-  let ml: number;
-  let grams: number | null;
-  if (from.ml === null) {
-    if (amount > MEASURE_MAX_G) return { ok: false, error: "too_large" };
-    grams = amount;
-    ml = ingredient ? amount / ingredient.density : NaN;
-  } else {
-    ml = amount * from.ml;
-    if (ml > MEASURE_MAX_ML) return { ok: false, error: "too_large" };
-    grams = ingredient ? ml * ingredient.density : null;
-  }
-  if (from.id === "g" && to.id === "g" && !ingredient) {
-    const rounded = roundMetric(amount);
-    return { ok: true, ml: NaN, grams: amount, result: { unit: "g", value: amount, rounded, text: `${formatDecimal(rounded)} g`, tooSmall: false }, others: [] };
-  }
-  const result = amountIn(to, ml, grams)!;
+  const density = info ? info.density : 1;
+  const ml = from.ml === null ? n / density : n * from.ml;
+  if (ml > MEASURE_MAX_ML) return { ok: false, error: "too_large" };
+  const grams = from.ml === null ? n : info ? ml * info.density : null;
+  /** Value in a unit; null when it would need an unknown density. */
+  const valueIn = (unit: (typeof MEASURE_UNITS)[number]): number | null => {
+    if (unit.id === from.id) return n;
+    if (unit.ml === null) return info ? ml * info.density : null;
+    if (from.ml === null && !info) return null;
+    return ml / unit.ml;
+  };
+
+  const result = amountIn(to, valueIn(to) as number);
   const others = MEASURE_UNITS
     .filter(u => u.id !== to.id && u.id !== from.id)
-    .map(u => amountIn(u, ml, grams))
-    .filter((a): a is MeasureAmount => a !== null && !a.tooSmall && !(a.unit !== "ml" && a.unit !== "g" && a.rounded > 20));
+    .map(u => {
+      const value = valueIn(u);
+      return value === null ? null : amountIn(u, value);
+    })
+    .filter((a): a is MeasureAmount => a !== null && !a.outOfRange);
   return { ok: true, ml, grams, result, others };
 }
 

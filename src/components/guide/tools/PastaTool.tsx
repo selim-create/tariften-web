@@ -2,31 +2,30 @@
 
 import { useId, useState } from "react";
 import {
-  formatDecimal, formatMinutes, formatQuarters, PASTA_GRAMS_MAX, PASTA_GRAMS_MIN, PASTA_GRAMS_STEP, PASTA_PACKAGE_MAX,
-  PASTA_PACKAGE_MIN, PASTA_TYPES, pastaCookTime, pastaWaterSalt, type PastaTexture,
+  formatMinutes, formatNumberTr, PASTA_PACKAGE_RANGE, PASTA_PORTION_RANGE, PASTA_SHAPES, PASTA_TEXTURES,
+  pastaCookTime, pastaWaterSalt, type PastaTexture,
 } from "@/lib/guide-tools";
 import KitchenTimer from "./KitchenTimer";
-import { ChoiceGroup, ErrorNote, Stat, Stepper } from "./ToolBits";
+import { ChoiceGroup, ErrorNote, SafetyNote, Stat, Stepper } from "./ToolBits";
 
-const TYPE_OPTIONS = [...PASTA_TYPES.map(p => ({ id: p.id, label: p.label })), { id: "paket", label: "Paketteki süre" }];
+const TYPE_OPTIONS = [...PASTA_SHAPES.map(p => ({ id: p.id as string, label: p.label })), { id: "paket", label: "Paketteki süre" }];
 
 export default function PastaTool() {
   const [type, setType] = useState("spagetti");
   const [packageMinutes, setPackageMinutes] = useState("");
-  const [texture, setTexture] = useState<PastaTexture>("aldente");
-  const [grams, setGrams] = useState(200);
+  const [texture, setTexture] = useState<PastaTexture>("al_dente");
+  const [portions, setPortions] = useState(2);
   const inputId = useId();
   const errorId = useId();
 
   const time = pastaCookTime({ type, packageMinutes, texture });
-  const water = pastaWaterSalt(grams);
-  const precook = time.ok && time.precook;
+  const water = pastaWaterSalt(portions);
   const showPackageError = type === "paket" && !time.ok && packageMinutes.trim() !== "";
-  const selected = PASTA_TYPES.find(p => p.id === type);
+  const note = (time.ok ? time.note : null) ?? water?.note ?? null;
 
-  const doneText = precook
-    ? "Yaprakları süzüp soğuk suya al ve birbirine yapışmasın diye tek tek ser."
-    : texture === "aldente" ? "Bir tane tadına bak: dişe hafif direnç veriyorsa hemen süz." : "Bir tane tadına bak; yumuşadıysa süz.";
+  const doneText = texture === "al_dente"
+    ? "Bir tane tadına bak: dişe hafif direnç veriyorsa hemen süz."
+    : "Bir tane tadına bak; yumuşadıysa süz.";
 
   return (
     <div className="space-y-6">
@@ -45,50 +44,39 @@ export default function PastaTool() {
         )}
 
         <div className="grid gap-5 sm:grid-cols-2">
-          {precook ? (
-            <div>
-              <span className="gd-tool-strong mb-2 block text-sm font-semibold">Kıvam</span>
-              <span className="gd-tool-muted block text-[13.5px] leading-relaxed">
-                Lazanya yaprağı yalnızca ön haşlanır, fırında pişmeye devam eder. Ön haşlama gerektirmeyen yapraklarda bu adımı atla.
-              </span>
-            </div>
-          ) : (
-            <ChoiceGroup legend="Kıvam" value={texture} onChange={setTexture} columns={2}
-              options={[
-                { id: "aldente", label: "Al dente", hint: "Dişe hafif direnç" },
-                { id: "yumusak", label: "Yumuşak", hint: "Tamamen yumuşak" },
-              ]} />
-          )}
-          <Stepper label="Porsiyon (kuru makarna)" value={water.grams} display={`${water.grams} g`}
-            min={PASTA_GRAMS_MIN} max={PASTA_GRAMS_MAX} step={PASTA_GRAMS_STEP} onChange={setGrams}
-            decreaseLabel="Makarna miktarını 50 g azalt" increaseLabel="Makarna miktarını 50 g artır" />
+          <ChoiceGroup legend="Kıvam" value={texture} onChange={setTexture} columns={2}
+            options={PASTA_TEXTURES.map(t => ({ id: t.id, label: t.label, hint: t.description }))} />
+          <Stepper label="Porsiyon (kişi başı 100 g)" value={portions} display={`${portions} kişilik`}
+            min={PASTA_PORTION_RANGE[0]} max={PASTA_PORTION_RANGE[1]} step={1} onChange={setPortions}
+            decreaseLabel="Bir porsiyon azalt" increaseLabel="Bir porsiyon artır" />
         </div>
       </div>
 
       <div className="gd-tool-panel p-3.5 sm:p-5">
         {showPackageError && (
           <div id={errorId} className="mb-4">
-            <ErrorNote>Paketteki süreyi {PASTA_PACKAGE_MIN}–{PASTA_PACKAGE_MAX} dakika arasında bir sayı olarak yaz (örn. 9 ya da 8,5).</ErrorNote>
+            <ErrorNote>Paketteki süreyi {PASTA_PACKAGE_RANGE[0]}–{PASTA_PACKAGE_RANGE[1]} dakika arasında bir sayı olarak yaz (örn. 9 ya da 8,5).</ErrorNote>
           </div>
         )}
         <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-3">
-          <Stat label={precook ? "Ön haşlama" : "Pişirme"}
+          <Stat label="Pişirme"
             value={time.ok ? formatMinutes(time.seconds) : "—"}
-            sub={time.ok ? (precook ? "Kaynar suda" : `Paket süresi ${formatDecimal(time.packageMinutes)} dk`) : "Paketteki süreyi yaz"} />
-          <Stat label="Su" value={`${formatDecimal(water.waterLiters)} L`} sub="Her 100 g için 1 litre" />
-          <Stat label="Tuz" value={`${formatDecimal(water.saltGrams)} g`}
-            sub={`≈ ${formatQuarters(water.saltSpoon.amount)} ${water.saltSpoon.unit} · litre başına 10 g`} />
+            sub={time.ok ? `Paket süresi ${formatNumberTr(time.packageMinutes)} dk` : "Paketteki süreyi yaz"} />
+          <Stat label="Su" value={water ? `${formatNumberTr(water.waterLiters)} L` : "—"} sub="Her 100 g için 1 litre" />
+          <Stat label="Tuz" value={water ? `${formatNumberTr(water.saltGrams, 0)} g` : "—"}
+            sub={water ? `${water.saltHint.replace("yaklaşık ", "≈ ")} · litre başına 10 g` : undefined} />
         </div>
-        <p className="gd-tool-muted mt-3 text-[13px] leading-snug">
-          {water.grams} g ≈ {formatDecimal(water.servings)} kişilik ana yemek (kişi başı 100 g).
-          {selected && !precook && selected.id === "eriste" ? " Ev yapımı taze erişte çok daha kısa sürede (2–4 dk) pişer." : ""}
-        </p>
+        {water && (
+          <p className="gd-tool-muted mt-3 text-[13px] leading-snug">
+            {water.portions} kişilik ana yemek için {water.grams} g kuru makarna (kişi başı 100 g).
+          </p>
+        )}
 
         <ol className="mt-5 space-y-2 text-[15px] leading-relaxed">
           {[
             "Geniş bir tencerede suyu kaynat; kaynayınca tuzu ekle.",
             "Makarnayı at, ilk dakika birkaç kez karıştır ve zamanlayıcıyı başlat.",
-            precook ? "Süre dolunca yaprakları süz, soğuk suya al." : "Süzmeden önce bir kepçe makarna suyu ayır; sosu bağlar.",
+            "Süzmeden önce bir kepçe makarna suyu ayır; sosu bağlar.",
           ].map((step, i) => (
             <li key={step} className="flex gap-3">
               <span className="gd-tool-strong grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand/10 text-xs font-semibold tabular-nums">{i + 1}</span>
@@ -101,6 +89,8 @@ export default function PastaTool() {
           <KitchenTimer seconds={time.ok ? time.seconds : 0} disabled={!time.ok} label="Makarna zamanlayıcısı" doneText={doneText} />
         </div>
       </div>
+
+      {note && <SafetyNote>{note}</SafetyNote>}
     </div>
   );
 }

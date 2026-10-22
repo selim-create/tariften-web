@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
-  DRYING_FOODS, DRYING_METHODS, DRYING_NO_MEAT_NOTE, dryingPlan, formatRange, SUN_MIN_AIR_C, type DryingMethod,
+  DRYING_FOODS, DRYING_GENERAL_NOTES, DRYING_METHODS, DRYING_NO_MEAT_NOTE, dryingPlan, type DryingFoodId, type DryingMethod,
 } from "@/lib/guide-tools";
 import { ChoiceGroup, InfoBlock, SafetyNote, Stat } from "./ToolBits";
 
+const methodLabel = (id: DryingMethod) => DRYING_METHODS.find(m => m.id === id)?.label || id;
+
 export default function DryingTool() {
-  const [foodId, setFoodId] = useState(DRYING_FOODS[0].id);
-  const [method, setMethod] = useState<DryingMethod>("oven");
+  const [foodId, setFoodId] = useState<DryingFoodId>(DRYING_FOODS[0].id);
+  const [method, setMethod] = useState<DryingMethod>("firin");
   const result = dryingPlan(foodId, method);
   const food = DRYING_FOODS.find(f => f.id === foodId) || DRYING_FOODS[0];
 
@@ -19,39 +21,38 @@ export default function DryingTool() {
         <ChoiceGroup legend="Ne kurutacaksın?" value={foodId} onChange={setFoodId}
           options={DRYING_FOODS.map(f => ({ id: f.id, label: f.label }))} />
         <ChoiceGroup legend="Yöntem" value={method} onChange={setMethod} columns={3}
-          options={DRYING_METHODS.map(m => ({ id: m.id, label: m.label, hint: food.methods[m.id] ? undefined : "Önerilmez" }))} />
+          options={DRYING_METHODS.map(m => ({ id: m.id, label: m.label, hint: "notRecommended" in food.methods[m.id] ? "Önerilmez" : undefined }))} />
       </div>
 
       <div className="gd-tool-panel p-3.5 sm:p-5" aria-live="polite">
         {result.ok ? (
           <>
             <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2">
-              <Stat label={result.plan.temperature ? "Sıcaklık" : "Hava"}
-                value={result.plan.temperature ? formatRange(result.plan.temperature, "°C") : food.kind === "herb" ? "Gölge, havadar" : `En az ${SUN_MIN_AIR_C} °C`}
-                sub={result.plan.temperature ? (method === "oven" ? "Fırın termometresiyle ölç" : "Makinenin ayarı") : food.kind === "herb" ? "Doğrudan güneş değil" : "Sıcak, kuru ve rüzgârlı günler"} />
-              <Stat label="Süre" value={formatRange(result.plan.time, result.plan.time.unit)}
-                sub="Parça kalınlığına ve neme göre değişir" />
+              <Stat label={result.tempC ? "Sıcaklık" : "Hava"} value={result.tempLabel}
+                sub={result.tempC ? (method === "firin" ? "Fırın termometresiyle ölç" : "Makinenin ayarı") : result.food.group === "ot" ? "Doğrudan güneş değil" : "Sıcak, kuru ve rüzgârlı günler"} />
+              <Stat label="Süre" value={result.timeLabel}
+                sub="Dilim kalınlığına, neme ve cihaza göre değişir; ilk kontrolü en kısa sürede yap" />
             </div>
             <div className="mt-5 grid gap-4">
-              <InfoBlock title="Hazırlık"><p>{result.food.prep}</p></InfoBlock>
-              <InfoBlock title={method === "sun" ? "Nasıl kurutulur" : "Kuruturken"}>
-                {result.methodNotes.map(note => <p key={note}>{note}</p>)}
-                {result.plan.note && <p className="mt-1">{result.plan.note}</p>}
+              <InfoBlock title="Hazırlık"><p>{result.prep}</p></InfoBlock>
+              <InfoBlock title={method === "firin" ? "Fırında" : method === "makine" ? "Makinede" : result.food.group === "ot" ? "Gölgede" : "Güneşte"}>
+                <p>{result.conditions}</p>
               </InfoBlock>
               {result.finish && <InfoBlock title="Son işlem"><p>{result.finish}</p></InfoBlock>}
-              <InfoBlock title="Hazır mı?"><p>{result.food.ready}</p></InfoBlock>
-              <InfoBlock title="Saklama"><p>{result.food.storage}</p></InfoBlock>
+              <InfoBlock title="Hazır mı?"><p>{result.ready}</p></InfoBlock>
+              <InfoBlock title="Saklama"><p>{result.storage}</p></InfoBlock>
+              {result.notes.filter(note => note !== result.finish).map(note => <SafetyNote key={note}>{note}</SafetyNote>)}
             </div>
           </>
-        ) : result.error === "unsupported" ? (
+        ) : result.error === "not_recommended" ? (
           <div className="space-y-3">
-            <SafetyNote title={`${result.food.label} için ${DRYING_METHODS.find(m => m.id === result.method)?.label.toLocaleLowerCase("tr-TR")} önerilmez.`}>
+            <SafetyNote title={`${result.food.label}: ${methodLabel(result.method).toLocaleLowerCase("tr-TR")} önerilmiyor.`}>
               {result.reason}
             </SafetyNote>
             <div className="flex flex-wrap gap-2">
               {result.alternatives.map(alt => (
                 <button key={alt} type="button" onClick={() => setMethod(alt)} className="gd-tool-btn">
-                  {DRYING_METHODS.find(m => m.id === alt)?.label} ile devam et
+                  {methodLabel(alt)} ile kurut
                 </button>
               ))}
             </div>
@@ -59,10 +60,10 @@ export default function DryingTool() {
         ) : null}
       </div>
 
-      <p className="gd-tool-muted flex items-start gap-2 text-[13px] leading-relaxed">
-        <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-        <span>Hazır olup olmadığını süreye değil teste göre anla. Değerler ev için güvenli ve temkinli aralıklardır; küf, koku ya da yapışkanlık görürsen tüketme.</span>
-      </p>
+      <ul className="gd-tool-muted space-y-1.5 text-[13px] leading-relaxed">
+        <li>Hazır olup olmadığını süreye değil teste göre anla; küf, koku ya da yapışkanlık görürsen tüketme.</li>
+        {DRYING_GENERAL_NOTES.map(note => <li key={note}>{note}</li>)}
+      </ul>
 
       <details className="gd-tool-tile group">
         <summary className="gd-tool-strong flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 text-[14.5px] font-semibold [&::-webkit-details-marker]:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">

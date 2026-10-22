@@ -29,7 +29,7 @@ export default function MeasureTool() {
     if (result.ok) {
       // Carry the answer over so a swap reads naturally ("110 g" → "1 su bardağı").
       const value = result.result.rounded;
-      if (value > 0 && !result.result.tooSmall) setAmount(String(value).replace(".", ","));
+      if (value > 0 && !result.result.outOfRange) setAmount(String(value).replace(".", ","));
     }
   }
 
@@ -82,8 +82,10 @@ export default function MeasureTool() {
             <span className="gd-tool-strong mt-0.5 block font-heading text-[32px] font-semibold leading-tight tabular-nums sm:text-[38px]">
               ≈ {result.result.text}
             </span>
-            {result.result.tooSmall && (
-              <span className="gd-tool-muted mt-1 block text-[13.5px]">Bu kadar küçük bir miktar için daha küçük bir ölçü seç.</span>
+            {result.result.outOfRange && (
+              <span className="gd-tool-muted mt-1 block text-[13.5px]">
+                {result.result.value < 1 ? "Bu kadar küçük bir miktar için daha küçük bir ölçü seç." : "Bu kadar büyük bir miktar için daha büyük bir ölçü seç."}
+              </span>
             )}
             {result.others.length > 0 && (
               <div className="mt-5">
