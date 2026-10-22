@@ -8,6 +8,7 @@ import { updateProfile, uploadAvatar, deleteAccount } from "@/lib/auth-client";
 import { useAuth } from "@/context/AuthContext";
 import PageIntro from "@/components/account/PageIntro";
 import AccountAvatar from "@/components/account/AccountAvatar";
+import BlockedMembersPanel from "@/components/account/BlockedMembersPanel";
 
 const FIELD = "w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] text-slate-800 transition focus:border-brand/40 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand/10";
 const LABEL = "mb-1.5 block text-sm font-medium text-slate-700";
@@ -298,11 +299,15 @@ export default function EditProfilePage() {
             </div>
           </form>
 
-          {/* Hesap silme */}
+          <BlockedMembersPanel />
+
+          {/* Hesap silme (Core 1.0.67: yayındaki tarifler anonim olarak kalır) */}
           <section aria-labelledby="edit-danger" className="rounded-3xl border border-red-200 bg-white p-5 sm:p-7">
             <h2 id="edit-danger" className="font-heading text-lg font-bold text-red-700">Hesabı sil</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              Hesabını sildiğinde tariflerin, favorilerin ve dolabın kalıcı olarak silinir. Bu işlem geri alınamaz.
+              Hesabın, taslakların, sana özel tariflerin, favorilerin ve dolabın kalıcı olarak silinir. Yayındaki tariflerin
+              sitede <strong className="font-semibold text-slate-800">Tariften Topluluğu</strong> adıyla anonim olarak kalır;
+              yorumların &quot;Eski üye&quot; adıyla anonimleşir. Bu işlem geri alınamaz.
             </p>
             <button type="button" onClick={() => setShowDeleteModal(true)}
               className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl border border-red-200 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-50">
@@ -332,11 +337,14 @@ export default function EditProfilePage() {
               <p>Hesabın ve şu verilerin <strong>kalıcı olarak</strong> silinecek:</p>
               <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-red-700">
                 <li>Profil bilgileri ve fotoğrafın</li>
-                <li>Oluşturduğun tüm tarifler</li>
-                <li>Favori ve pişirdiklerim listelerin</li>
-                <li>Dolap verilerin</li>
-                <li>Yorumların</li>
+                <li>Taslakların, sana özel ve onay bekleyen tariflerin</li>
+                <li>Menülerin, notların, favori ve pişirdiklerim listelerin</li>
+                <li>Dolap ve mutfak verilerin</li>
               </ul>
+            </div>
+            <div className="mb-4 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs leading-5 text-slate-600">
+              <p><strong className="font-semibold text-slate-800">Yayındaki tariflerin</strong> sitede kalır ve yazar olarak <strong className="font-semibold text-slate-800">Tariften Topluluğu</strong> görünür; adın yer almaz.</p>
+              <p className="mt-1.5"><strong className="font-semibold text-slate-800">Yorumların</strong> kalır ama anonimleşir: &quot;Eski üye&quot; adıyla, fotoğrafsız ve e-postasız görünür.</p>
             </div>
 
             <label htmlFor="delete-confirm" className="mb-1.5 block text-sm text-slate-700">

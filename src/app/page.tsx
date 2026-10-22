@@ -13,6 +13,8 @@ import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import { lokmaDishName } from "@/lib/lokma-emoji";
 import { isPlaceholderImage } from "@/lib/utils";
 import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
+import HideIfBlocked from "@/components/safety/HideIfBlocked";
+import { recipeAuthorId } from "@/lib/ugc-safety";
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +47,7 @@ function FeatureCard({ recipe, large = false, sizes }: { recipe: Recipe; large?:
   const minutes = minutesOf(recipe);
   const kicker = recipe.cuisine?.[0] || recipe.meal_type?.[0];
   return (
+    <HideIfBlocked authorId={recipeAuthorId(recipe)}>
     <Link href={`/recipe/${recipe.slug}`}
       className={`group relative block h-full overflow-hidden rounded-3xl ring-1 ring-black/5 ${photo ? "bg-slate-900" : "bg-[#f6efe8]"} ${large ? "min-h-[360px] lg:min-h-[520px]" : "min-h-[240px]"}`}>
       {photo ? (
@@ -71,6 +74,7 @@ function FeatureCard({ recipe, large = false, sizes }: { recipe: Recipe; large?:
         )}
       </div>
     </Link>
+    </HideIfBlocked>
   );
 }
 
@@ -153,9 +157,11 @@ export default async function Home() {
             </SectionHeading>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
               {editorRecipes.map(recipe => (
-                <div key={recipe.id} className="h-[300px]">
-                  <FeatureCard recipe={recipe} sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" />
-                </div>
+                <HideIfBlocked key={recipe.id} authorId={recipeAuthorId(recipe)}>
+                  <div className="h-[300px]">
+                    <FeatureCard recipe={recipe} sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" />
+                  </div>
+                </HideIfBlocked>
               ))}
             </div>
           </div>

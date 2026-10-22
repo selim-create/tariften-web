@@ -6,6 +6,8 @@ import { isPlaceholderImage } from "@/lib/utils";
 import RecipeCover from "@/components/recipe/RecipeCover";
 import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
 import RecipeCardBadges from "@/components/recipes/RecipeCardBadges";
+import HideIfBlocked from "@/components/safety/HideIfBlocked";
+import { recipeAuthorId } from "@/lib/ugc-safety";
 
 /** Positive whole number from API data, or null. Never a default. */
 function positive(value: unknown): number | null {
@@ -16,6 +18,7 @@ function positive(value: unknown): number | null {
 /**
  * One recipe card for every list (home, library, similar recipes).
  * Shows only facts the recipe has: no "0 dk", no bare calorie number.
+ * Disappears for a member who blocked its author (Core 1.0.67).
  */
 export default function RecipeCard({ recipe, sizes = "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" }: { recipe: Recipe; sizes?: string }) {
   const minutes = (positive(recipe.prep_time) ?? 0) + (positive(recipe.cook_time) ?? 0);
@@ -24,6 +27,7 @@ export default function RecipeCard({ recipe, sizes = "(min-width: 1024px) 33vw, 
   const kicker = recipe.cuisine?.[0] || recipe.meal_type?.[0];
 
   return (
+    <HideIfBlocked authorId={recipeAuthorId(recipe)}>
     <Link href={`/recipe/${recipe.slug}`} className="group block">
       <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 ring-1 ring-black/5">
         {isPlaceholderImage(recipe.image) ? (
@@ -44,5 +48,6 @@ export default function RecipeCard({ recipe, sizes = "(min-width: 1024px) 33vw, 
         </p>
       )}
     </Link>
+    </HideIfBlocked>
   );
 }

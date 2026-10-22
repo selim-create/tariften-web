@@ -172,6 +172,10 @@ export default function RegisterPage() {
           </span>
         </label>
 
+        <p className="text-[13px] leading-relaxed text-slate-500">
+          Hesap oluşturarak <Link href="/terms" target="_blank" className="font-medium text-slate-600 underline underline-offset-2 hover:text-brand">Kullanım Koşulları</Link>’nı ve <Link href="/terms#topluluk-kurallari" target="_blank" className="font-medium text-slate-600 underline underline-offset-2 hover:text-brand">Topluluk Kuralları</Link>’nı kabul etmiş olursun. Uygunsuz içeriğe ve kötüye kullanıma izin verilmez.
+        </p>
+
         <SubmitButton loading={loading} loadingLabel="Kaydediliyor…">
           Hesap oluştur <ArrowRight className="h-4 w-4" aria-hidden />
         </SubmitButton>

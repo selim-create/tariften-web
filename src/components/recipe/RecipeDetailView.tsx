@@ -15,6 +15,9 @@ import SocialHeroSourceButton from "@/components/recipe/SocialHeroSourceButton";
 import RecipeJsonLd from '@/components/RecipeJsonLd';
 import { isPlaceholderImage } from "@/lib/utils";
 import RejindeBanner from '@/components/RejindeBanner';
+import ContentSafetyMenu from "@/components/safety/ContentSafetyMenu";
+import BlockedRecipeGate from "@/components/safety/BlockedRecipeGate";
+import { recipeAuthorId } from "@/lib/ugc-safety";
 import type { Recipe } from "@/types";
 
 function getYoutubeVideoId(url: string) {
@@ -50,6 +53,8 @@ export default function RecipeDetailView({ recipe }: { recipe: Recipe }) {
     recipe.image.includes("placehold.co") ||
     recipe.image.includes("images.unsplash.com") ||
     recipe.image.includes("pexels.com"));
+
+  const authorId = recipeAuthorId(recipe);
 
   const prep = positiveNumber(recipe.prep_time);
   const cook = positiveNumber(recipe.cook_time);
@@ -87,17 +92,22 @@ export default function RecipeDetailView({ recipe }: { recipe: Recipe }) {
       {/* Private recipes are never offered to search engines. */}
       {recipe.visibility !== "private" && <RecipeJsonLd recipe={recipe} />}
 
-      <div className="container mx-auto max-w-6xl px-4 pt-6">
-        <nav aria-label="Sayfa konumu" className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-gray-500">
+      <div className="container mx-auto flex max-w-6xl items-center gap-3 px-4 pt-6">
+        <nav aria-label="Sayfa konumu" className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-gray-500">
           <Link href="/" className="transition hover:text-brand">Anasayfa</Link>
           <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" aria-hidden />
           <Link href="/recipes" className="transition hover:text-brand">Tarifler</Link>
           <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" aria-hidden />
           <span className="truncate font-medium text-slate-700">{recipe.title}</span>
         </nav>
+        {/* "⋯": Bildir / engelle on recipes the viewer did not write (Core 1.0.67). */}
+        <ContentSafetyMenu targetType="recipe" targetId={recipe.id} label="Tarif seçenekleri"
+          author={recipe.author ? { id: authorId, name: recipe.author.name, avatar: recipe.author.avatar } : authorId ? { id: authorId } : null}
+          className="-my-2 -mr-2 shrink-0" />
       </div>
 
       <div className="container mx-auto max-w-6xl px-4 pt-6 sm:pt-8">
+        <BlockedRecipeGate recipeId={recipe.id} authorId={authorId} authorName={recipe.author?.name || ""} authorBlocked={recipe.author_blocked === true}>
         <RecipeReviewNotice recipeId={recipe.id} authorId={recipe.author?.id ?? 0} />
         <RejindeBanner recipeId={recipe.id} />
 
@@ -216,6 +226,7 @@ export default function RecipeDetailView({ recipe }: { recipe: Recipe }) {
         <RecipeAllergenNotice allergens={recipe.allergens} />
 
         <RecipeDetailClient recipe={recipe} />
+        </BlockedRecipeGate>
       </div>
     </main>
   );
