@@ -1,5 +1,9 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+/* The site's theme toggle (ThemeContext) sets .dark on <html>. Bind every
+   `dark:` utility to that class instead of the OS setting, so a light site on
+   a dark OS stays light and a dark site on a light OS is fully dark. */
+@custom-variant dark (&:where(.dark, .dark *));
 @theme {
   /* Renk Tanımları (v4 stili) */
   --color-brand: #db4c3f;
