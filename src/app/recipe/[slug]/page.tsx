@@ -10,6 +10,7 @@ import EditButton from "@/components/recipe/EditButton";
 import RecipeReviewNotice from "@/components/recipe/RecipeReviewNotice";
 import RecipeCover from "@/components/recipe/RecipeCover";
 import SocialPlatformBadge from "@/components/recipe/SocialPlatformBadge";
+import SocialHeroSourceButton from "@/components/recipe/SocialHeroSourceButton";
 import { Metadata } from 'next';
 import RecipeJsonLd from '@/components/RecipeJsonLd';
 import { isPlaceholderImage } from "@/lib/utils";
@@ -164,7 +165,10 @@ export default async function RecipeDetailPage({
               <RecipeCover title={recipe.title} kicker={recipe.cuisine?.[0]} />
             )}
 
-            <SocialPlatformBadge source={recipe.social_source} />
+            {/* Over a real photo the creator pill plays the original video, as in the app. */}
+            {recipe.social_source && hasPhoto
+              ? <SocialHeroSourceButton source={recipe.social_source} />
+              : <SocialPlatformBadge source={recipe.social_source} />}
             {!videoId && isAiRecipe && (
               <span className="absolute bottom-4 left-4 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-black/5 backdrop-blur">
                 AI önerisi
