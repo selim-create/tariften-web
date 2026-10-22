@@ -128,11 +128,16 @@ test('topics and sitemap: tree with counts, levels deduped, sitemap slugs valida
   assert.deepEqual(g.normalizeGuideTopics(undefined), { topics: [], levels: [] });
 
   assert.deepEqual(g.normalizeGuideSitemap({ data: [
-    { slug: 'yumurta-haslama-sureleri', url: 'https://tariften.com/rehber/yumurta-haslama-sureleri', updated_at: '2026-10-21T09:30:00Z' },
+    { slug: 'yumurta-haslama-sureleri', url: 'https://tariften.com/rehber/yumurta-haslama-sureleri', updated_at: '2026-10-21T09:30:00Z', image: 'https://api.tariften.com/wp-content/uploads/y.jpg' },
     { slug: 'yumurta-haslama-sureleri', updated_at: '2026-10-01T00:00:00Z' },
     { slug: '../etc', updated_at: 'x' },
     { slug: 'tarihsiz', updated_at: 'not a date' },
-  ] }), [{ slug: 'yumurta-haslama-sureleri', updatedAt: '2026-10-21T09:30:00Z' }, { slug: 'tarihsiz', updatedAt: null }]);
+    { slug: 'http-gorsel', image: 'http://insecure.example/x.jpg' },
+  ] }), [
+    { slug: 'yumurta-haslama-sureleri', updatedAt: '2026-10-21T09:30:00Z', image: 'https://api.tariften.com/wp-content/uploads/y.jpg' },
+    { slug: 'tarihsiz', updatedAt: null, image: null },
+    { slug: 'http-gorsel', updatedAt: null, image: null },
+  ]);
   assert.deepEqual(g.normalizeGuideSitemap({ code: 'rest_no_route' }), []);
 });
 
@@ -282,7 +287,15 @@ test('JSON-LD: Article + BreadcrumbList always, FAQPage only with questions; scr
   assert.deepEqual(article.image, ['https://api.tariften.com/wp-content/uploads/2026/10/yumurta.jpg']);
   assert.equal(article.datePublished, '2026-10-20T08:00:00Z');
   assert.equal(article.dateModified, '2026-10-21T09:30:00Z');
-  assert.deepEqual(article.author, { '@type': 'Person', name: 'Selim Altınkaynak' });
+  assert.deepEqual(article.author, { '@type': 'Organization', name: 'Tariften Mutfak Ekibi', url: 'https://tariften.com/about' }, 'editorial team, not the WP username');
+  assert.match(article.publisher.logo.url, /\.png$/, 'raster publisher logo for Google');
+  assert.equal(article.isAccessibleForFree, true);
+  assert.match(article.keywords, /Teknikler/);
+  assert.equal(g.guideJsonLd(guide, [], { wordCount: 812 })[0].wordCount, 812);
+  assert.equal(g.guideWordCount('<p>Bir iki &amp; üç</p><h2>dört</h2>'), 5);
+  const list = g.guideListJsonLd('Mutfak Rehberi', 'Açıklama', 'https://tariften.com/rehber', [g.normalizeGuideSummary({ slug: 'a-b', title: 'A B' })]);
+  assert.equal(list['@type'], 'CollectionPage');
+  assert.deepEqual(list.mainEntity.itemListElement, [{ '@type': 'ListItem', position: 1, url: 'https://tariften.com/rehber/a-b', name: 'A B' }]);
   assert.equal(article.articleSection, 'Teknikler');
   assert.equal(crumbs['@type'], 'BreadcrumbList');
   assert.deepEqual(crumbs.itemListElement.map(i => i.item), [
@@ -321,7 +334,14 @@ test('wiring: routes, sitemap, navigation and dark-mode styles are in place', ()
   assert.match(sitemap, /getGuideSitemap\(\)/);
   assert.match(sitemap, /\/rehber\/\$\{guide\.slug\}/);
 
-  assert.match(read('src/components/layout/Header.tsx'), /href: "\/rehber", label: "Mutfak Rehberi"/);
+  const header = read('src/components/layout/Header.tsx');
+  assert.doesNotMatch(header, /href: "\/rehber", label: "Mutfak Rehberi"/, 'not in the text menu any more');
+  assert.match(header, /href="\/rehber" aria-label="Mutfak Rehberi"[\s\S]*?<BookOpenText/, 'icon button with the guide icon');
+  assert.match(header, /<BookOpenText className="h-\[18px\] w-\[18px\] text-gray-400" aria-hidden \/> Mutfak Rehberi/, 'mobile menu row with icon');
+  const detailPage = read('src/app/rehber/[slug]/page.tsx');
+  assert.match(detailPage, /<ShareButtons title=\{guide.title\} url=\{guide.seo.canonical\} \/>/, 'share buttons on the guide page');
+  assert.match(detailPage, /lg:col-span-2 lg:max-w-3xl/, 'title starts at the left edge on desktop');
+  assert.match(detailPage, /lg:col-start-2 lg:row-start-2 lg:mt-12 lg:max-w-\[68ch\]/, 'cover image sized to the text column');
   assert.match(read('src/components/layout/Footer.tsx'), /href="\/rehber"/);
 
   const css = read('src/app/globals.css');

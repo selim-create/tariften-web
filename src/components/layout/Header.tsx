@@ -7,15 +7,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import GlobalCreateMenu from "@/components/navigation/GlobalCreateMenu";
-import { Bookmark, CalendarDays, ChevronDown, LogOut, Menu, Moon, Search, Settings, ShoppingBasket, Sun, UserRound, X } from "lucide-react";
+import { BookOpenText, Bookmark, CalendarDays, ChevronDown, LogOut, Menu, Moon, Search, Settings, ShoppingBasket, Sun, UserRound, X } from "lucide-react";
 
-// `wide`: shown in the desktop bar from lg up only; md–lg has no room beside the
-// account buttons (the mobile menu and footer always list it).
+// `wide`: shown in the desktop bar from lg up only (md–lg has no room beside the
+// account buttons). Mutfak Rehberi is an icon button next to the tools instead.
 const NAV: readonly { href: string; label: string; wide?: boolean; match: readonly string[] }[] = [
   { href: "/recipes", label: "Tarifler", match: ["/recipes", "/recipe/"] },
   { href: "/menus", label: "Menüler", match: ["/menus", "/menu/"] },
   { href: "/pantry", label: "Dolap Modu", match: ["/pantry"] },
-  { href: "/rehber", label: "Mutfak Rehberi", wide: true, match: ["/rehber"] },
   { href: "/blog", label: "Blog", match: ["/blog"] },
 ];
 
@@ -165,6 +164,11 @@ export default function Header() {
           </form>
 
           <div className={isSearchOpen ? "hidden" : "flex items-center gap-1"}>
+            {/* Mutfak Rehberi lives with the icon tools, not in the text menu. */}
+            <Link href="/rehber" aria-label="Mutfak Rehberi" title="Mutfak Rehberi" aria-current={isActive(pathname, ["/rehber"]) ? "page" : undefined}
+              className={`${iconButton} hidden sm:grid ${isActive(pathname, ["/rehber"]) ? "text-brand" : ""}`}>
+              <BookOpenText className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            </Link>
             <GlobalCreateMenu />
             <Link href="/cookbook" aria-label="Tarif defterim" title="Tarif defterim"
               className={`${iconButton} hidden sm:grid ${isActive(pathname, ["/cookbook"]) ? "text-brand" : ""}`}>
@@ -266,6 +270,10 @@ export default function Header() {
               </Link>
             );
           })}
+          <Link href="/rehber" aria-current={isActive(pathname, ["/rehber"]) ? "page" : undefined}
+            className={`flex items-center gap-3 py-4 text-[15px] ${isActive(pathname, ["/rehber"]) ? "text-brand" : "text-slate-700"}`}>
+            <BookOpenText className="h-[18px] w-[18px] text-gray-400" aria-hidden /> Mutfak Rehberi
+          </Link>
           <Link href="/cookbook" className="flex items-center gap-3 py-4 text-[15px] text-slate-700">
             <Bookmark className="h-[18px] w-[18px] text-gray-400" aria-hidden /> Tarif defterim
           </Link>

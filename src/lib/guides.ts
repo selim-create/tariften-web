@@ -85,7 +85,7 @@ export interface GuideLevel { slug: string; name: string; count: number }
 
 export interface GuideTopics { topics: GuideTopic[]; levels: GuideLevel[] }
 
-export interface GuideSitemapEntry { slug: string; updatedAt: string | null }
+export interface GuideSitemapEntry { slug: string; updatedAt: string | null; image: string | null }
 
 export interface GuideListParams { topic: string | null; level: string | null; page: number }
 
@@ -314,7 +314,7 @@ export function normalizeGuideSitemap(value: unknown): GuideSitemapEntry[] {
     const slug = text(entry.slug);
     if (!isGuideSlug(slug) || seen.has(slug)) continue;
     seen.add(slug);
-    out.push({ slug, updatedAt: isoDate(entry.updated_at) });
+    out.push({ slug, updatedAt: isoDate(entry.updated_at), image: httpsUrl(entry.image) });
   }
   return out;
 }
@@ -614,10 +614,20 @@ export function guideDate(value: string | null | undefined): string {
 }
 
 /** Article + optional FAQPage + BreadcrumbList structured data for a guide. */
-export function guideJsonLd(guide: Guide, faq: GuideFaqItem[]): Record<string, unknown>[] {
+/** The editorial team signs every guide (AI-assisted drafts, edited by Tariften). */
+export const GUIDE_AUTHOR = { "@type": "Organization", name: "Tariften Mutfak Ekibi", url: `${GUIDE_SITE_URL}/about` } as const;
+
+/** Words in rendered article HTML (for schema.org wordCount). */
+export function guideWordCount(html: string): number {
+  const plain = decodeEntities(html.replace(/<[^>]*>/g, " "));
+  return plain.split(/\s+/u).filter(Boolean).length;
+}
+
+export function guideJsonLd(guide: Guide, faq: GuideFaqItem[], opts: { wordCount?: number } = {}): Record<string, unknown>[] {
   const url = guide.seo.canonical;
   const image = guide.seo.ogImage?.url || guide.image;
   const topic = guide.topics[0] || null;
+  const keywords = [...guide.topics.map(t => t.name), ...(guide.level ? [guide.level.name] : []), "mutfak rehberi"];
   const article: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -629,9 +639,14 @@ export function guideJsonLd(guide: Guide, faq: GuideFaqItem[]): Record<string, u
     ...(image ? { image: [image] } : {}),
     ...(guide.publishedAt ? { datePublished: guide.publishedAt } : {}),
     ...(guide.updatedAt || guide.publishedAt ? { dateModified: guide.updatedAt || guide.publishedAt } : {}),
-    author: guide.authorName ? { "@type": "Person", name: guide.authorName } : { "@type": "Organization", name: "Tariften", url: GUIDE_SITE_URL },
-    publisher: { "@type": "Organization", name: "Tariften", url: GUIDE_SITE_URL, logo: { "@type": "ImageObject", url: `${GUIDE_SITE_URL}/logo.svg` } },
+    author: GUIDE_AUTHOR,
+    // Google needs a raster publisher logo (SVG is ignored).
+    publisher: { "@type": "Organization", name: "Tariften", url: GUIDE_SITE_URL, logo: { "@type": "ImageObject", url: `${GUIDE_SITE_URL}/tariften-symbol.png`, width: 500, height: 500 } },
     ...(topic ? { articleSection: topic.name } : {}),
+    keywords: keywords.join(", "),
+    about: guide.topics.map(t => ({ "@type": "Thing", name: t.name })),
+    ...(opts.wordCount ? { wordCount: opts.wordCount } : {}),
+    isAccessibleForFree: true,
     isPartOf: { "@type": "CollectionPage", name: "Tariften Mutfak Rehberi", url: `${GUIDE_SITE_URL}/rehber` },
   };
   const crumbs = [
@@ -653,6 +668,29 @@ export function guideJsonLd(guide: Guide, faq: GuideFaqItem[]): Record<string, u
     });
   }
   return out;
+}
+
+/** CollectionPage + ItemList for /rehber (and its topic pages). */
+export function guideListJsonLd(name: string, description: string, url: string, guides: GuideSummary[]): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name,
+    description,
+    url,
+    inLanguage: "tr-TR",
+    isPartOf: { "@type": "WebSite", name: "Tariften", url: GUIDE_SITE_URL },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: guides.length,
+      itemListElement: guides.map((guide, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `${GUIDE_SITE_URL}/rehber/${guide.slug}`,
+        name: guide.title,
+      })),
+    },
+  };
 }
 
 /** JSON for a <script type="application/ld+json">, safe against "</script>". */

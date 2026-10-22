@@ -6,7 +6,7 @@ import GuideCard from "@/components/guide/GuideCard";
 import { FOCUS } from "@/components/guide/GuideBits";
 import { getGuides, getGuideTopics } from "@/lib/guides-api";
 import {
-  findGuideTopic, GUIDE_SITE_URL, guideListHref, guidePageWindow, parseGuideListParams,
+  findGuideTopic, GUIDE_SITE_URL, guideListHref, guideListJsonLd, guidePageWindow, jsonLdString, parseGuideListParams,
   type GuideLevel, type GuideListParams, type GuideTopic,
 } from "@/lib/guides";
 
@@ -31,7 +31,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
     description,
     alternates: { canonical },
     ...(params.level ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { title, description, type: "website", url: canonical, images: ["/og-image.jpg"] },
+    openGraph: { title, description, type: "website", url: canonical, siteName: "Tariften", locale: "tr_TR", images: ["/og-image.jpg"] },
     twitter: { card: "summary_large_image", title, description, images: ["/og-image.jpg"] },
   };
 }
@@ -135,9 +135,13 @@ export default async function GuideListPage({ searchParams }: { searchParams: Se
   const [{ topics, levels }, list] = await Promise.all([getGuideTopics(), getGuides(params)]);
   const found = findGuideTopic(topics, params.topic);
   const filtered = Boolean(params.topic || params.level);
+  const pageName = found ? `${found.topic.name} rehberleri` : "Mutfak Rehberi";
+  const listJsonLd = guideListJsonLd(pageName, found?.topic.description || DESCRIPTION,
+    `${GUIDE_SITE_URL}${guideListHref({ topic: found ? params.topic : null, page: params.page })}`, list?.data ?? []);
 
   return (
     <main className="gd-page min-h-screen bg-[#fcfcfc] pb-24">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(listJsonLd) }} />
       <PageIntro crumb="Mutfak Rehberi" kicker={`Mutfak Rehberi${list && !filtered && list.count > 0 ? ` · ${list.count} rehber` : ""}`}
         title="Mutfağın *püf noktaları.*">
         {found?.topic.description || "Bıçak bilemekten turşu kurmaya, saklama sürelerinden ölçü dönüşümlerine: adım adım, sade ve güvenilir rehberler."}
