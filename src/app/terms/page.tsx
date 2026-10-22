@@ -10,6 +10,7 @@ const SECTIONS = [
   { id: "konu-kapsam", label: "1. Sözleşme’nin Konusu ve Kapsamı" },
   { id: "hak-yukumluluk", label: "2. Taraflar’ın Hak ve Yükümlülükleri" },
   { id: "icerik-paylasimi", label: "3. İçerik Paylaşımı Faaliyetlerine İlişkin Koşullar" },
+  { id: "topluluk-kurallari", label: "Topluluk Kuralları, Bildirme ve Engelleme" },
   { id: "sorumluluk", label: "4. Sorumluluğun Sınırlandırılması" },
   { id: "mucbir-sebepler", label: "5. Mücbir Sebepler" },
   { id: "askiya-alma-fesih", label: "6. Sözleşme’nin Askıya Alınması, Devri ve Feshi" },
@@ -23,7 +24,7 @@ const NUM = "font-semibold text-slate-900";
 export default function TermsPage() {
   return (
     <LegalPage kicker="Kullanım Koşulları" title="Kullanıcı Sözleşmesi"
-      updated="Son Güncelleme: Ocak 2026" sections={SECTIONS}>
+      updated="Son Güncelleme: Ekim 2026" sections={SECTIONS}>
         <section id="sozlesme-hakkinda" className="mb-12 scroll-mt-24">
           <LegalNote title="Sözleşme Hakkında">
             <p>
@@ -269,6 +270,27 @@ export default function TermsPage() {
                 veya karşılık talep etmeksizin, gayri kabili-i rücu Şirket’e devretmeyi taahhüt eder.
               </li>
             </ul>
+          </LegalSectionBlock>
+
+        <LegalSectionBlock id="topluluk-kurallari" title="Topluluk Kuralları, Bildirme ve Engelleme">
+            <p>
+              Tariften’de uygunsuz içeriğe ve kötüye kullanıcı davranışına hiçbir şekilde
+              izin verilmez. Hakaret, taciz, nefret söylemi, cinsel içerik, şiddet,
+              sağlığa zararlı veya tehlikeli yönlendirmeler, spam, telif hakkı ihlali ve
+              yanıltıcı bilgi içeren tarif, yorum ve diğer İçerik’ler yasaktır.
+            </p>
+            <p>
+              Kullanıcılar, uygunsuz buldukları tarif, yorum ve üyeleri Platform’daki
+              “Bildir” seçeneğiyle Şirket’e bildirebilir ve kendilerini rahatsız eden
+              üyeleri “Engelle” seçeneğiyle engelleyebilir. Engellenen üyenin tarifleri ve
+              yorumları engelleyen Kullanıcı’ya gösterilmez; engeller hesap ayarlarından
+              her zaman kaldırılabilir.
+            </p>
+            <p>
+              Bildirimler en geç 24 saat içinde incelenir. Şirket, kurallara aykırı
+              İçerik’i önceden bildirimde bulunmaksızın yayından kaldırma ve kuralları
+              ihlal eden Kullanıcı’nın hesabını askıya alma veya kapatma hakkına sahiptir.
+            </p>
           </LegalSectionBlock>
 
         {/* 4 */}

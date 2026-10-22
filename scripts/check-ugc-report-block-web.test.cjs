@@ -339,3 +339,20 @@ test('account deletion copy: published recipes stay anonymously, drafts deleted,
   assert.match(page, /href="\/profile\/edit"/);
   assert.match(page, /HESABIMI SIL/);
 });
+
+test('terms state zero tolerance, report/block and 24 h review; register asks for consent', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.join(__dirname, '..');
+  const terms = fs.readFileSync(path.join(root, 'src/app/terms/page.tsx'), 'utf8');
+  const register = fs.readFileSync(path.join(root, 'src/app/register/page.tsx'), 'utf8');
+  const assert = require('node:assert/strict');
+  assert.match(terms, /id="topluluk-kurallari"/);
+  assert.match(terms, /hiçbir şekilde\s+izin verilmez/);
+  assert.match(terms, /“Bildir”/);
+  assert.match(terms, /“Engelle”/);
+  assert.match(terms, /24 saat/);
+  assert.match(register, /href="\/terms"/);
+  assert.match(register, /\/terms#topluluk-kurallari/);
+  assert.match(register, /kabul etmiş olursun/);
+});
