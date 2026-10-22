@@ -27,7 +27,7 @@ const platforms = {
  * invented or scraped from AI output; unknown values stay hidden.
  * The video is loaded only after the visitor requests playback.
  */
-export default function SocialRecipeSourceCard({ source }: { source: RecipeSocialSource }) {
+export default function SocialRecipeSourceCard({ source, recipeId }: { source: RecipeSocialSource; recipeId: number }) {
   const [watching, setWatching] = useState(false);
   const youtube = source.platform === "youtube";
   const platform = platforms[source.platform] ?? platforms.instagram;
@@ -107,7 +107,7 @@ export default function SocialRecipeSourceCard({ source }: { source: RecipeSocia
                 : <><Play className="h-3.5 w-3.5 fill-current" aria-hidden /> Videoyu izle</>}
             </button>
           )}
-          <a href={`mailto:iletisim@tariften.com?subject=${encodeURIComponent("Tarif içerik itirazı / kaldırma talebi")}&body=${encodeURIComponent("Merhaba, aşağıdaki sosyal medya kaynaklı tarifle ilgili itiraz/kaldırma talebinde bulunuyorum.\\n\\nKaynak: " + source.url + "\\nTarif sayfası: " + (typeof window !== "undefined" ? window.location.href : "") + "\\nGerekçe: ") }`}
+          <a href={`/content-report?recipe=${recipeId}`}
             className="inline-flex h-10 items-center rounded-xl border border-gray-200 px-3 text-xs font-medium text-slate-600 transition hover:border-gray-300 hover:text-brand">
             İçeriğe itiraz et
           </a>
