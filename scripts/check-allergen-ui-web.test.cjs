@@ -234,7 +234,7 @@ test('every web /ai/generate call handles the 422 allergen refusal and the succe
 
   const pantry = read('src/app/pantry/page.tsx');
   assert.doesNotMatch(pantry, /generateAIRecipe/);
-  assert.match(pantry, /await generateRecipeClient\(user\.token, prompt\)/);
+  assert.match(pantry, /await generateRecipeClient\(user\.token, prompt(?:, household)?\)/);
   assert.match(pantry, /if \(isAllergenConflict\(error\)\)/);
   assert.match(pantry, /<AllergenConflictDetails conflicts=\{notice\.conflicts\}/);
   const action = pantry.slice(pantry.indexOf('const handleAiAction'), pantry.indexOf('const confirmPendingSave'));

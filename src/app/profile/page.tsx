@@ -3,12 +3,13 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookmarkCheck, ChefHat, Loader2, NotebookPen, Settings2, UtensilsCrossed } from "lucide-react";
+import { BookmarkCheck, ChefHat, Loader2, NotebookPen, Settings2, StickyNote, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getUserInteractions } from "@/lib/api";
 import { useAccountQuotas } from "@/lib/account-quotas-client";
 import QuotaPanel from "@/components/account/QuotaPanel";
 import MyKitchenLibrary from "@/components/account/MyKitchenLibrary";
+import MyRecipeNotes from "@/components/account/MyRecipeNotes";
 import KitchenProfileCard from "@/components/account/KitchenProfileCard";
 import PageIntro from "@/components/account/PageIntro";
 import AccountAvatar from "@/components/account/AccountAvatar";
@@ -16,13 +17,14 @@ import RecipeCard from "@/components/recipes/RecipeCard";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
 import type { Recipe } from "@/types";
 
-type Tab = "recipes" | "menus" | "favorite" | "cooked";
+type Tab = "recipes" | "menus" | "favorite" | "cooked" | "notes";
 
 const TABS = [
   { key: "recipes", label: "Tariflerim", icon: NotebookPen },
   { key: "menus", label: "Sofralarım", icon: UtensilsCrossed },
   { key: "favorite", label: "Favoriler", icon: BookmarkCheck },
   { key: "cooked", label: "Pişirdiklerim", icon: ChefHat },
+  { key: "notes", label: "Notlarım", icon: StickyNote },
 ] as const;
 
 /** The level the member picked for themselves in settings. */
@@ -95,13 +97,13 @@ export default function ProfilePage() {
 
         <div>
           <div role="tablist" aria-label="Mutfak kütüphanem"
-            className="mb-8 grid grid-cols-2 gap-1 rounded-2xl border border-gray-200 bg-white p-1 sm:inline-grid sm:grid-cols-4">
+            className="mb-8 grid grid-cols-2 gap-1 rounded-2xl border border-gray-200 bg-white p-1 sm:inline-grid sm:grid-cols-5">
             {TABS.map(({ key, label, icon: Icon }) => {
               const active = activeTab === key;
               const count = key === "favorite" ? favorites.length : key === "cooked" ? recentActivity.length : null;
               return (
                 <button key={key} type="button" role="tab" aria-selected={active} onClick={() => setActiveTab(key)}
-                  className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${active ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}>
+                  className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition last:col-span-2 sm:last:col-span-1 ${active ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}>
                   <Icon className="h-4 w-4" aria-hidden />{label}
                   {count !== null && !interactionsLoading && <span className={`tabular-nums text-xs ${active ? "text-white/70" : "text-gray-400"}`}>{count}</span>}
                 </button>
@@ -116,6 +118,7 @@ export default function ProfilePage() {
             {activeTab === "menus" && (
               <MyKitchenLibrary key="menus" kind="menus" token={user.token} userId={Number(user.id)} />
             )}
+            {activeTab === "notes" && <MyRecipeNotes key="notes" token={user.token} />}
             {(activeTab === "favorite" || activeTab === "cooked") && (
               interactionsLoading ? (
                 <p role="status" className="flex items-center justify-center gap-2 py-16 text-sm text-gray-500"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Tariflerin yükleniyor…</p>

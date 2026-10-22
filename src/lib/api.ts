@@ -3,6 +3,7 @@
 import { APIResponse, Recipe, PantryItem, Menu, BlogPost } from "@/types"
 import { revalidatePath } from "next/cache";
 import { parseIngredients, parseSteps } from "./recipeUtils"; 
+import { buildGeneratePayload, type HouseholdRequest } from "./household-adapt";
 
 // ⚠️ DİKKAT: Backend URL'inizi buraya girin. Localhost kullanıyorsanız güncelleyin.
 const API_URL = "https://api.tariften.com/wp-json";
@@ -104,7 +105,7 @@ export async function getRecipeById(id: number): Promise<Recipe | null> {
 }
 
 // AI Tarif Üretimi
-export async function generateAIRecipe(token: string, ingredients: string) {
+export async function generateAIRecipe(token: string, ingredients: string, household: HouseholdRequest = {}) {
   try {
     const res = await fetch(`${API_URL}/tariften/v1/ai/generate`, {
       method: "POST",
@@ -112,10 +113,9 @@ export async function generateAIRecipe(token: string, ingredients: string) {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
-      body: JSON.stringify({ 
-        ingredients: ingredients,
-        type: 'suggest' 
-      }),
+      // adapt_household only when the member turned "Evime göre uyarla" on.
+      body: JSON.stringify(buildGeneratePayload(ingredients, household)),
+      cache: "no-store",
     });
 
     const data = await res.json();

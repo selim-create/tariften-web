@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import PageIntro from "@/components/account/PageIntro";
 import LokmaIngredientIcon from "@/components/lokma/LokmaIngredientIcon";
+import HouseholdAdaptToggle from "@/components/recipes/HouseholdAdaptToggle";
+import { useHouseholdSize } from "@/hooks/useHouseholdSize";
+import { householdRequest } from "@/lib/household-adapt";
 
 // --- TYPES ---
 type SaveStatus = "saved" | "saving" | "error";
@@ -91,6 +94,9 @@ export default function PantryPage() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [tempDateInput, setTempDateInput] = useState("");
   const [aiLoading, setAiLoading] = useState<null | AiActionType>(null);
+  // "Evime göre uyarla (N kişi)": off by default; hidden without a household size.
+  const householdSize = useHouseholdSize();
+  const [adaptHousehold, setAdaptHousehold] = useState(false);
   // A generated recipe with "possible" allergen matches waits for the member.
   const [pendingSave, setPendingSave] = useState<PendingSave | null>(null);
   const [savingPending, setSavingPending] = useState(false);
@@ -301,7 +307,8 @@ export default function PantryPage() {
     setNotice(null);
     try {
       // Same-origin route: a 422 allergen refusal arrives as a typed error.
-      const aiResponse = await generateRecipeClient(user.token, prompt);
+      const household = householdRequest(adaptHousehold, householdSize);
+      const aiResponse = await generateRecipeClient(user.token, prompt, household);
       if (aiResponse.success && aiResponse.recipe) {
         const caution = allergenCautionsFrom(aiResponse.recipe);
         if (caution) {
@@ -491,6 +498,8 @@ export default function PantryPage() {
                 </span>
               </button>
             </div>
+            <HouseholdAdaptToggle size={householdSize} checked={adaptHousehold} onChange={setAdaptHousehold}
+              disabled={aiLoading !== null} tone="dark" className="mt-3" />
             <p className="mt-4 text-xs leading-5 text-slate-400">Şefin hazırladığı tarif hesabına kaydedilir ve tarif sayfası açılır.</p>
           </section>
 

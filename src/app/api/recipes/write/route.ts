@@ -52,6 +52,11 @@ export async function POST(request: NextRequest) {
     if (typeof source !== "string" || !source.trim() || source.length > 2000) {
       return respond(400, "Tarif adını veya malzemeleri kontrol et.");
     }
+    // Household adaptation is opt-in: forward the flag only as a literal true.
+    const generatePayload = payload as Record<string, unknown>;
+    if ("adapt_household" in generatePayload && generatePayload.adapt_household !== true) {
+      delete generatePayload.adapt_household;
+    }
   }
   try {
     const upstream = await fetch(CORE + ACTIONS[kind], {
