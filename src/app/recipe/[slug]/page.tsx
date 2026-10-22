@@ -76,6 +76,11 @@ export async function generateMetadata({
   };
 }
 
+/** Phone columns by number of facts, so no row ends with a lone cell. */
+const FACT_COLS: Record<number, string> = {
+  1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-2", 5: "grid-cols-3",
+};
+
 export default async function RecipeDetailPage({
   params
 }: {
@@ -200,17 +205,20 @@ export default async function RecipeDetailPage({
             )}
 
             {facts.length > 0 && (
-              <dl className="mb-8 flex flex-wrap gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+              /* A quiet strip, not a box of cells: reads cleanly with 3 or with all 5
+                 facts. Phones: 2–3 columns chosen by count (no orphan cell);
+                 large screens: one line with hairline dividers. */
+              <dl className={`mb-8 grid gap-x-4 gap-y-5 border-y border-gray-200 py-5 ${FACT_COLS[Math.min(facts.length, 5)]} lg:flex lg:gap-0 lg:divide-x lg:divide-gray-200`}>
                 {facts.map(({ icon: Icon, label, value, hint, note }) => (
-                  <div key={label} title={hint} className="flex min-w-0 flex-1 basis-[30%] flex-col gap-1 bg-white px-4 py-3.5 sm:basis-0">
-                    <dt className="flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-gray-500">
-                      <Icon className="h-3.5 w-3.5 text-gray-400" aria-hidden strokeWidth={1.75} />
+                  <div key={label} title={hint} className="min-w-0 lg:flex-1 lg:px-5 lg:first:pl-0 lg:last:pr-0">
+                    <dt className="flex items-center gap-1.5 whitespace-nowrap text-[11.5px] font-medium text-gray-500">
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden strokeWidth={1.75} />
                       {label}
                     </dt>
-                    <dd className="whitespace-nowrap text-[15px] font-semibold text-slate-900 tabular-nums">
+                    <dd className="mt-1 whitespace-nowrap font-heading text-[17px] font-semibold tracking-[-0.01em] text-slate-900 tabular-nums">
                       {value}
-                      {note && <span className="ml-1 text-[11px] font-normal text-gray-500">{note}</span>}
                     </dd>
+                    {note && <dd className="mt-0.5 text-[11px] leading-none text-gray-400">{note}</dd>}
                   </div>
                 ))}
               </dl>
