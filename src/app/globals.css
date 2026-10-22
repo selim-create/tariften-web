@@ -386,3 +386,290 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .lokma-float { animation: none; }
 }
+
+/* Mutfak Rehberi (gd-*): the guide article body (Gutenberg HTML from Core),
+   callouts, key points, FAQ and tables, plus dark-mode tints for the guide
+   pages. Unlayered on purpose so it wins over the crude `.dark p` / `.dark h2`
+   rules above without touching them. */
+.gd-body {
+  max-width: 68ch;
+  color: #334155;
+  font-size: 1.0625rem;
+  line-height: 1.8;
+  overflow-wrap: break-word;
+}
+.gd-body > :first-child { margin-top: 0; }
+.gd-body p { margin: 1.15em 0; }
+.gd-body > p:first-child {
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: #475569;
+}
+@media (min-width: 640px) {
+  .gd-body > p:first-child { font-size: 1.1875rem; }
+}
+.gd-body h2 {
+  margin: 2.6em 0 0.75em;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  scroll-margin-top: 6rem;
+  text-wrap: balance;
+}
+.gd-body h3 {
+  margin: 2em 0 0.5em;
+  font-family: var(--font-heading);
+  font-size: 1.1875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+  scroll-margin-top: 6rem;
+}
+.gd-body h4,
+.gd-body h5,
+.gd-body h6 {
+  margin: 1.6em 0 0.4em;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+@media (min-width: 640px) {
+  .gd-body h2 { font-size: 1.75rem; }
+  .gd-body h3 { font-size: 1.25rem; }
+}
+.gd-body strong,
+.gd-body b { font-weight: 600; color: #0f172a; }
+.gd-body a {
+  color: #b03d32;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: rgb(219 76 63 / 0.35);
+  text-underline-offset: 3px;
+}
+.gd-body a:hover { text-decoration-color: currentColor; }
+.gd-body ul,
+.gd-body ol { margin: 1.15em 0; padding-left: 1.35em; }
+.gd-body ul { list-style: disc; }
+.gd-body ol { list-style: decimal; }
+.gd-body li { margin: 0.45em 0; padding-left: 0.25em; }
+.gd-body li::marker { color: #db4c3f; }
+.gd-body ol > li::marker { font-weight: 600; font-variant-numeric: tabular-nums; }
+.gd-body hr { margin: 2.5em 0; border: 0; border-top: 1px solid #eee7e3; }
+.gd-body blockquote {
+  margin: 1.75em 0;
+  padding: 0.25em 0 0.25em 1.25em;
+  border-left: 3px solid #db4c3f;
+  color: #475569;
+  font-style: italic;
+}
+.gd-body figure { margin: 2em 0; }
+.gd-body figcaption { margin-top: 0.6em; font-size: 0.875rem; color: #64748b; text-align: center; }
+.gd-body img { max-width: 100%; height: auto; border-radius: 1rem; }
+.gd-body iframe {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 1rem;
+  background: #0f172a;
+}
+.gd-body .wp-block-embed__wrapper { position: static; }
+.gd-body code {
+  padding: 0.1em 0.35em;
+  border-radius: 0.375rem;
+  background: #f6efe8;
+  font-size: 0.9em;
+}
+
+/* Tables: their own horizontally scrolling card, so the page never scrolls sideways. */
+.gd-body .wp-block-table { margin: 2em 0; }
+.gd-body .wp-block-table figcaption { text-align: left; }
+.gd-table-scroll {
+  margin: 2em 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border: 1px solid #eee7e3;
+  border-radius: 1rem;
+  background: #fff;
+  -webkit-overflow-scrolling: touch;
+}
+.wp-block-table > .gd-table-scroll { margin: 0; }
+.gd-table-scroll:focus-visible { outline: 2px solid #db4c3f; outline-offset: 2px; }
+.gd-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.gd-body th,
+.gd-body td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #f1ebe6;
+}
+.gd-body td { min-width: 8.5rem; color: #334155; }
+.gd-body th {
+  background: #faf6f2;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+}
+.gd-body tbody tr:last-child td { border-bottom: 0; }
+.gd-body td:first-child { font-weight: 500; color: #0f172a; }
+
+/* İpucu / Dikkat callouts written by Core as p.tariften-tip / p.tariften-warning. */
+.gd-body .tariften-tip,
+.gd-body .tariften-warning {
+  position: relative;
+  margin: 1.75em 0;
+  padding: 1rem 1.25rem 1rem 3.25rem;
+  border: 1px solid #efe3d6;
+  border-radius: 1rem;
+  background: #fbf6f0;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.gd-body .tariften-warning {
+  border-color: #f4d3cd;
+  background: #fff5f3;
+}
+.gd-body .tariften-tip::before,
+.gd-body .tariften-warning::before {
+  content: "";
+  position: absolute;
+  left: 1.1rem;
+  top: 1.15rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: #c0841a;
+  -webkit-mask: var(--gd-icon) center / contain no-repeat;
+  mask: var(--gd-icon) center / contain no-repeat;
+}
+.gd-body .tariften-tip::before {
+  --gd-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5'/%3E%3Cpath d='M9 18h6'/%3E%3Cpath d='M10 22h4'/%3E%3C/svg%3E");
+}
+.gd-body .tariften-warning::before {
+  background-color: #db4c3f;
+  --gd-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+}
+.gd-body .gd-callout-label,
+.gd-body .tariften-tip > strong:first-child,
+.gd-body .tariften-warning > strong:first-child {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9a6512;
+}
+.gd-body .tariften-warning > .gd-callout-label,
+.gd-body .tariften-warning > strong:first-child { color: #b03d32; }
+
+/* "Bu rehberde": the opening key points as one calm cream card. */
+.gd-body .gd-keypoints {
+  margin: 2em 0 2.5em;
+  padding: 1.5rem 1.5rem 1.25rem;
+  border-radius: 1.5rem;
+  background: #f6efe8;
+}
+.gd-body .gd-keypoints h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #db4c3f;
+}
+.gd-body .gd-keypoints ul { margin: 0; padding: 0; list-style: none; }
+.gd-body .gd-keypoints li {
+  position: relative;
+  margin: 0.5em 0;
+  padding-left: 1.85rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #2a211c;
+}
+.gd-body .gd-keypoints li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.2em;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23db4c3f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 0.7rem no-repeat;
+}
+
+/* Sık sorulan sorular: question/answer pairs separated by hairlines. */
+.gd-body .gd-faq h3 {
+  margin: 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid #eee7e3;
+  font-size: 1.0625rem;
+}
+.gd-body .gd-faq h2 + h3 { margin-top: 1.25rem; }
+.gd-body .gd-faq h3 + p { margin-top: 0.4em; margin-bottom: 1.25rem; }
+
+/* Dark mode for the guide pages. */
+.dark .gd-page section { background-color: transparent; }
+.dark .gd-cream,
+.dark .gd-icon { background-color: rgb(246 239 232 / 0.07); }
+.dark .gd-icon { color: #f6a39a; --tw-ring-color: #334155; }
+.dark .gd-seg-on,
+.dark .gd-subchip-on { background-color: #f1f5f9; color: #0f172a; }
+.dark .gd-toc-on { color: #f1f5f9; }
+.dark .gd-safety {
+  background-color: rgb(16 185 129 / 0.1);
+  border-color: rgb(16 185 129 / 0.35);
+  color: #a7f3d0;
+}
+.dark .gd-safety svg { color: #6ee7b7; }
+.dark .gd-body { color: #cbd5e1; }
+.dark .gd-body p,
+.dark .gd-body li,
+.dark .gd-body td { color: #cbd5e1; }
+.dark .gd-body > p:first-child,
+.dark .gd-body blockquote { color: #94a3b8; }
+.dark .gd-body h2,
+.dark .gd-body h3,
+.dark .gd-body h4,
+.dark .gd-body strong,
+.dark .gd-body b,
+.dark .gd-body th,
+.dark .gd-body td:first-child { color: #f1f5f9; }
+.dark .gd-body a { color: #f6a39a; text-decoration-color: rgb(246 163 154 / 0.4); }
+.dark .gd-body hr,
+.dark .gd-body .gd-faq h3 { border-color: #334155; }
+.dark .gd-body code { background: rgb(246 239 232 / 0.08); }
+.dark .gd-table-scroll { background: #1e293b; border-color: #334155; }
+.dark .gd-body th { background: #243044; }
+.dark .gd-body th,
+.dark .gd-body td { border-color: #334155; }
+.dark .gd-body .tariften-tip {
+  background: rgb(245 158 11 / 0.07);
+  border-color: rgb(245 158 11 / 0.28);
+}
+.dark .gd-body .tariften-warning {
+  background: rgb(219 76 63 / 0.09);
+  border-color: rgb(219 76 63 / 0.35);
+}
+.dark .gd-body .tariften-tip::before { background-color: #fbbf24; }
+.dark .gd-body .tariften-warning::before { background-color: #f6a39a; }
+.dark .gd-body .tariften-tip > .gd-callout-label,
+.dark .gd-body .tariften-tip > strong:first-child { color: #fcd34d; }
+.dark .gd-body .tariften-warning > .gd-callout-label,
+.dark .gd-body .tariften-warning > strong:first-child { color: #f6a39a; }
+.dark .gd-body .gd-keypoints { background: rgb(246 239 232 / 0.06); }
+.dark .gd-body .gd-keypoints h2 { color: #f6a39a; }
+.dark .gd-body .gd-keypoints li { color: #e2e8f0; }
+.dark .gd-body .gd-keypoints li::before { background-color: #1e293b; }
+.dark .gd-bar-off { background-color: #475569; }

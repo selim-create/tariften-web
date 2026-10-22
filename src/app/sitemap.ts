@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { getMenus } from '@/lib/api'; // Menüleri getiren fonksiyon
+import { getGuideSitemap } from '@/lib/guides-api';
 
 const API_URL = "https://api.tariften.com/wp-json";
 const SITE_URL = "https://tariften.com";
@@ -14,7 +14,7 @@ async function getRecipeSlugs(): Promise<string[]> {
     if (!res.ok) return [];
     
     const data = await res.json();
-    return data.data?.map((recipe: any) => recipe.slug) || [];
+    return data.data?.map((recipe: { slug: string }) => recipe.slug) || [];
   } catch (error) {
     console.error('Sitemap fetch error (recipes):', error);
     return [];
@@ -32,7 +32,7 @@ async function getMenuSlugs(): Promise<string[]> {
     
     const data = await res.json();
     // Eğer dönen yapı { data: [...] } ise
-    return data.data?.map((menu: any) => menu.slug) || [];
+    return data.data?.map((menu: { slug: string }) => menu.slug) || [];
   } catch (error) {
     console.error('Sitemap fetch error (menus):', error);
     return [];
@@ -59,6 +59,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/rehber`, // Mutfak Rehberi
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
     },
     {
       url: `${SITE_URL}/pantry`,
@@ -98,5 +104,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...recipePages, ...menuPages];
+  // Mutfak Rehberi yazıları: Core'un /guides/sitemap listesi. Hata olursa boş döner,
+  // sitemap'in geri kalanı etkilenmez.
+  const guides = await getGuideSitemap();
+  const guidePages: MetadataRoute.Sitemap = guides.map((guide) => ({
+    url: `${SITE_URL}/rehber/${guide.slug}`,
+    ...(guide.updatedAt ? { lastModified: new Date(guide.updatedAt) } : {}),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...recipePages, ...menuPages, ...guidePages];
 }
